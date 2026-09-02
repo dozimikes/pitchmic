@@ -46,6 +46,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         _("active"),
         default=True,
     )
+    avatar_url: models.URLField = models.URLField(
+        _("avatar URL"),
+        blank=True,
+        default="",
+        help_text=_("Profile picture / avatar URL"),
+    )
     created_at: models.DateTimeField = models.DateTimeField(auto_now_add=True)
     updated_at: models.DateTimeField = models.DateTimeField(auto_now=True)
 

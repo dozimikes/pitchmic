@@ -36,8 +36,11 @@ class UserSerializer(serializers.ModelSerializer):
             "last_name",
             "full_name",
             "role",
+            "avatar_url",
             "is_verified",
             "is_active",
+            "is_staff",
+            "is_superuser",
             "created_at",
             "updated_at",
         )
@@ -45,6 +48,8 @@ class UserSerializer(serializers.ModelSerializer):
             "id",
             "is_verified",
             "is_active",
+            "is_staff",
+            "is_superuser",
             "created_at",
             "updated_at",
         )

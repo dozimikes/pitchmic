@@ -21,11 +21,15 @@ from drf_spectacular.views import (
 from apps.offers.views import OfferViewSet
 from apps.pitches.views import PitchViewSet
 from apps.users.views import (
+    AdminSummaryView,
     AvatarUploadView,
     InvestorProfileViewSet,
     LogoUploadView,
     LoginView,
     LogoutView,
+    MeView,
+    MeStartupProfileView,
+    MeInvestorProfileView,
     PitchCoverUploadView,
     RegisterView,
     ResendVerificationView,
@@ -94,11 +98,17 @@ urlpatterns: list = [
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
     path("api/auth/token/verify/", TokenVerifyView.as_view(), name="token-verify"),
     path("api/auth/logout/", LogoutView.as_view(), name="auth-logout"),
+    path("api/v1/auth/logout/", LogoutView.as_view(), name="auth-logout-v1"),
     path("api/auth/verify-email/", VerifyEmailView.as_view(), name="verify-email"),
+    path("api/v1/auth/verify-email/", VerifyEmailView.as_view(), name="verify-email-v1"),
     path("api/auth/resend-verification/", ResendVerificationView.as_view(), name="resend-verification"),
     path("api/v1/upload/avatar/", AvatarUploadView.as_view(), name="upload-avatar"),
     path("api/v1/upload/logo/", LogoUploadView.as_view(), name="upload-logo"),
     path("api/v1/upload/pitch-cover/", PitchCoverUploadView.as_view(), name="upload-pitch-cover"),
+    path("api/v1/me/", MeView.as_view(), name="me"),
+    path("api/v1/me/startup-profile/", MeStartupProfileView.as_view(), name="me-startup-profile"),
+    path("api/v1/me/investor-profile/", MeInvestorProfileView.as_view(), name="me-investor-profile"),
+    path("api/v1/admin/summary/", AdminSummaryView.as_view(), name="admin-summary"),
     #  ML / AI intelligence endpoints 
     path("api/v1/matching/", include((matching_urls, "matching"))),
     path("api/v1/analytics/", include((analytics_urls, "analytics"))),

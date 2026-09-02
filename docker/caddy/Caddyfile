@@ -1,0 +1,101 @@
+# =====================================================================
+# Caddy v2 — PitchMic reverse proxy
+# Rule order: first match wins.
+# =====================================================================
+
+{
+    auto_https off
+    debug
+}
+
+:80 {
+    # ---- Health probe (Caddy answers directly, no upstream needed) ----
+    handle /health {
+        respond "OK" 200
+    }
+
+    # ---- Django API + Admin + static/media ----
+    handle /api/v1/* {
+        reverse_proxy {$DJANGO_ORIGIN:-http://backend:8000}
+    }
+    handle /api/auth/* {
+        reverse_proxy {$DJANGO_ORIGIN:-http://backend:8000}
+    }
+    handle /admin/* {
+        reverse_proxy {$DJANGO_ORIGIN:-http://backend:8000}
+    }
+    handle /static/* {
+        reverse_proxy {$DJANGO_ORIGIN:-http://backend:8000}
+    }
+    handle /media/* {
+        reverse_proxy {$DJANGO_ORIGIN:-http://backend:8000}
+    }
+
+    # ---- Next.js auth pages ----
+    handle /sign-in* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+    handle /sign-up* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+    handle /verify* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+
+    # ---- Next.js dashboard (authenticated app) ----
+    handle /newsfeed* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+    handle /offers* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+    handle /pitches* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+    handle /profile* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+    handle /company* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+    handle /analytics* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+    handle /settings* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+    handle /upgrade* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+    handle /discover* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+    handle /app/* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+
+    # ---- Next.js marketing / landing ----
+    @marketing path / /about /blog /startups /investors
+    handle @marketing {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+
+    # ---- Next.js internal assets ----
+    handle /_next/* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+    handle /_vercel/* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+    handle /assets/* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+    handle /favicon.ico {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+
+    # ---- Catch-all: everything else goes to Next.js (404 page) ----
+    handle /* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+}

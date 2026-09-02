@@ -1,0 +1,84 @@
+target-version = "py312"
+
+[build]
+exclude = [
+    "**/migrations/*.py",
+    "**/node_modules",
+    "**/__pycache__",
+    ".venv",
+    "venv",
+    "staticfiles",
+]
+
+[lint]
+include = ["*.py"]
+select = [
+    "E",
+    "F",
+    "I",
+    "N",
+    "UP",
+    "B",
+    "SIM",
+    "RUF",
+    "TCH",
+    "PIE",
+    "ARG",
+]
+ignore = [
+    "E501",
+    "B008",
+    "RUF012",
+]
+
+[lint.per-file-ignores]
+"**/tests/*" = [
+    "ARG",
+    "S101",
+    "B018",
+]
+"**/conftest.py" = [
+    "ARG",
+]
+"**/migrations/*.py" = [
+    "E",
+    "F",
+    "RUF",
+    "I",
+    "B",
+    "SIM",
+]
+"manage.py" = [
+    "T201",
+    "S603",
+]
+
+[lint.isort]
+known-first-party = ["apps", "config"]
+known-third-party = [
+    "django",
+    "rest_framework",
+    "rest_framework_simplejwt",
+    "channels",
+    "celery",
+    "drf_spectacular",
+    "corsheaders",
+    "django_filters",
+    "redis",
+    "storages",
+]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+indent-width = 4
+line-length = 88
+docstring-code-format = true
+docstring-code-line-length = 88

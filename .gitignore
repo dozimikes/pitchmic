@@ -1,0 +1,63 @@
+# ===== Python / Django =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.db
+*.sqlite3
+*.sqlite
+backend/.venv/
+backend/venv/
+backend/staticfiles/
+backend/media/
+
+# ===== Node / Next.js =====
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+frontend/coverage/
+frontend/dist/
+*.tsbuildinfo
+.next-env.d.ts
+
+# ===== Environment / Secrets =====
+.env
+.env.local
+.env.production
+.env.secrets
+.env.*.local
+*.key
+*.pem
+*.p12
+.vault_password
+
+# ===== Build artifacts =====
+build/
+dist/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ===== Docker =====
+docker-compose.override.yml
+.docker/data/
+.docker/secrets/
+
+# npm cache
+frontend/.npm-cache/
+backend/.npm-cache/

@@ -1,0 +1,5 @@
+RC=0
+---STDOUT---
+System check identified no issues (0 silenced).
+
+---STDERR---

@@ -1,0 +1,343 @@
+'use client';
+
+import * as React from 'react';
+import Link from 'next/link';
+import {
+  Search,
+  Filter,
+  TrendingUp,
+  Sparkles,
+  Plus,
+  Loader2,
+  Rocket,
+  ArrowDown,
+  SlidersHorizontal,
+} from 'lucide-react';
+import { useNewsfeed } from '@/hooks/useNewsfeed';
+import { PitchCard } from '@/components/newsfeed/PitchCard';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { Separator } from '@/components/ui/Separator';
+import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
+
+type SortOption = 'newest' | 'popular' | 'trending' | 'featured';
+
+const SORT_OPTIONS: Array<{ value: SortOption; label: string; icon: React.ComponentType<{ className?: string | undefined }> }> = [
+  { value: 'newest', label: 'Newest', icon: Sparkles },
+  { value: 'trending', label: 'Trending', icon: TrendingUp },
+  { value: 'popular', label: 'Most liked', icon: Rocket },
+  { value: 'featured', label: 'Featured', icon: Sparkles },
+];
+
+const INDUSTRIES = [
+  'SaaS',
+  'AI / ML',
+  'Fintech',
+  'Healthtech',
+  'Climate',
+  'Consumer',
+  'E-commerce',
+  'B2B Software',
+];
+
+const STAGES = ['Pre-seed', 'Seed', 'Series A', 'Series B', 'Growth'];
+
+export default function NewsfeedPage() {
+  const { isStartup } = useAuth();
+  const [search, setSearch] = React.useState('');
+  const [sort, setSort] = React.useState<SortOption>('newest');
+  const [industry, setIndustry] = React.useState<string | undefined>(undefined);
+  const [stage, setStage] = React.useState<string | undefined>(undefined);
+  const [showFilters, setShowFilters] = React.useState(false);
+  const debouncedSearchRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = React.useState('');
+
+  React.useEffect(() => {
+    if (debouncedSearchRef.current) clearTimeout(debouncedSearchRef.current);
+    debouncedSearchRef.current = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 350);
+    return () => {
+      if (debouncedSearchRef.current) clearTimeout(debouncedSearchRef.current);
+    };
+  }, [search]);
+
+  const {
+    pitches,
+    isLoadingInitial,
+    isLoadingMore,
+    canLoadMore,
+    loadMore,
+    query,
+  } = useNewsfeed({
+    search: debouncedSearch || undefined,
+    sort,
+    industry,
+    stage,
+  });
+
+  const sentinelRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry?.isIntersecting && canLoadMore && !isLoadingMore) {
+          loadMore();
+        }
+      },
+      { rootMargin: '200px 0px' }
+    );
+
+    if (sentinelRef.current) {
+      observer.observe(sentinelRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [canLoadMore, isLoadingMore, loadMore]);
+
+  const activeFiltersCount =
+    (industry ? 1 : 0) + (stage ? 1 : 0) + (debouncedSearch ? 1 : 0);
+
+  const resetFilters = () => {
+    setSearch('');
+    setDebouncedSearch('');
+    setIndustry(undefined);
+    setStage(undefined);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              Newsfeed
+            </h1>
+            <Badge variant="default" className="bg-brand-deep-pitch-500 hover:bg-brand-deep-pitch-600">
+              <Sparkles className="mr-1 h-3 w-3" />
+              {pitches.length} pitches
+            </Badge>
+          </div>
+          <p className="mt-1 text-sm text-slate-600">
+            {isStartup
+              ? 'Explore other pitches and track how yours is performing.'
+              : 'Curated high-signal pitches matched to your investment focus.'}
+          </p>
+        </div>
+        {isStartup && (
+          <Link href="/pitches/new">
+            <Button
+              variant="default"
+              size="default"
+              leftIcon={<Plus className="h-4 w-4" />}
+              className="shadow-lg shadow-brand-orange-500/20"
+            >
+              New Pitch
+            </Button>
+          </Link>
+        )}
+      </div>
+
+      <Card className="border-slate-200 bg-white">
+        <CardContent className="space-y-4 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                type="search"
+                placeholder="Search pitches, startups, keywords..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-10"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="default"
+                onClick={() => setShowFilters((s) => !s)}
+                leftIcon={<SlidersHorizontal className="h-4 w-4" />}
+                className="h-10"
+              >
+                Filters
+                {activeFiltersCount > 0 && (
+                  <span className="ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-orange-500 px-1.5 text-[10px] font-bold text-white">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {SORT_OPTIONS.map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setSort(value)}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all',
+                  sort === value
+                    ? 'border-transparent bg-gradient-to-r from-brand-orange-500 to-brand-deep-pitch-500 text-white shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </button>
+            ))}
+            <div className="ml-auto flex items-center gap-2">
+              {activeFiltersCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetFilters}
+                  className="text-xs h-8"
+                >
+                  Reset
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {showFilters && (
+            <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4 sm:grid-cols-2">
+              <FilterGroup
+                title="Industry"
+                options={INDUSTRIES}
+                value={industry}
+                onChange={(v) => setIndustry(v === industry ? undefined : v)}
+              />
+              <FilterGroup
+                title="Stage"
+                options={STAGES}
+                value={stage}
+                onChange={(v) => setStage(v === stage ? undefined : v)}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Separator />
+
+      {isLoadingInitial ? (
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card
+              key={i}
+              className="h-[420px] overflow-hidden border-slate-200 animate-pulse"
+            >
+              <div className="aspect-[16/9] w-full bg-slate-200" />
+              <div className="space-y-3 p-5">
+                <div className="h-5 w-3/4 rounded bg-slate-200" />
+                <div className="space-y-2">
+                  <div className="h-3 w-full rounded bg-slate-200" />
+                  <div className="h-3 w-5/6 rounded bg-slate-200" />
+                  <div className="h-3 w-2/3 rounded bg-slate-200" />
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <div className="h-14 rounded bg-slate-200" />
+                  <div className="h-14 rounded bg-slate-200" />
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : pitches.length === 0 ? (
+        <Card className="border-dashed bg-slate-50/50">
+          <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-orange-500/10 to-brand-deep-pitch-500/10">
+              <Filter className="h-8 w-8 text-brand-orange-500" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900">No pitches match your filters</h3>
+            <p className="max-w-md text-sm text-slate-600">
+              Try removing some filters, adjusting your search, or exploring a
+              different sort order.
+            </p>
+            <Button
+              variant="outline"
+              onClick={resetFilters}
+              size="default"
+              leftIcon={<TrendingUp className="h-4 w-4" />}
+            >
+              Clear filters & show all
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {pitches.map((pitch, i) => (
+              <PitchCard key={`${pitch.id}-${i}`} pitch={pitch} index={i} />
+            ))}
+          </div>
+
+          <div ref={sentinelRef} className="h-1" />
+
+          <div className="mt-10 flex flex-col items-center justify-center gap-3">
+            {isLoadingMore ? (
+              <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm text-slate-600 shadow-sm">
+                <Loader2 className="h-4 w-4 animate-spin text-brand-orange-500" />
+                Loading more pitches...
+              </div>
+            ) : canLoadMore ? (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={loadMore}
+                leftIcon={<ArrowDown className="h-4 w-4" />}
+                className="shadow-sm"
+                disabled={query.isFetchingNextPage}
+              >
+                Load more
+              </Button>
+            ) : pitches.length > 0 ? (
+              <p className="rounded-full border border-slate-200 bg-white px-5 py-2 text-xs text-slate-500 shadow-sm">
+                 You&apos;re all caught up! Check back soon for new pitches.
+              </p>
+            ) : null}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+interface FilterGroupProps {
+  title: string;
+  options: string[];
+  value?: string | undefined;
+  onChange: (value: string) => void;
+}
+
+function FilterGroup({ title, options, value, onChange }: FilterGroupProps) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+        {title}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => onChange(option)}
+            className={cn(
+              'rounded-full border px-3 py-1 text-xs font-medium transition-all',
+              value === option
+                ? 'border-transparent bg-brand-orange-500 text-white shadow-sm'
+                : 'border-slate-200 bg-white text-slate-700 hover:border-brand-orange-300 hover:text-brand-orange-700'
+            )}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}

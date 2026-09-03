@@ -9,26 +9,33 @@
 
 Pitchmic is a two-sided marketplace and intelligence platform connecting **startup founders** seeking capital with **institutional investors** (VCs, Angels, Accelerators). It layers a full AI + ML intelligence engine on top of the core networking workflows.
 
-```
-Browser (Next.js 14)
-        |
-        |-- HTTPS + JWT
-        v
-Next.js BFF (/api/auth/*)
-        |
-        |-- Cookie JWT proxy
-        v
-Django 5 REST Backend  <------>  FastAPI ML Service
-        |                               |
-        |-- Read/Write                  |-- Redis Cache
-        v                               v
-  PostgreSQL           Redis 7     XGBoost / Heuristic
-        |                |
-        v                v
-  Celery Workers  <-- Broker/Results
-        |
-        v
-  LLM Gateway (OpenAI / Gemini)  [optional]
+```mermaid
+flowchart TD
+    Browser[" Browser\n(Next.js 14 App Router)"]
+    NextBFF["Next.js BFF\nAPI Routes\n/api/auth/*"]
+    DjangoBE["Django 5 REST Backend\n(8 Domain Apps + Intelligence Layer)"]
+    MLService["FastAPI ML Service\n(predictor / Bayesian / Survival / Anomaly)"]
+    PostgreSQL[(PostgreSQL\nPrimary DB)]
+    Redis[(Redis\nCache + Channels + Task Broker)]
+    Celery["Celery Workers\n(Async Tasks & Beats)"]
+    LLM["LLM Gateway\n(OpenAI / Google Gemini)"]
+    Storage["File Storage\n(S3-compatible)"]
+    WebSocket["WebSocket Server\n(Django Channels + Redis Layer)"]
+
+    Browser -->|HTTPS + JWT| NextBFF
+    Browser -->|HTTPS + JWT| DjangoBE
+    Browser <-->|WebSocket ws://| WebSocket
+    NextBFF -->|Cookie JWT proxy| DjangoBE
+    DjangoBE -->|Read/Write| PostgreSQL
+    DjangoBE -->|Cache Lookups| Redis
+    DjangoBE -->|Dispatch Tasks| Celery
+    DjangoBE -->|Prediction Requests| MLService
+    DjangoBE -->|Optional AI Pass| LLM
+    DjangoBE -->|File Upload/Download| Storage
+    Celery -->|Writes Results| PostgreSQL
+    Celery -->|Optional AI Pass| LLM
+    WebSocket <-->|Channel Layer| Redis
+    MLService -->|Cache Predictions| Redis
 ```
 
 ---
@@ -52,37 +59,127 @@ Django 5 REST Backend  <------>  FastAPI ML Service
 
 ### 2.2 Domain Application Map
 
-```
-backend/apps/
-├── users/                  Custom User, StartupProfile, InvestorProfile, TeamMember
-├── pitches/                Pitch, PitchAttachment, PitchLike
-├── matching/               MatchScore, InvestorIntentSignal
-├── offers/                 Offer, real-time WebSocket bid consumer
-├── dataroom/               DataRoomDocument, DataRoomAccess (NDA-gated, slide logs)
-├── newsfeed/               Activity feed with real-time signals
-├── notifications/          Notification, InAppNotification, EmailNotification
-├── marketing/              OutreachCampaign, OutreachMessage
-├── analytics/              FundraisingPrediction, InvestorBehaviorAnalysis, UserBehaviorEvent
-├── intelligence/           11 models + full ML sub-package (§5)
-└── predictive_intelligence/  AI provider gateway, capability routing, usage metering
+```mermaid
+flowchart LR
+    subgraph BACKEND["Django Backend (apps/)"]
+        direction TB
+        users[" users\nStartupProfile\nInvestorProfile\nTeamMember\nCustom User Model"]
+        pitches[" pitches\nPitch\nPitchAttachment\nPitchLike"]
+        matching[" matching\nMatchScore\nInvestorIntentSignal"]
+        offers[" offers\nOffer\nWebSocket Bid Consumer"]
+        dataroom[" dataroom\nDataRoomDocument\nDataRoomAccess\nSlideEngagementLog"]
+        newsfeed[" newsfeed\nActivity"]
+        notifications[" notifications\nNotification\nInAppNotification\nEmailNotification"]
+        marketing[" marketing\nOutreachCampaign\nOutreachMessage"]
+        analytics[" analytics\nFundraisingPrediction\nInvestorBehaviorAnalysis\nUserBehaviorEvent"]
+        intelligence[" intelligence\n11 Models + ML Sub-Package"]
+        predictive[" predictive_intelligence\nAI Provider Gateway\nCapability Routing\nUsage Metering"]
+    end
 ```
 
 ---
 
 ### 2.3 Intelligence App — Model Taxonomy
 
-| Pillar | Model | Purpose |
-| :--- | :--- | :--- |
-| Forensic Underwriting | `PitchDeckForensicAnalysis` | Stage-aware deck scoring, unit economics audit, IC thesis |
-| Multi-Agent AI | `StartupSuccessPrediction` | Multi-agent debate → dimension scores |
-| IC Memo | `DueDiligenceReport` | Bull vs Bear transcript, final IC memo |
-| Stealth Sourcing | `StealthFounderSignal` | Registry sweep (CAC / Companies House / Delaware) |
-| Institutional Memory | `InstitutionalMemoryEntry` | RAG with vector embeddings |
-| Voice Screening | `VoiceInterviewSession` | 15-min autonomous screening + debrief scorecard |
-| B2B Licensing | `EnterpriseTenant`, `TenantAPIKey`, `TenantUsageLog` | Multi-tenant API metering |
-| Evidence Audit | `VentureOutcomeRecord`, `EvidenceClaimRecord` | Claim-level audit trail |
-| Feedback Loop | `PredictionFeedback`, `ModelPerformanceTracker` | Ground-truth capture for retraining |
-| Cohorts | `Cohort`, `CohortApplication`, `ICMemoVote` | Accelerator cohort management |
+The intelligence app is the largest and most complex domain. It contains **11+ models** across 5 functional pillars, backed by a dedicated ML sub-package (§5).
+
+```mermaid
+erDiagram
+    PitchDeckForensicAnalysis {
+        int id
+        fk startup
+        float fundability_score
+        json unit_economics_audit
+        json competitor_benchmarks
+        json verified_claims
+        text bull_thesis
+        text bear_thesis
+        json score_ledger
+        json raw_extraction
+    }
+
+    StartupSuccessPrediction {
+        int id
+        fk startup
+        float overall_score
+        json dimension_scores
+        json agents_result
+        json recommendations
+    }
+
+    DueDiligenceReport {
+        int id
+        fk startup
+        string status
+        json debate_transcript
+        text final_memo
+    }
+
+    StealthFounderSignal {
+        int id
+        string founder_name
+        string company_name
+        string signal_type
+        float confidence
+        string jurisdiction
+        json metadata
+    }
+
+    InstitutionalMemoryEntry {
+        int id
+        string company_name
+        string source_type
+        text summary
+        text content
+        json tags
+        string verdict
+        vector embedding
+    }
+
+    VoiceInterviewSession {
+        int id
+        fk startup
+        string stage
+        string persona
+        string status
+        json transcript
+        json debrief_scorecard
+    }
+
+    EnterpriseTenant {
+        int id
+        string name
+        string slug
+        string tier
+        int monthly_deal_quota
+        string webhook_url
+    }
+
+    TenantAPIKey {
+        int id
+        fk tenant
+        string key_prefix
+        string key_hash
+        bool is_active
+    }
+
+    VentureOutcomeRecord {
+        int id
+        fk startup
+        float series_a_prob
+        float unicorn_prob
+        json survival_curve
+        json bayesian_belief
+    }
+
+    EvidenceClaimRecord {
+        int id
+        fk forensics_analysis
+        string claim_text
+        string evidence_state
+        float confidence
+    }
+```
 
 ---
 
@@ -126,33 +223,34 @@ backend/apps/
 
 ```
 src/app/
-├── layout.tsx                      Root Layout
-├── page.tsx                        Landing page
-├── not-found.tsx                   Custom 404
-├── providers.tsx                   Context provider tree
-│
-├── (auth)/                         Auth group (MarketingShell)
-│   ├── sign-in/page.tsx
-│   ├── sign-up/[role]/page.tsx
-│   └── verify/[token]/page.tsx
-│
-├── (dashboard)/                    Protected group (Sidebar + Navbar)
-│   ├── layout.tsx
-│   ├── newsfeed/           discover/         pitches/
-│   ├── pitches/new/        pitches/[id]/     pitches/[id]/edit/
-│   ├── offers/             messages/         dataroom/
-│   ├── campaigns/          notifications/    analytics/
-│   ├── intelligence/       fundability/      accelerator/
-│   ├── admin/              settings/         upgrade/
-│   ├── company/            profile/edit/
-│   └── profile/avatar/     profile/logo/
-│
-└── api/auth/                       Next.js BFF (httpOnly cookie management)
-    ├── login/route.ts
-    ├── logout/route.ts
-    ├── refresh/route.ts
-    ├── register/route.ts
-    └── verify/route.ts
+ layout.tsx                      Root Layout
+ page.tsx                        Landing page
+ not-found.tsx                   Custom 404
+ providers.tsx                   Context provider tree
+
+ (auth)/                         Auth Layout Group (MarketingShell)
+    sign-in/page.tsx
+    sign-up/[role]/page.tsx
+    verify/[token]/page.tsx
+
+ (dashboard)/                    Protected Layout Group (Sidebar + Navbar)
+    layout.tsx
+    newsfeed/           discover/          pitches/
+    pitches/new/        pitches/[id]/      pitches/[id]/edit/
+    offers/             messages/          dataroom/
+    campaigns/          notifications/     analytics/
+    intelligence/       fundability/       accelerator/
+    admin/              settings/          upgrade/
+    company/            profile/edit/
+    profile/avatar/     profile/logo/
+
+ api/auth/                       Next.js BFF (httpOnly cookie management)
+     login/route.ts
+     logout/route.ts
+     refresh/route.ts
+     register/route.ts
+     verify/route.ts
+     me/route.ts
 ```
 
 ### 3.2 Key Library Modules
@@ -172,20 +270,20 @@ src/app/
 
 ```
 src/components/
-├── ui/           Button  Card  Badge  Input  Label  Separator
-│                 Sheet   DropdownMenu  Logo   Avatar  Textarea  Tooltip
-├── layout/       Sidebar  Navbar  DashboardShell  MarketingShell  Footer
-├── analytics/    SuccessPredictorDashboard  InvestorROIDashboard  InvestmentHeatmap
-├── pitches/      LikeButton
-├── newsfeed/     PitchCard
-└── offers/       OfferRow  BidPanel
+ ui/              Button  Card  Badge  Input  Label  Separator
+                  Sheet   DropdownMenu  Logo   Avatar  Textarea  Tooltip
+ layout/          Sidebar  Navbar  DashboardShell  MarketingShell  Footer
+ analytics/       SuccessPredictorDashboard  InvestorROIDashboard  InvestmentHeatmap
+ pitches/         LikeButton
+ newsfeed/        PitchCard
+ offers/          OfferRow  BidPanel
 ```
 
 ---
 
 ## 4. ML Service — Standalone FastAPI Microservice
 
-The ML service (`ml/`) runs as a **separate Docker container** with its own FastAPI app, Redis cache, and Prometheus metrics endpoint. Django calls it for real-time predictions; it can also be called directly by authorised B2B clients.
+The ML service (`ml/`) runs as a **separate Docker container** with its own FastAPI app, Redis cache, and Prometheus metrics endpoint.
 
 ```
 ml/
@@ -221,38 +319,29 @@ ml/
 | Company | `founded_years_ago` |
 | Pitch Quality | `pitch_count`, `total_likes`, `total_offers`, `has_problem_section`, `has_solution_section`, `has_traction_section`, `has_financials_section`, `has_video` |
 
-All features are normalised to `[0, 1]` with per-feature caps before inference.
-
 ### 4.2 XGBoost Model + Heuristic Fallback
 
 - **Primary**: XGBoost booster loaded from `MODEL_PATH/startup_success.xgb`
-- **Fallback**: Weighted heuristic — 17 calibrated per-feature weights, output range `[0.1, 0.9]`
+- **Fallback**: Weighted heuristic with 17 calibrated per-feature weights, output range `[0.1, 0.9]`
 - Hot-reload via background file-watcher (checks every 5 min) without container restart
-
-Each prediction returns:
-
-| Field | Description |
-| :--- | :--- |
-| `success_probability` | Point estimate `[0, 1]` |
-| `confidence_lower/upper` | Uncertainty-aware interval (widens near 0.5) |
-| `roi` | Expected / conservative / optimistic investment multiple + USD return |
-| `exit_prediction` | Exit type (IPO / Acquisition / Acqui-hire / Wind-down) + years estimate |
-| `shap_top_features` | Top 5 SHAP contributions (XGBoost) or heuristic drivers (fallback) |
-| `latency_ms` | End-to-end prediction latency |
-| `request_id` | Unique trace ID |
-| `model_version` | Active model identifier |
 
 ### 4.3 Circuit Breaker
 
-Three-state circuit breaker wraps every XGBoost inference call:
+```mermaid
+stateDiagram-v2
+    [*] --> CLOSED
+    CLOSED --> OPEN : failure_count >= threshold
+    OPEN --> HALF_OPEN : timeout elapsed
+    HALF_OPEN --> CLOSED : probe succeeds
+    HALF_OPEN --> OPEN : probe fails
+    CLOSED --> CLOSED : success (decrement count)
 
-| State | Behaviour |
-| :--- | :--- |
-| `CLOSED` | Normal inference; tracks failure count |
-| `OPEN` | Opened after N failures; all calls route to heuristic fallback |
-| `HALF_OPEN` | One probe after timeout; success closes, failure reopens |
-
-Config: `CIRCUIT_BREAKER_THRESHOLD` (default 5), `CIRCUIT_BREAKER_TIMEOUT` (default 60s).
+    note right of OPEN
+        All inference calls
+        routed to heuristic
+        fallback
+    end note
+```
 
 ### 4.4 ML API Endpoints
 
@@ -268,13 +357,12 @@ Config: `CIRCUIT_BREAKER_THRESHOLD` (default 5), `CIRCUIT_BREAKER_TIMEOUT` (defa
 | `/model/reload` | POST | Hot-reload model from disk |
 | `/api/v1/models/activate` | POST | Activate a registry version (admin only) |
 | `/api/v1/models/{version}` | DELETE | Remove a model version (admin only) |
-| `/api/v1/predict/embedding` | POST | Embedding (app factory variant) |
 
 ---
 
 ## 5. ML Algorithms — Intelligence Sub-Package
 
-The `backend/apps/intelligence/ml/` sub-package provides **five deterministic ML engines**. All algorithms produce auditable, explainable outputs with no dependency on LLMs.
+The `backend/apps/intelligence/ml/` sub-package provides **five deterministic ML engines**. All produce auditable, explainable outputs with no LLM dependency.
 
 ---
 
@@ -282,7 +370,15 @@ The `backend/apps/intelligence/ml/` sub-package provides **five deterministic ML
 
 **Algorithm**: Beta-Binomial conjugate updating with credible interval approximation.
 
-Replaces static single-point probability estimates with full **posterior distributions**, updated incrementally as verified evidence arrives.
+```mermaid
+flowchart LR
+    A["Initialize Prior\nBeta(α, β)\nfrom stage + sector"] --> B["Apply Sector\nVolatility Multiplier\n(1.0× – 1.5×)"]
+    B --> C["Receive Verified\nEvidence\n(positive / negative weight)"]
+    C --> D["Update Posterior\nα' = α + pos×conf\nβ' = β + neg×conf"]
+    D --> E["Compute Credible\nIntervals\n5th / 50th / 95th percentile"]
+    E --> F["Output\nProbabilisticBelief\n+ update_history"]
+    F -->|New evidence arrives| C
+```
 
 **Stage Priors (α, β)**:
 
@@ -293,22 +389,18 @@ Replaces static single-point probability estimates with full **posterior distrib
 | Series A | 5.0 | 10.0 | ~33% |
 | Series B | 6.0 | 6.0 | ~50% |
 
-**Sector Volatility Multipliers** — scales priors to reflect market risk:
+**Sector Volatility Multipliers**:
 
 | Sector | Multiplier | Effect |
 | :--- | :--- | :--- |
-| consumer | 1.5× | Widest uncertainty — highest variance |
+| consumer | 1.5× | Widest uncertainty |
 | climate_hardware | 1.4× | Hardware + policy risk |
 | ai_infrastructure | 1.3× | Rapid landscape shifts |
 | healthtech | 1.2× | Regulatory uncertainty |
-| fintech | 1.1× | Moderate regulatory exposure |
-| enterprise_saas | 1.0× | Baseline — most predictable |
+| fintech | 1.1× | Moderate exposure |
+| enterprise_saas | 1.0× | Baseline |
 
-**Outputs**:
-- `posterior_probability` — updated point estimate
-- `credible_interval_5 / 50 / 95` — 5th / median / 95th percentile via Normal approximation of Beta(α, β)
-- `uncertainty_score` — Beta variance × 100 (higher = less confident)
-- `update_history` — full audit trail of every sequential belief update
+**Outputs**: `posterior_probability`, `credible_interval_5/50/95`, `uncertainty_score`, `update_history`
 
 ---
 
@@ -316,7 +408,16 @@ Replaces static single-point probability estimates with full **posterior distrib
 
 **Algorithm**: Percentile-based statistical outlier detection against empirical sector benchmarks.
 
-Audits every claimed metric against sector-specific distributions. Claims beyond P95 trigger verification flags; claims beyond 200% of P95 are `HIGH` severity.
+```mermaid
+flowchart TD
+    A["Claimed Metric Value"] --> B{"Compare to\nSector Benchmarks"}
+    B -->|"value > 2 × P95"| C["HIGH Severity\nHigh verification priority"]
+    B -->|"P95 < value ≤ 2×P95"| D["MEDIUM Severity\nSecondary docs required"]
+    B -->|"value ≤ P95"| E["LOW Severity\nWithin normal range"]
+    C --> F["MetricAnomalyReport"]
+    D --> F
+    E --> F
+```
 
 **Benchmark example — `enterprise_saas`**:
 
@@ -327,41 +428,33 @@ Audits every claimed metric against sector-specific distributions. Claims beyond
 | Net revenue retention % | 95 | 110 | 125 | 150 |
 | CAC payback months | 6 | 12 | 18 | 24 |
 
-**Severity tiers**:
-
-| Condition | Severity | Action |
-| :--- | :--- | :--- |
-| Value ≤ P95 | LOW | Within normal range |
-| P95 < value ≤ 2×P95 | MEDIUM | Secondary documentation required |
-| Value > 2×P95 | HIGH | High verification priority |
-
 ---
 
 ### 5.3 Venture Outcome Predictor (`ml/outcomes.py`)
 
 **Algorithm**: Multi-task probabilistic prediction combining Bayesian updating + Weibull survival + anomaly audit.
 
-Jointly predicts **five venture milestones** in a single pass:
+```mermaid
+flowchart TD
+    A["Input: stage, sector,\nfundability_score,\nclaimed_metrics"] --> B["BayesianUpdateEngine\ninitialize + update belief"]
+    A --> C["AnomalyDetectionEngine\naudit claimed metrics"]
+    B --> D["SurvivalAnalysisEngine\nWeibull fundraising curve"]
+    B --> E["Multi-Task Outcome Heads"]
+    E --> F["Series A in 18m\n5% – 95%"]
+    E --> G["Series B in 36m\n3% – 90%"]
+    E --> H["$10M ARR in 5y\n2% – 85%"]
+    E --> I["$100M Val in 5y\n1.5% – 75%"]
+    E --> J["Unicorn $1B\n0.5% – 25%\nlong-tail power law"]
+    C --> K["UnicornProbabilityProfile"]
+    D --> K
+    F --> K
+    G --> K
+    H --> K
+    I --> K
+    J --> K
+```
 
-| Milestone | Typical range |
-| :--- | :--- |
-| Series A in 18 months | 5% – 95% |
-| Series B in 36 months | 3% – 90% |
-| $10M ARR in 5 years | 2% – 85% |
-| $100M valuation in 5 years | 1.5% – 75% |
-| Unicorn ($1B) probability | 0.5% – 25% |
-
-Unicorn probability uses a **long-tail power law** calibrated to real-world VC base rates — capped at 25% to prevent overconfident outlier predictions.
-
-**Output fields**:
-- All five milestone probabilities
-- `confidence_tier`: `VERY_HIGH` / `HIGH` / `MODERATE` / `SPECULATIVE`
-- `primary_positive_drivers` — top explainability factors
-- `primary_uncertainty_drivers` — what limits confidence
-- Full `bayesian_belief` object with credible intervals
-- `survival_curve` — Weibull curve across 7 time horizons
-- `anomaly_audit_reports` — any flagged metric outliers
-- `evidence_coverage_percentage` — % of claims with verified backing
+**Confidence tiers**: `VERY_HIGH` (evidence ≥ 85%, uncertainty < 1.0) → `HIGH` → `MODERATE` → `SPECULATIVE`
 
 ---
 
@@ -371,17 +464,22 @@ Unicorn probability uses a **long-tail power law** calibrated to real-world VC b
 
 ```
 F(t) = 1 − exp( −(t / λ)^k )
+
+λ (scale)  = adjusted by traction velocity — faster growth → shorter time to raise
+k (shape)  = 1.35 when runway < 12 months (increasing hazard)
+           = 1.15 otherwise
+h(t)       = (k/λ) × (t/λ)^(k−1)   [instantaneous hazard rate]
 ```
 
-Where:
-- `λ` (scale) is adjusted by **traction velocity** — faster-growing companies raise sooner
-- `k` (shape) > 1 = increasing hazard as runway burns (`k=1.35` when runway < 12 months, `k=1.15` otherwise)
+```mermaid
+xychart-beta
+    title "Weibull Fundraising Survival Curve (Seed, 70% traction score)"
+    x-axis ["3m", "6m", "9m", "12m", "18m", "24m", "36m"]
+    y-axis "Probability %" 0 --> 100
+    line [8, 19, 31, 43, 62, 76, 91]
+```
 
-**Horizons computed**: 3, 6, 9, 12, 18, 24, 36 months
-
-**Output per horizon**:
-- `probability_milestone_achieved` — % chance of closing a round by this point
-- `hazard_rate` — instantaneous hazard `h(t) = (k/λ) × (t/λ)^(k−1)`
+**Horizons**: 3, 6, 9, 12, 18, 24, 36 months — each returns `probability_milestone_achieved` and `hazard_rate`.
 
 ---
 
@@ -389,23 +487,22 @@ Where:
 
 **Algorithm**: Markov transition journey scoring for investor intent inference.
 
-Evaluates investor engagement sequences across the full funnel to predict conversion intent and surface the optimal next action.
+```mermaid
+flowchart LR
+    VP["VIEW_PROFILE\n5.0"] --> VPitch["VIEW_PITCH\n10.0"]
+    VPitch --> DD["DOWNLOAD_DECK\n25.0"]
+    DD --> VDR["VIEW_DATAROOM\n45.0"]
+    VDR --> RV["RETURN_VISIT\n60.0"]
+    RV --> RI["REQUEST_INTRO\n80.0"]
+    RI --> SO["SUBMIT_OFFER\n100.0"]
 
-**Funnel stages with conviction weights**:
+    SO --> T1["IMMINENT_TERM_SHEET\n≥ 80 score"]
+    RI --> T2["HIGH_CONVICTION\n≥ 55 score"]
+    VDR --> T3["WARM\n≥ 30 score"]
+    VP --> T4["COLD\n< 30 score"]
+```
 
-| Stage | Weight |
-| :--- | :--- |
-| VIEW_PROFILE | 5.0 |
-| VIEW_PITCH | 10.0 |
-| DOWNLOAD_DECK | 25.0 |
-| VIEW_DATAROOM | 45.0 |
-| RETURN_VISIT | 60.0 |
-| REQUEST_INTRO | 80.0 |
-| SUBMIT_OFFER | 100.0 |
-
-**Velocity factor**: Events within < 7 days earn up to 1.3× conviction multiplier — compressed engagement signals high conviction.
-
-**Intent tiers**:
+**Velocity factor**: Events compressed into < 7 days earn up to **1.3× conviction multiplier**.
 
 | Score | Tier | Recommended Action |
 | :--- | :--- | :--- |
@@ -420,17 +517,31 @@ Evaluates investor engagement sequences across the full funnel to predict conver
 
 **Algorithm**: Point-in-time temporal filtering + Brier Score calibration evaluator.
 
-Prevents **look-ahead bias** in backtesting. Enforces strict temporal filtering — any observation after the evaluation timestamp is dropped before scoring.
+```mermaid
+sequenceDiagram
+    participant E as Evaluation Request
+    participant TM as TimeMachine
+    participant F as Feature Store
+    participant M as Metrics Engine
 
-**Calibration metrics produced**:
+    E->>TM: evaluate(cohort, point_in_time)
+    TM->>F: filter_features_as_of(point_in_time)
+    F-->>TM: events where timestamp ≤ point_in_time
+    Note over TM: Drop all future observations
+    TM->>M: compute_calibration_metrics(predictions, ground_truth)
+    M->>M: Brier Score = (1/n) × Σ(pred − actual)²
+    M->>M: Precision@TopQuartile
+    M->>M: Precision@TopHalf
+    M-->>TM: TemporalEvaluationResult
+    TM-->>E: leakage_check_passed=True + metrics
+```
 
 | Metric | Formula | Interpretation |
 | :--- | :--- | :--- |
-| `brier_score_calibration` | `(1/n) × Σ(pred − actual)²` | 0.0 = perfect calibration |
-| `precision_at_top_quartile` | Actual successes in top 25% of ranked predictions | Higher = better ranking |
-| `precision_at_top_half` | Actual successes in top 50% | Higher = better ranking |
-| `pr_auc` | Approximated from Brier score | Proxy for discrimination ability |
-| `leakage_check_passed` | Always `True` when temporal filter applied | Data integrity guarantee |
+| `brier_score_calibration` | `(1/n) × Σ(pred − actual)²` | 0.0 = perfect |
+| `precision_at_top_quartile` | Actual successes in top 25% ranked | Higher = better |
+| `precision_at_top_half` | Actual successes in top 50% ranked | Higher = better |
+| `pr_auc` | Approximated from Brier score | Discrimination proxy |
 
 ---
 
@@ -440,30 +551,31 @@ Prevents **look-ahead bias** in backtesting. Enforces strict temporal filtering 
 
 **Algorithm**: Sliding-window with atomic Redis Lua script eliminating TOCTOU races.
 
-**Redis backend** — single Lua script per request:
-```
-ZREMRANGEBYSCORE  →  evict expired timestamps
-ZCARD             →  count current window
-ZADD              →  record new request (if allowed)
-EXPIRE            →  reset TTL
-```
-All four operations execute atomically — no race condition possible across concurrent workers.
+```mermaid
+flowchart TD
+    REQ["Incoming Request\n(client_id, weight)"] --> RD{Redis\navailable?}
 
-**Memory fallback** — `threading.Lock`-protected `defaultdict` with a background eviction daemon (runs every 120s by default).
+    RD -->|Yes| LUA["Atomic Lua Script\n1. ZREMRANGEBYSCORE — evict expired\n2. ZCARD — count window\n3. Check count + weight > rate\n4. ZADD — record timestamps\n5. EXPIRE — reset TTL"]
+    RD -->|No| MEM["In-Memory Fallback\nthreading.Lock\ndefaultdict + background evict"]
 
-**Additional features**:
-- Weighted requests (`weight=N` for batch endpoints)
-- Fail-open on Redis outage — never blocks traffic on infrastructure failure
-- `X-RateLimit-Limit` and `X-RateLimit-Remaining` response headers
-- `reset(client_id)` method for admin / test use
+    LUA -->|return 1| ALLOW["Allow ✓\nX-RateLimit-Remaining: N"]
+    LUA -->|return 0| DENY["429 Too Many Requests\nRetry-After header"]
+    MEM --> ALLOW
+    MEM --> DENY
+```
 
 ### 6.2 JWT Auth + RBAC (`ml/security/auth.py`)
 
-- **Algorithm**: HS256 JWT (PyJWT ≥ 2.x) — tokens issued by Django, verified independently in ML service
-- `create_access_token()` — issues `sub`, `role`, `iat`, `exp` claims
-- `verify_token()` — raises `HTTPException(401)` on expiry or invalid signature; never returns `None` silently
-- `hash_password()` / `verify_password()` — bcrypt with 12 rounds
-- FastAPI `Depends` chain: `get_current_user` → `require_auth` → `require_admin`
+```mermaid
+flowchart LR
+    REQ["HTTP Request\nAuthorization: Bearer token"] --> GCU["get_current_user()\ndecode HS256 JWT\n(PyJWT ≥ 2.x)"]
+    GCU -->|valid| RA["require_auth()\ncheck user not None"]
+    RA -->|role==admin| RADM["require_admin()\ncheck role claim"]
+    GCU -->|expired / invalid| E1["HTTPException 401\nWWW-Authenticate: Bearer"]
+    RA -->|unauthenticated| E1
+    RADM -->|not admin| E2["HTTPException 403\nAdmin access required"]
+    RADM -->|ok| ROUTE["Protected Route Handler"]
+```
 
 ---
 
@@ -471,60 +583,115 @@ All four operations execute atomically — no race condition possible across con
 
 ### 7.1 Login Flow
 
-```
-Browser → POST /api/auth/login
-       → Next.js BFF → POST /api/v1/users/auth/login/ (Django)
-       → Django validates (Argon2) → returns {access_token, refresh_token}
-       → BFF sets httpOnly cookies
-       → Browser sends Bearer token on all subsequent API calls
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant BFF as Next.js BFF<br/>/api/auth/*
+    participant DJ as Django Backend
+    participant PG as PostgreSQL
+
+    B->>BFF: POST /api/auth/login {email, password}
+    BFF->>DJ: POST /api/v1/users/auth/login/
+    DJ->>PG: Validate credentials (Argon2)
+    PG-->>DJ: User object
+    DJ-->>BFF: {access_token, refresh_token}
+    BFF-->>B: Sets httpOnly cookies (access + refresh)
+    B->>DJ: GET /api/v1/... (Bearer: access_token)
+    DJ-->>B: Protected Resource
 ```
 
 ### 7.2 Pitch Deck Forensic Underwriting Flow
 
-```
-Frontend → POST /forensics/deck/upload/ {file, stage, sector}
-         → deck_parser.py: extract PPTX/PDF → NormalisedDeck
-           (slides, claims, metrics, math integrity checks, FX normalisation)
-         → forensics.py: 8-dimension dynamic scoring engine
-           → BayesianUpdateEngine.update_belief(stage, sector, evidence)
-           → AnomalyDetectionEngine.audit_metric(claimed_metrics)
-           → VentureOutcomePredictor.predict_venture_outcomes()
-           → SurvivalAnalysisEngine.calculate_fundraising_survival_curve()
-         → PitchDeckForensicAnalysis.objects.create(...)
-         → Response: {fundability_score, bayesian_belief, survival_curve,
-                      unicorn_probability, anomaly_reports, score_ledger, ...}
+```mermaid
+sequenceDiagram
+    participant F as Frontend
+    participant DJ as Django
+    participant DP as deck_parser.py
+    participant FS as forensics.py
+    participant ML as ML Intelligence Layer
+    participant PG as PostgreSQL
+
+    F->>DJ: POST /forensics/deck/upload/ {file, stage, sector}
+    DJ->>DP: DeckParser.parse(bytes, filename)
+    DP->>DP: Extract PPTX/PDF → NormalisedDeck<br/>(Slides, Claims, Metrics, MathChecks, FX Normalisation)
+    DP-->>DJ: NormalisedDeck
+    DJ->>FS: PitchDeckForensicsService.analyze_deck_content(...)
+    FS->>ML: BayesianUpdateEngine.update_belief(stage, sector, evidence)
+    ML-->>FS: ProbabilisticBelief + credible intervals
+    FS->>ML: AnomalyDetectionEngine.audit_metric(claimed_metrics)
+    ML-->>FS: MetricAnomalyReport[]
+    FS->>ML: VentureOutcomePredictor.predict_venture_outcomes(...)
+    ML-->>FS: UnicornProbabilityProfile (5 milestone heads)
+    FS->>ML: SurvivalAnalysisEngine.calculate_fundraising_survival_curve(...)
+    ML-->>FS: SurvivalCurvePoint[] (7 horizons)
+    FS-->>DJ: ForensicReport
+    DJ->>PG: PitchDeckForensicAnalysis.objects.create(...)
+    DJ-->>F: {fundability_score, bayesian_belief, survival_curve,\nunicorn_probability, anomaly_reports, score_ledger}
 ```
 
 ### 7.3 ML Prediction Flow
 
-```
-Django → PredictionService.predict(startup_data)
-       → Cache lookup (Redis → in-process LRU)
-         HIT  → return cached result
-         MISS → extract_features(30 features, normalised [0,1])
-              → CircuitBreaker.protect()
-                CLOSED  → XGBoost.predict(DMatrix) → probability
-                OPEN    → heuristic_predict(weighted_sum) → probability
-              → simulate_roi(prob)        ← single inference pass, prob reused
-              → predict_exit(prob)        ← no second inference
-              → top_shap_features()       ← SHAP contribs or heuristic drivers
-              → Cache.set(result, ttl=300s)
-              → Prometheus counter + latency histogram
-       → return {success_probability, confidence_interval, roi,
-                 exit_prediction, shap_top_features, latency_ms, request_id}
+```mermaid
+sequenceDiagram
+    participant DJ as Django / Client
+    participant PS as PredictionService
+    participant Cache as Redis Cache
+    participant CB as CircuitBreaker
+    participant XGB as XGBoost Model
+    participant HF as Heuristic Fallback
+
+    DJ->>PS: predict(startup_data)
+    PS->>Cache: get(startup_data)
+    Cache-->>PS: MISS
+    PS->>PS: extract_features(30 features, normalised 0–1)
+    PS->>CB: protect()
+    CB->>XGB: DMatrix → predict()
+    XGB-->>CB: probability [0,1]
+    CB-->>PS: success_probability
+    PS->>PS: simulate_roi(prob)
+    PS->>PS: predict_exit(prob)
+    PS->>PS: top_shap_features()
+    PS->>Cache: set(result, ttl=300s)
+    PS-->>DJ: {success_probability, confidence_interval,\nroi, exit_prediction, shap_top_features, latency_ms}
+
+    note over CB,HF: Circuit OPEN → heuristic fallback
+    CB--xPS: CircuitBreakerOpenError
+    PS->>HF: _heuristic_predict(weighted_sum)
+    HF-->>PS: probability [0.1, 0.9]
 ```
 
 ---
 
 ## 8. Real-Time & Async Infrastructure
 
-**Redis roles**:
-- `DB0` — Response cache & session store
-- `DB1` — Celery task broker
-- `DB2` — Celery result backend
-- Channel layer — WebSocket pub/sub (Django Channels)
+```mermaid
+flowchart LR
+    subgraph Django["Django ASGI Server"]
+        HTTP["HTTP REST Handlers"]
+        WS["WebSocket Consumers\n(Django Channels)"]
+    end
 
-**Real-time use cases**:
+    subgraph Celery["Celery Workers"]
+        Tasks["Async Tasks"]
+        Beat["Scheduled Beats\n(Match Scoring, Email Sends)"]
+    end
+
+    subgraph Redis["Redis 7"]
+        R0["DB0: Response Cache\n& Session Store"]
+        R1["DB1: Task Broker\n(Celery Queue)"]
+        R2["DB2: Task Results"]
+        CH["Channel Layer\n(WebSocket Pub/Sub)"]
+    end
+
+    HTTP --> R0
+    WS <--> CH
+    HTTP --> R1
+    Celery --> R2
+    Beat --> R1
+    Tasks --> CH
+```
+
+**Real-time use cases:**
 - Live notification delivery to connected investors
 - Real-time matching score updates after profile edits
 - Voice screening session turn streaming
@@ -532,7 +699,41 @@ Django → PredictionService.predict(startup_data)
 
 ---
 
-## 9. Security Architecture
+## 9. AI/Intelligence Layer Architecture
+
+```mermaid
+flowchart TD
+    Deck[" Pitch Deck Upload\n(PDF / PPTX)"]
+    DP[" deck_parser.py\nNative OpenXML / PyMuPDF\nMulti-Currency FX Normalisation\nMath Integrity Checks\nContradiction Detection"]
+    FS[" forensics.py\nStage-Aware Dynamic Scoring Engine\n8 Weighted Dimensions\nAuditable Score Ledger\n4-State Evidence Framework\n3-Tier Competitor Telemetry"]
+    BAY[" Bayesian Engine\nBeta-Binomial Conjugate Updates\nStage & Sector Priors\nCredible Intervals (5/50/95)"]
+    ANO[" Anomaly Detector\nSector Percentile Benchmarks\nP25/P75/P95 Thresholds\nHIGH/MEDIUM/LOW Severity"]
+    SURV[" Survival Analysis\nWeibull Hazard Model\n7 Fundraising Horizons\nVelocity-Adjusted Scale"]
+    SEQ[" Behavioral Sequence Model\nMarkov Journey Scoring\nVelocity-Weighted Intent\nTerm Sheet Prediction"]
+    TM[" Historical Time Machine\nPoint-in-Time Filtering\nBrier Score Calibration\nLeakage Prevention"]
+    Brain[" Digital Brain (RAG)\nInstitutionalMemoryEntry\nVector Embeddings"]
+    Stealth[" Stealth Sourcing\nCAC / Companies House / Delaware\nRegistry Sweep Engine"]
+    Voice[" Voice Screener\nAutonomous 15-Min Screening\nTranscript + Debrief Scorecard"]
+    LLM[" Optional LLM Pass\n(OpenAI / Gemini)"]
+
+    Deck --> DP --> FS
+    FS --> BAY
+    FS --> ANO
+    BAY --> SURV
+    BAY --> FS
+    SEQ --> FS
+    TM --> FS
+    FS --> LLM
+    Brain --> LLM
+    Stealth --> LLM
+    Voice --> LLM
+```
+
+**Zero-Fake-AI Principle:** All scoring and mathematical verification is deterministic. LLM is used optionally for natural-language claim extraction only. Every final score is an exact, auditable calculation with a full evidence ledger.
+
+---
+
+## 10. Security Architecture
 
 | Layer | Mechanism |
 | :--- | :--- |
@@ -551,33 +752,40 @@ Django → PredictionService.predict(startup_data)
 
 ---
 
-## 10. Deployment Topology
+## 11. Deployment Topology
 
-```
-CDN / Vercel Edge  (Next.js static assets)
-         |
-Nginx Reverse Proxy  (SSL termination)
-         |
-         +-----> Next.js Production  (Node 20 cluster)
-         |
-         +-----> Django ASGI  (Uvicorn × 4 workers)
-         |                |
-         |                +----> PostgreSQL 16 (RDS / Supabase)
-         |                +----> Redis 7 (ElastiCache)
-         |                +----> S3 / Object Storage (decks, documents)
-         |                +----> Celery Workers (Docker)
-         |                           |
-         |                           +----> Email (SES / Sendgrid)
-         |
-         +-----> FastAPI ML Service  (Uvicorn, Docker)
-                         |
-                         +----> Redis 7 (prediction cache)
-                         +----> Model artefacts (S3 or EFS)
+```mermaid
+flowchart TD
+    CDN[" CDN / Vercel Edge\n(Next.js Static Assets)"]
+    NginX[" Nginx Reverse Proxy\n(SSL Termination)"]
+    NextProd["Next.js Production Server\n(Node 20 Cluster)"]
+    Django["Django ASGI\n(Uvicorn x 4 workers)"]
+    MLSvc["FastAPI ML Service\n(Uvicorn, Docker container)"]
+    PG[" PostgreSQL 16\n(Managed RDS / Supabase)"]
+    Redis[" Redis 7\n(Managed ElastiCache)"]
+    Celery[" Celery Workers\n(Docker containers)"]
+    S3[" S3 / Object Storage\n(Pitch Decks, Documents)"]
+    Email[" SES / Sendgrid\n(Transactional Email)"]
+
+    CDN --> NextProd
+    NginX --> NextProd
+    NginX --> Django
+    NginX --> MLSvc
+    NextProd --> Django
+    Django --> PG
+    Django --> Redis
+    Django --> S3
+    Django --> Celery
+    Django --> MLSvc
+    Celery --> PG
+    Celery --> Email
+    Celery --> Redis
+    MLSvc --> Redis
 ```
 
 ---
 
-## 11. Platform Capabilities Summary
+## 12. Platform Capabilities Summary
 
 | Feature | Status | Key Technology |
 | :--- | :--- | :--- |
@@ -591,7 +799,7 @@ Nginx Reverse Proxy  (SSL termination)
 | Fundraising analytics dashboard | Live | analytics app, prediction engine |
 | Forensic pitch deck underwriting | Live | intelligence/forensics.py, deck_parser.py |
 | **Bayesian belief updating** | Live | BayesianUpdateEngine — Beta-Binomial conjugate |
-| **Anomaly detection** | Live | AnomalyDetectionEngine — percentile benchmarks |
+| **Anomaly detection** | Live | AnomalyDetectionEngine — sector percentile benchmarks |
 | **Multi-task outcome prediction** | Live | VentureOutcomePredictor — 5 milestone heads |
 | **Weibull survival analysis** | Live | SurvivalAnalysisEngine — 7 fundraising horizons |
 | **Investor behavioral sequences** | Live | BehavioralSequenceModel — Markov intent scoring |
@@ -599,7 +807,7 @@ Nginx Reverse Proxy  (SSL termination)
 | **XGBoost prediction service** | Live | ml/predictor.py — 30 features, circuit breaker, SHAP |
 | **Sliding-window rate limiter** | Live | ml/security/rate_limiter.py — atomic Redis Lua |
 | **JWT RBAC (ML service)** | Live | ml/security/auth.py — HS256, bcrypt, Depends chain |
-| Institutional memory (RAG Brain) | Live | InstitutionalMemoryEntry + embeddings |
+| Institutional memory (RAG Brain) | Live | InstitutionalMemoryEntry + vector embeddings |
 | Stealth founder radar | Live | StealthFounderSignal, registry sweep |
 | Autonomous voice screening | Live | VoiceInterviewSession |
 | B2B enterprise licensing & API | Live | EnterpriseTenant, TenantAPIKey metering |
@@ -608,27 +816,19 @@ Nginx Reverse Proxy  (SSL termination)
 
 ---
 
-## 12. Getting Started
+## 13. Getting Started
 
 ### Prerequisites
 
-- Python 3.11+
-- Node.js 20+
-- PostgreSQL 16+ (or SQLite for local dev)
-- Redis 7+
+- Python 3.11+, Node.js 20+, PostgreSQL 16+, Redis 7+
 
-### Backend Setup
+### Backend
 
 ```bash
 cd backend
-python -m venv venv
-# Linux/macOS:
-source venv/bin/activate
-# Windows:
-venv\Scripts\activate
-
+python -m venv venv && venv\Scripts\activate   # Windows
 pip install -r requirements.txt
-cp ../.env.example ../.env    # populate your local secrets
+cp ../.env.example ../.env
 python manage.py migrate
 python manage.py runserver 0.0.0.0:8000
 ```
@@ -667,32 +867,32 @@ npm run dev
 
 ---
 
-## 13. Environment Variables
+## 14. Environment Variables
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
-| `SECRET_KEY` | Django cryptographic signing key | Required |
+| `SECRET_KEY` | Django signing key | Required |
 | `DATABASE_URL` | PostgreSQL connection string | `sqlite:///db.sqlite3` |
-| `REDIS_URL` | Redis URL (cache, channels, broker) | `redis://127.0.0.1:6379/0` |
-| `CELERY_BROKER_URL` | Celery task broker | `redis://localhost:6379/1` |
-| `OPENAI_API_KEY` | OpenAI API key (optional) | `""` |
-| `GOOGLE_GEMINI_API_KEY` | Google Gemini key (optional) | `""` |
-| `NEXT_PUBLIC_API_URL` | Backend base URL for Next.js | `http://localhost:8000` |
-| `CORS_ALLOWED_ORIGINS` | Comma-separated frontend origins | `http://localhost:3000` |
-| `MODEL_PATH` | ML service model artefacts directory | `/app/models` |
-| `ML_API_KEY` | Static ML API key guard (leave blank to disable) | `""` |
-| `JWT_SECRET_KEY` | HS256 signing secret for ML service | Required in prod |
+| `REDIS_URL` | Redis URL | `redis://127.0.0.1:6379/0` |
+| `CELERY_BROKER_URL` | Celery broker | `redis://localhost:6379/1` |
+| `OPENAI_API_KEY` | OpenAI key (optional) | `""` |
+| `GOOGLE_GEMINI_API_KEY` | Gemini key (optional) | `""` |
+| `NEXT_PUBLIC_API_URL` | Backend base URL | `http://localhost:8000` |
+| `CORS_ALLOWED_ORIGINS` | Frontend origins | `http://localhost:3000` |
+| `MODEL_PATH` | ML model artefacts directory | `/app/models` |
+| `ML_API_KEY` | Static ML API key guard | `""` (disabled) |
+| `JWT_SECRET_KEY` | HS256 secret for ML service | Required in prod |
 | `CIRCUIT_BREAKER_THRESHOLD` | Failures before circuit opens | `5` |
 | `CIRCUIT_BREAKER_TIMEOUT` | Seconds before half-open probe | `60` |
 | `ENABLE_CACHE` | Toggle prediction caching | `true` |
 | `CACHE_TTL_SECONDS` | Prediction cache TTL | `300` |
 | `MAX_BATCH_SIZE` | Max items per batch prediction | `100` |
-| `RATE_LIMIT_REQUESTS` | Requests per rate-limit window | `100` |
-| `RATE_LIMIT_PERIOD_SECONDS` | Rate-limit window length | `60` |
+| `RATE_LIMIT_REQUESTS` | Requests per window | `100` |
+| `RATE_LIMIT_PERIOD_SECONDS` | Window length in seconds | `60` |
 
 ---
 
-## 14. Quality & Verification
+## 15. Quality & Verification
 
 ```bash
 # Backend tests

@@ -12,8 +12,21 @@ import {
   Rocket,
   ArrowDown,
   SlidersHorizontal,
+  ShieldCheck,
+  Briefcase,
+  Layers,
+  Brain,
+  FolderLock,
+  HandCoins,
+  Target,
+  BarChart3,
+  Mic,
+  Eye,
+  Heart,
+  ArrowUpRight,
 } from 'lucide-react';
 import { useNewsfeed } from '@/hooks/useNewsfeed';
+import { useRouter } from 'next/navigation';
 import { PitchCard } from '@/components/newsfeed/PitchCard';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -21,6 +34,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Separator } from '@/components/ui/Separator';
 import { useAuth } from '@/hooks/useAuth';
+import { UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 type SortOption = 'newest' | 'popular' | 'trending' | 'featured';
@@ -46,7 +60,8 @@ const INDUSTRIES = [
 const STAGES = ['Pre-seed', 'Seed', 'Series A', 'Series B', 'Growth'];
 
 export default function NewsfeedPage() {
-  const { isStartup } = useAuth();
+  const { isStartup, isInvestor, isAccelerator, isAdminMode, canSwitchRole, setActiveRole } = useAuth();
+  const router = useRouter();
   const [search, setSearch] = React.useState('');
   const [sort, setSort] = React.useState<SortOption>('newest');
   const [industry, setIndustry] = React.useState<string | undefined>(undefined);
@@ -111,37 +126,205 @@ export default function NewsfeedPage() {
 
   return (
     <div className="space-y-6">
+      {/* ── Top Header with role and persona title ── */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              Newsfeed
+              {isInvestor ? 'Investor Deal Stream' : 'Peer Ecosystem Feed'}
             </h1>
             <Badge variant="default" className="bg-brand-deep-pitch-500 hover:bg-brand-deep-pitch-600">
               <Sparkles className="mr-1 h-3 w-3" />
               {pitches.length} pitches
             </Badge>
+            {isInvestor && (
+              <Badge variant="outline" className="text-indigo-700 border-indigo-200 bg-indigo-50 text-xs gap-1">
+                <Brain className="h-3 w-3" />AI-Matched
+              </Badge>
+            )}
           </div>
           <p className="mt-1 text-sm text-slate-600">
-            {isStartup
-              ? 'Explore other pitches and track how yours is performing.'
-              : 'Curated high-signal pitches matched to your investment focus.'}
+            {isInvestor
+              ? 'High-signal dealflow — curated Pan-African pitches matched to your investment focus.'
+              : 'Explore the pitch ecosystem and track how your own startup is gaining traction.'}
           </p>
         </div>
-        {isStartup && (
-          <Link href="/pitches/new">
-            <Button
-              variant="default"
-              size="default"
-              leftIcon={<Plus className="h-4 w-4" />}
-              className="shadow-lg shadow-brand-orange-500/20"
-            >
-              New Pitch
-            </Button>
-          </Link>
-        )}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {canSwitchRole && (
+            <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1 gap-0.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveRole(UserRole.ADMIN);
+                  router.push('/admin');
+                }}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  isAdminMode
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/60'
+                )}
+                title="Switch to Admin Dashboard"
+              >
+                <ShieldCheck className={cn('h-3.5 w-3.5', isAdminMode ? 'text-emerald-400' : 'text-slate-500')} />
+                <span>Admin</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveRole(UserRole.ACCELERATOR);
+                  router.push('/accelerator');
+                }}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  isAccelerator
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/60'
+                )}
+                title="Switch to Accelerator Dashboard"
+              >
+                <Layers className={cn('h-3.5 w-3.5', isAccelerator ? 'text-purple-400' : 'text-slate-500')} />
+                <span>Accelerator</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveRole(UserRole.INVESTOR)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  isInvestor
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/60'
+                )}
+                title="Switch to Investor View"
+              >
+                <Briefcase className={cn('h-3.5 w-3.5', isInvestor ? 'text-indigo-400' : 'text-slate-500')} />
+                <span>Investor</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveRole(UserRole.STARTUP)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  isStartup
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/60'
+                )}
+                title="Switch to Startup View"
+              >
+                <Rocket className={cn('h-3.5 w-3.5', isStartup ? 'text-brand-orange-400' : 'text-slate-500')} />
+                <span>Startup</span>
+              </button>
+            </div>
+          )}
+
+          {isStartup && (
+            <Link href="/pitches/new">
+              <Button
+                variant="default"
+                size="default"
+                leftIcon={<Plus className="h-4 w-4" />}
+                className="shadow-lg shadow-brand-orange-500/20"
+              >
+                New Pitch
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
+      {/* ── INVESTOR MODE: Diligence Filter Bar ── */}
+      {(isInvestor || isAdminMode) && (
+        <div className="rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50/70 via-white to-blue-50/40 p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 shadow-md shadow-indigo-600/20">
+                <Target className="h-4.5 w-4.5 text-white" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-indigo-800 uppercase tracking-wide">Diligence Radar &mdash; Investor Mode</div>
+                <div className="text-[11px] text-indigo-600/80">Filter by ticket size &middot; Trigger DataRoom requests &middot; Pin deals to portfolio</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Ticket Size Filters */}
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider self-center">Ticket:</div>
+              {[
+                { label: '< $50k', range: 'micro' },
+                { label: '$50k–$250k', range: 'seed' },
+                { label: '$250k–$1M', range: 'pre_series_a' },
+                { label: '$1M+', range: 'series_a' },
+              ].map((t) => (
+                <button
+                  key={t.range}
+                  type="button"
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-indigo-200 bg-white text-indigo-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all"
+                >
+                  {t.label}
+                </button>
+              ))}
+
+              <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block" />
+
+              {/* DataRoom & DataMemo triggers */}
+              <button
+                type="button"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all"
+              >
+                <FolderLock className="h-3.5 w-3.5" />
+                <span>DataRoom Access</span>
+              </button>
+
+              <button
+                type="button"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white hover:border-amber-600 transition-all"
+              >
+                <HandCoins className="h-3.5 w-3.5" />
+                <span>Send Term Sheet</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── STARTUP MODE: Founder Traction Radar ── */}
+      {isStartup && !isAdminMode && (
+        <div className="rounded-2xl border border-brand-orange-200 bg-gradient-to-r from-brand-orange-50/60 via-white to-amber-50/40 p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-orange-500 shadow-md shadow-brand-orange-500/20">
+                <BarChart3 className="h-4.5 w-4.5 text-white" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-brand-orange-800 uppercase tracking-wide">Founder Traction Radar</div>
+                <div className="text-[11px] text-brand-orange-600/90">Track your pitch engagement &middot; see investor signals &middot; benchmark vs. peers</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-brand-orange-200">
+                <Eye className="h-3.5 w-3.5 text-brand-orange-500" />
+                <span className="text-xs font-bold text-slate-700">Pitch Views: <span className="text-brand-orange-600">{pitches.reduce((a, p) => a + (p.like_count ?? 0), 0)} signals</span></span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-brand-orange-200">
+                <Heart className="h-3.5 w-3.5 text-rose-500" />
+                <span className="text-xs font-bold text-slate-700">Total Likes: <span className="text-rose-600">{pitches.reduce((a, p) => a + p.like_count, 0)}</span></span>
+              </div>
+              <Link href="/pitches/new">
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-brand-orange-500 text-white hover:bg-brand-orange-600 transition-all shadow-sm"
+                >
+                  <Mic className="h-3.5 w-3.5" />
+                  <span>Record New Pitch</span>
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Search & Filter Card ── */}
       <Card className="border-slate-200 bg-white">
         <CardContent className="space-y-4 p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

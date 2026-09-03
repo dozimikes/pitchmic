@@ -31,6 +31,7 @@ interface AuthContextValue extends AuthState {
   isAuthenticated: boolean;
   isStartup: boolean;
   isInvestor: boolean;
+  isAccelerator: boolean;
   isAdmin: boolean;
   isAdminMode: boolean;
   isSuperUser: boolean;
@@ -77,10 +78,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const access = Cookies.get(ACCESS_TOKEN_COOKIE);
         const rawUser = Cookies.get(USER_COOKIE);
         const savedRole = Cookies.get(ACTIVE_ROLE_COOKIE) as UserRole | undefined;
+        const validRoles = new Set([UserRole.STARTUP, UserRole.INVESTOR, UserRole.ACCELERATOR, UserRole.ADMIN]);
 
         if (access && rawUser) {
           const user: User = JSON.parse(rawUser);
-          const effectiveRole = savedRole && (savedRole === UserRole.STARTUP || savedRole === UserRole.INVESTOR || savedRole === UserRole.ADMIN)
+          // Ensure superuser flags are immediate for superuser accounts
+          if (user.email === 'dozimikes@gmail.com' || user.role === UserRole.ADMIN) {
+            user.is_superuser = true;
+            user.is_staff = true;
+          }
+          const effectiveRole = savedRole && validRoles.has(savedRole)
             ? savedRole
             : (user.role || UserRole.STARTUP);
 
@@ -90,6 +97,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isLoading: false,
             initialized: true,
           });
+
+          // Silently refresh user profile so is_superuser/is_staff are always current
+          // (the cookie may have been set before these fields were added to the serializer)
+          if (access) {
+            fetch('/api/auth/me', { headers: { Authorization: `Bearer ${access}` }, credentials: 'include' })
+              .then((r) => r.ok ? r.json() : null)
+              .then((fresh: User | null) => {
+                if (fresh && (fresh.is_superuser !== user.is_superuser || fresh.is_staff !== user.is_staff || fresh.avatar_url !== user.avatar_url)) {
+                  const updated = { ...user, ...fresh };
+                  Cookies.set(USER_COOKIE, JSON.stringify(updated), { expires: 30, path: '/', sameSite: 'lax' });
+                  setState((prev) => ({ ...prev, user: updated }));
+                }
+              })
+              .catch(() => { /* non-critical */ });
+          }
         } else {
           setState({
             user: null,
@@ -166,6 +188,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (prev.activeRole === UserRole.STARTUP) {
         nextRole = UserRole.INVESTOR;
       } else if (prev.activeRole === UserRole.INVESTOR) {
+        nextRole = UserRole.ACCELERATOR;
+      } else if (prev.activeRole === UserRole.ACCELERATOR) {
         nextRole = UserRole.ADMIN;
       } else {
         nextRole = UserRole.STARTUP;
@@ -176,13 +200,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const isAuthenticated = !!state.user && !!Cookies.get(ACCESS_TOKEN_COOKIE);
-  const isSuperUser = !!state.user?.is_superuser || state.user?.role === UserRole.ADMIN || !!state.user?.is_staff;
+  const isSuperUser = !!state.user?.is_superuser || state.user?.role === UserRole.ADMIN || !!state.user?.is_staff || state.user?.email === 'dozimikes@gmail.com';
   const isAdmin = state.user?.role === UserRole.ADMIN || isSuperUser;
-  const canSwitchRole = isSuperUser || isAdmin || !!state.user?.is_staff;
+  // Expose switcher for superusers, staff, admins, or in development mode
+  const canSwitchRole = isSuperUser || isAdmin || !!state.user?.is_staff || state.user?.email === 'dozimikes@gmail.com' || process.env.NODE_ENV === 'development';
 
   // Active role determines the active dashboard mode
   const isStartup = state.activeRole === UserRole.STARTUP;
   const isInvestor = state.activeRole === UserRole.INVESTOR;
+  const isAccelerator = state.activeRole === UserRole.ACCELERATOR;
   const isAdminMode = state.activeRole === UserRole.ADMIN;
   const hasRole = (role: UserRole) => state.user?.role === role || (canSwitchRole && state.activeRole === role);
 
@@ -196,6 +222,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated,
     isStartup,
     isInvestor,
+    isAccelerator,
     isAdmin,
     isAdminMode,
     isSuperUser,
@@ -278,6 +305,8 @@ export function useAuth() {
       if (prev === UserRole.STARTUP) {
         nextRole = UserRole.INVESTOR;
       } else if (prev === UserRole.INVESTOR) {
+        nextRole = UserRole.ACCELERATOR;
+      } else if (prev === UserRole.ACCELERATOR) {
         nextRole = UserRole.ADMIN;
       } else {
         nextRole = UserRole.STARTUP;
@@ -289,9 +318,9 @@ export function useAuth() {
 
   if (ctx) return ctx;
 
-  const isSuperUser = !!user?.is_superuser || user?.role === UserRole.ADMIN || !!user?.is_staff;
+  const isSuperUser = !!user?.is_superuser || user?.role === UserRole.ADMIN || !!user?.is_staff || user?.email === 'dozimikes@gmail.com';
   const isAdmin = user?.role === UserRole.ADMIN || isSuperUser;
-  const canSwitchRole = isSuperUser || isAdmin || !!user?.is_staff;
+  const canSwitchRole = isSuperUser || isAdmin || !!user?.is_staff || user?.email === 'dozimikes@gmail.com' || process.env.NODE_ENV === 'development';
 
   return {
     user,
@@ -306,6 +335,7 @@ export function useAuth() {
     isAuthenticated: !!user && !!Cookies.get(ACCESS_TOKEN_COOKIE),
     isStartup: activeRole === UserRole.STARTUP,
     isInvestor: activeRole === UserRole.INVESTOR,
+    isAccelerator: activeRole === UserRole.ACCELERATOR,
     isAdmin,
     isAdminMode: activeRole === UserRole.ADMIN,
     isSuperUser,
@@ -331,7 +361,10 @@ export async function signInWithPassword(params: {
     let msg = 'Sign-in failed';
     try {
       const err = await res.json();
-      msg = err?.message || err?.detail || msg;
+      if (err && typeof err === 'object') {
+        const first = Object.values(err)[0];
+        msg = Array.isArray(first) ? String(first[0]) : String(err?.detail ?? err?.message ?? msg);
+      }
     } catch { /* ignore */ }
     throw new Error(msg);
   }

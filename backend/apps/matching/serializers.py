@@ -8,6 +8,13 @@ from .models import InvestorIntentSignal, MatchScore
 class MatchScoreSerializer(serializers.ModelSerializer):
     startup_name = serializers.CharField(source="startup.company_name", read_only=True)
     investor_name = serializers.CharField(source="investor.full_name", read_only=True)
+    industry = serializers.CharField(source="startup.industry", read_only=True)
+    location = serializers.CharField(source="startup.location", read_only=True)
+    funding_stage = serializers.CharField(source="startup.funding_stage", read_only=True)
+    logo_url = serializers.CharField(source="startup.logo_url", read_only=True)
+    pitch_id = serializers.SerializerMethodField()
+    pitch_title = serializers.SerializerMethodField()
+    asking_amount = serializers.SerializerMethodField()
 
     class Meta:
         model = MatchScore
@@ -17,6 +24,13 @@ class MatchScoreSerializer(serializers.ModelSerializer):
             "startup_name",
             "investor",
             "investor_name",
+            "industry",
+            "location",
+            "funding_stage",
+            "logo_url",
+            "pitch_id",
+            "pitch_title",
+            "asking_amount",
             "compatibility_score",
             "industry_score",
             "stage_score",
@@ -29,6 +43,24 @@ class MatchScoreSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = fields
+
+    def get_pitch_id(self, obj: MatchScore) -> int | None:
+        p = obj.startup.pitches.filter(is_draft=False).first()
+        if not p:
+            p = obj.startup.pitches.first()
+        return p.id if p else None
+
+    def get_pitch_title(self, obj: MatchScore) -> str:
+        p = obj.startup.pitches.filter(is_draft=False).first()
+        if not p:
+            p = obj.startup.pitches.first()
+        return p.title if p else obj.startup.company_name
+
+    def get_asking_amount(self, obj: MatchScore) -> str | None:
+        p = obj.startup.pitches.filter(is_draft=False).first()
+        if not p:
+            p = obj.startup.pitches.first()
+        return str(p.asking_amount) if (p and p.asking_amount) else None
 
 
 class InvestorIntentSignalSerializer(serializers.ModelSerializer):

@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     AntlerHubWebhookView,
+    CohortApplyView,
     CohortBatchUploadView,
     CohortLeaderboardView,
     DigitalBrainIngestView,
@@ -14,6 +15,7 @@ from .views import (
     EnterpriseTenantListView,
     EnterpriseTriageWebhookView,
     EvidenceLedgerView,
+    FundingEventListView,
     KnowledgeGraphQueryView,
     ModelPerformanceListView,
     PitchDeckForensicsView,
@@ -63,6 +65,8 @@ urlpatterns = [
     path("cohorts/", CohortBatchUploadView.as_view(), name="cohorts-list"),
     path("cohorts/batch-upload/", CohortBatchUploadView.as_view(), name="cohorts-batch-upload"),
     path("cohorts/<int:cohort_id>/leaderboard/", CohortLeaderboardView.as_view(), name="cohorts-leaderboard"),
+    path("cohorts/<int:cohort_id>/apply/", CohortApplyView.as_view(), name="cohorts-apply"),
+    path("funding-events/", FundingEventListView.as_view(), name="funding-events"),
     path("antler/webhook/", AntlerHubWebhookView.as_view(), name="antler-webhook"),
 ]
 

@@ -706,3 +706,43 @@ class ICMemoVote(models.Model):
     def __str__(self) -> str:
         return f"Vote: {self.voter.email} on {self.report.title} -> {self.vote}"
 
+
+class FundingEvent(models.Model):
+    """
+    Demo Days, Syndicate Pitch Nights, or Cohort Funding Events hosted by Accelerators/Funds.
+    """
+    EVENT_TYPES = [
+        ("demo_day", _("Demo Day")),
+        ("pitch_night", _("Pitch Night")),
+        ("syndicate_round", _("Syndicate Funding Round")),
+        ("investor_preview", _("Investor Preview")),
+    ]
+    STATUS_CHOICES = [
+        ("upcoming", _("Upcoming")),
+        ("live", _("Live Now")),
+        ("completed", _("Completed")),
+        ("cancelled", _("Cancelled")),
+    ]
+
+    title = models.CharField(_("event title"), max_length=255)
+    event_type = models.CharField(_("event type"), max_length=50, choices=EVENT_TYPES, default="demo_day")
+    cohort = models.ForeignKey(Cohort, on_delete=models.SET_NULL, null=True, blank=True, related_name="funding_events")
+    organizer_name = models.CharField(_("organizer"), max_length=255, default="Accelerator Partner")
+    event_date = models.DateTimeField(_("event date"))
+    location = models.CharField(_("location"), max_length=255, default="Virtual (Live Stream)")
+    target_commitment_usd = models.DecimalField(_("target commitment USD"), max_digits=15, decimal_places=2, default=500000.00)
+    total_committed_usd = models.DecimalField(_("total committed USD"), max_digits=15, decimal_places=2, default=0.00)
+    description = models.TextField(_("description"), blank=True)
+    status = models.CharField(_("status"), max_length=20, choices=STATUS_CHOICES, default="upcoming")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("funding event")
+        verbose_name_plural = _("funding events")
+        ordering = ["event_date"]
+
+    def __str__(self) -> str:
+        return f"{self.title} ({self.get_event_type_display()}) - {self.event_date.strftime('%Y-%m-%d')}"
+
+

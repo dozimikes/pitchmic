@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Menu,
   X,
@@ -24,6 +24,7 @@ import {
   Rocket,
   ShieldCheck,
   Sparkles,
+  Layers,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -82,7 +83,8 @@ export function Navbar({
   variant = 'dashboard',
 }: NavbarProps) {
   const pathname = usePathname();
-  const { user, isAuthenticated, logout, isStartup, isInvestor, isAdminMode, canSwitchRole, setActiveRole, toggleRole } = useAuth();
+  const router = useRouter();
+  const { user, isAuthenticated, logout, isStartup, isInvestor, isAccelerator, isAdminMode, canSwitchRole, setActiveRole, toggleRole } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
   const [searchOpen, setSearchOpen] = React.useState(false);
@@ -321,53 +323,94 @@ export function Navbar({
 
           {isAuthenticated && (
             <>
-              {/* Superuser Mode Switcher: Admin | Investor | Startup */}
+              {/* Superuser Mode Switcher: Admin | Accelerator | Investor | Startup */}
+              {/* Superuser Mode Switcher: Admin | Accelerator | Investor | Startup */}
               {canSwitchRole && (
-                <div className="hidden sm:inline-flex items-center p-0.5 rounded-xl bg-slate-100/90 border border-slate-200/80 text-xs font-semibold gap-0.5">
+                <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-slate-100/90 border border-slate-200/90 shadow-2xs">
+                  {/* Admin */}
                   <button
                     type="button"
-                    onClick={() => setActiveRole(UserRole.ADMIN)}
+                    onClick={() => {
+                      setActiveRole(UserRole.ADMIN);
+                      router.push('/admin');
+                    }}
                     className={cn(
-                      'flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all text-xs',
+                      'flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all text-xs font-semibold',
                       isAdminMode
-                        ? 'bg-slate-900 text-white shadow-2xs font-bold'
-                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/60'
+                        ? 'bg-slate-900 text-white shadow-2xs font-bold ring-1 ring-slate-900/10'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                     )}
-                    title="Admin Dashboard Mode"
+                    title="Switch to Admin Dashboard"
                   >
-                    <ShieldCheck className={cn('h-3.5 w-3.5', isAdminMode ? 'text-emerald-400' : 'text-slate-500')} />
+                    <ShieldCheck className={cn('h-3.5 w-3.5 shrink-0', isAdminMode ? 'text-emerald-400' : 'text-slate-500')} />
                     <span>Admin</span>
                   </button>
+
+                  <span className="text-slate-300 font-light select-none">|</span>
+
+                  {/* Accelerator */}
                   <button
                     type="button"
-                    onClick={() => setActiveRole(UserRole.INVESTOR)}
+                    onClick={() => {
+                      setActiveRole(UserRole.ACCELERATOR);
+                      router.push('/accelerator');
+                    }}
                     className={cn(
-                      'flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all text-xs',
-                      isInvestor
-                        ? 'bg-slate-900 text-white shadow-2xs font-bold'
-                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/60'
+                      'flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all text-xs font-semibold',
+                      isAccelerator
+                        ? 'bg-slate-900 text-white shadow-2xs font-bold ring-1 ring-slate-900/10'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                     )}
-                    title="Investor Dashboard Mode"
+                    title="Switch to Accelerator Dashboard"
                   >
-                    <Briefcase className={cn('h-3.5 w-3.5', isInvestor ? 'text-indigo-400' : 'text-slate-500')} />
+                    <Layers className={cn('h-3.5 w-3.5 shrink-0', isAccelerator ? 'text-purple-400' : 'text-slate-500')} />
+                    <span>Accelerator</span>
+                  </button>
+
+                  <span className="text-slate-300 font-light select-none">|</span>
+
+                  {/* Investor */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveRole(UserRole.INVESTOR);
+                      if (pathname === '/admin' || pathname === '/accelerator') router.push('/newsfeed');
+                    }}
+                    className={cn(
+                      'flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all text-xs font-semibold',
+                      isInvestor
+                        ? 'bg-slate-900 text-white shadow-2xs font-bold ring-1 ring-slate-900/10'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                    )}
+                    title="Switch to Investor Dashboard"
+                  >
+                    <Briefcase className={cn('h-3.5 w-3.5 shrink-0', isInvestor ? 'text-indigo-400' : 'text-slate-500')} />
                     <span>Investor</span>
                   </button>
+
+                  <span className="text-slate-300 font-light select-none">|</span>
+
+                  {/* Startup */}
                   <button
                     type="button"
-                    onClick={() => setActiveRole(UserRole.STARTUP)}
+                    onClick={() => {
+                      setActiveRole(UserRole.STARTUP);
+                      if (pathname === '/admin' || pathname === '/accelerator') router.push('/newsfeed');
+                    }}
                     className={cn(
-                      'flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all text-xs',
+                      'flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all text-xs font-semibold',
                       isStartup
-                        ? 'bg-slate-900 text-white shadow-2xs font-bold'
-                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/60'
+                        ? 'bg-slate-900 text-white shadow-2xs font-bold ring-1 ring-slate-900/10'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                     )}
-                    title="Startup Dashboard Mode"
+                    title="Switch to Startup Dashboard"
                   >
-                    <Rocket className={cn('h-3.5 w-3.5', isStartup ? 'text-brand-orange-400' : 'text-slate-500')} />
+                    <Rocket className={cn('h-3.5 w-3.5 shrink-0', isStartup ? 'text-brand-orange-400' : 'text-slate-500')} />
                     <span>Startup</span>
                   </button>
                 </div>
               )}
+
 
               {/* New Pitch button removed — accessible via sidebar */}
 

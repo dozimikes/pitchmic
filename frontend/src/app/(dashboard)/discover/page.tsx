@@ -1,10 +1,12 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Sparkles, TrendingUp, MapPin, Building2, Target,
   ChevronRight, RefreshCw, Loader2, Zap, Filter,
+  Play, HandCoins, FolderLock,
 } from 'lucide-react';
 import { apiGet, apiPost } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -20,6 +22,13 @@ interface MatchScore {
   startup_name: string;
   investor: number;
   investor_name: string;
+  industry?: string;
+  location?: string;
+  funding_stage?: string;
+  logo_url?: string;
+  pitch_id?: number | null;
+  pitch_title?: string;
+  asking_amount?: string | null;
   compatibility_score: number;
   industry_score: number;
   stage_score: number;
@@ -137,6 +146,49 @@ function MatchCard({ match, isStartupView }: { match: MatchScore; isStartupView:
                 {Math.round(match.confidence_interval.upper * 100)}%
               </p>
             )}
+          </div>
+        )}
+
+        {/* Startup details and action buttons for Investor */}
+        {!isStartupView && (
+          <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500">
+              {match.industry && (
+                <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
+                  {match.industry}
+                </span>
+              )}
+              {match.location && (
+                <span className="flex items-center gap-0.5 text-slate-500 text-[11px]">
+                  <MapPin className="h-3 w-3" /> {match.location}
+                </span>
+              )}
+              {match.asking_amount && (
+                <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 text-[11px]">
+                  Ask: ${Number(match.asking_amount).toLocaleString()}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {match.pitch_id && (
+                <Link href={`/pitches/${match.pitch_id}`}>
+                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
+                    <Play className="h-3 w-3" /> View Pitch
+                  </Button>
+                </Link>
+              )}
+              <Link href={match.pitch_id ? `/offers?pitch=${match.pitch_id}&amount=${match.asking_amount || ''}` : '/offers'}>
+                <Button size="sm" variant="default" className="h-7 text-xs gap-1 bg-indigo-600 hover:bg-indigo-700 text-white">
+                  <HandCoins className="h-3 w-3" /> Send Offer
+                </Button>
+              </Link>
+              <Link href="/dataroom">
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-slate-600">
+                  <FolderLock className="h-3 w-3" /> DataRoom
+                </Button>
+              </Link>
+            </div>
           </div>
         )}
       </CardContent>

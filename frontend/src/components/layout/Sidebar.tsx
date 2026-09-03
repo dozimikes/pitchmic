@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Mic,
   Home,
@@ -23,6 +23,14 @@ import {
   Rocket,
   Briefcase,
   ShieldCheck,
+  Layers,
+  Activity,
+  Users,
+  Key,
+  FileText,
+  Award,
+  CheckSquare,
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
@@ -42,108 +50,58 @@ interface MenuItem {
   label: string;
   icon: React.ComponentType<{ className?: string | undefined }>;
   badge?: string;
-  roles?: Array<'startup' | 'investor' | 'admin'>;
-  section?: 'main' | 'manage' | 'account';
+  section: 'main' | 'manage' | 'account';
 }
 
-const MENU_ITEMS: MenuItem[] = [
-  {
-    href: '/newsfeed',
-    label: 'Newsfeed',
-    icon: Home,
-    section: 'main',
-    badge: 'New',
-  },
-  {
-    href: '/offers',
-    label: 'Offers',
-    icon: HandCoins,
-    section: 'main',
-    badge: '3',
-  },
-  {
-    href: '/messages',
-    label: 'Messages',
-    icon: MessageSquare,
-    section: 'main',
-    badge: '3',
-  },
-  {
-    href: '/notifications',
-    label: 'Notifications',
-    icon: Bell,
-    section: 'main',
-  },
-  {
-    href: '/pitches',
-    label: 'Pitches',
-    icon: Lightbulb,
-    section: 'main',
-    roles: ['startup'],
-  },
-  {
-    href: '/fundability',
-    label: 'Fundability Score',
-    icon: ShieldCheck,
-    section: 'main',
-    badge: 'AI Audit',
-    roles: ['startup'],
-  },
-  {
-    href: '/discover',
-    label: 'Discover Deals',
-    icon: Sparkles,
-    section: 'main',
-    roles: ['investor'],
-  },
-  {
-    href: '/intelligence',
-    label: 'VC Intelligence',
-    icon: Brain,
-    section: 'main',
-    badge: 'PRO',
-    roles: ['investor'], // Restricted strictly to Investor dashboard!
-  },
-  {
-    href: '/dataroom',
-    label: 'Data Room',
-    icon: FolderLock,
-    section: 'manage',
-    roles: ['startup', 'investor'],
-  },
-  {
-    href: '/analytics',
-    label: 'Analytics',
-    icon: BarChart3,
-    section: 'manage',
-  },
-  {
-    href: '/pitches/new',
-    label: 'New Pitch',
-    icon: Mic,
-    section: 'manage',
-    roles: ['startup'],
-    badge: 'Draft',
-  },
-  {
-    href: '/company',
-    label: 'Company',
-    icon: Building2,
-    section: 'manage',
-    roles: ['startup'],
-  },
-  {
-    href: '/profile/edit',
-    label: 'Profile',
-    icon: User,
-    section: 'account',
-  },
-  {
-    href: '/settings',
-    label: 'Settings',
-    icon: Settings,
-    section: 'account',
-  },
+const ADMIN_MENU: MenuItem[] = [
+  { href: '/admin', label: 'Overview & Telemetry', icon: Activity, section: 'main', badge: 'Live' },
+  { href: '/admin#users', label: 'User Directory', icon: Users, section: 'main' },
+  { href: '/accelerator', label: 'Cohort Pipeline', icon: Layers, section: 'main', badge: 'Batches' },
+  { href: '/intelligence#api-keys', label: 'Enterprise API Keys', icon: Key, section: 'main' },
+  { href: '/admin#audit', label: 'Audit Logs & NDPR', icon: ShieldCheck, section: 'manage', badge: 'GDPR' },
+  { href: '/analytics', label: 'Platform Analytics', icon: BarChart3, section: 'manage' },
+  { href: '/settings', label: 'Admin Settings', icon: Settings, section: 'account' },
+];
+
+const ACCELERATOR_MENU: MenuItem[] = [
+  { href: '/accelerator', label: 'Cohort Intake Funnel', icon: Layers, section: 'main', badge: 'C-12' },
+  { href: '/accelerator#triage', label: 'Applicant Triage', icon: Mic, section: 'main', badge: 'Active' },
+  { href: '/accelerator#rubric', label: '8-Pillar Scoring', icon: Award, section: 'main' },
+  { href: '/accelerator#voting', label: 'Committee Votes', icon: CheckSquare, section: 'main' },
+  { href: '/accelerator#sync', label: 'Antler Hub Sync', icon: RefreshCw, section: 'main', badge: 'API' },
+  { href: '/newsfeed', label: 'Dealflow Radar', icon: Home, section: 'manage' },
+  { href: '/offers', label: 'Syndicate Term Sheets', icon: HandCoins, section: 'manage' },
+  { href: '/dataroom', label: 'DataRoom Diligence', icon: FolderLock, section: 'manage' },
+  { href: '/messages', label: 'Inbound Messages', icon: MessageSquare, section: 'manage', badge: '3' },
+  { href: '/profile/edit', label: 'Accelerator Profile', icon: User, section: 'account' },
+  { href: '/settings', label: 'Settings', icon: Settings, section: 'account' },
+];
+
+const INVESTOR_MENU: MenuItem[] = [
+  { href: '/newsfeed', label: 'Live Deal Stream', icon: Home, section: 'main', badge: 'Deals' },
+  { href: '/discover', label: 'Deal Discovery Radar', icon: Sparkles, section: 'main', badge: 'Match' },
+  { href: '/intelligence', label: 'VC Forensics & AI', icon: Brain, section: 'main', badge: 'PRO' },
+  { href: '/offers', label: 'Term Sheets & Offers', icon: HandCoins, section: 'main', badge: 'Active' },
+  { href: '/dataroom', label: 'Diligence DataRooms', icon: FolderLock, section: 'main' },
+  { href: '/analytics', label: 'Portfolio ROI & Heatmap', icon: BarChart3, section: 'manage' },
+  { href: '/messages', label: 'Direct Messages', icon: MessageSquare, section: 'manage' },
+  { href: '/notifications', label: 'Notifications', icon: Bell, section: 'manage' },
+  { href: '/profile/edit', label: 'Investor Profile', icon: User, section: 'account' },
+  { href: '/settings', label: 'Settings', icon: Settings, section: 'account' },
+];
+
+const STARTUP_MENU: MenuItem[] = [
+  { href: '/pitches', label: 'Founder Studio & Pitches', icon: Lightbulb, section: 'main', badge: 'Live' },
+  { href: '/pitches/new', label: 'Record Pitch Deck', icon: Mic, section: 'main', badge: 'Studio' },
+  { href: '/fundability', label: '8-Pillar Fundability', icon: ShieldCheck, section: 'main', badge: 'AI Audit' },
+  { href: '/company', label: 'Company Profile', icon: Building2, section: 'main' },
+  { href: '/offers', label: 'Offers Received', icon: HandCoins, section: 'manage', badge: 'Offers' },
+  { href: '/dataroom', label: 'DataRoom Vault', icon: FolderLock, section: 'manage' },
+  { href: '/analytics', label: 'Traction & SAFE Calc', icon: BarChart3, section: 'manage' },
+  { href: '/newsfeed', label: 'Peer Ecosystem Feed', icon: Home, section: 'manage' },
+  { href: '/messages', label: 'Direct Messages', icon: MessageSquare, section: 'manage' },
+  { href: '/profile/edit', label: 'Profile', icon: User, section: 'account' },
+  { href: '/settings', label: 'Settings', icon: Settings, section: 'account' },
 ];
 
 export function Sidebar({
@@ -152,17 +110,15 @@ export function Sidebar({
   onToggleCollapse,
 }: SidebarProps) {
   const pathname = usePathname();
-  const { user, isStartup, isInvestor, isAdminMode, canSwitchRole, activeRole, setActiveRole, toggleRole } = useAuth();
+  const router = useRouter();
+  const { user, isStartup, isInvestor, isAccelerator, isAdminMode, canSwitchRole, activeRole, setActiveRole, toggleRole } = useAuth();
 
-  const userRole = user?.role;
-  const allowedItems = MENU_ITEMS.filter((item) => {
-    if (!item.roles) return true;
-    if (isAdminMode) return true; // Superuser in Admin mode sees all tools
-    if (userRole === 'admin' && !canSwitchRole) return true;
-    if (isStartup) return item.roles.includes('startup');
-    if (isInvestor) return item.roles.includes('investor');
-    return false;
-  });
+  const allowedItems = React.useMemo(() => {
+    if (isAdminMode) return ADMIN_MENU;
+    if (isAccelerator) return ACCELERATOR_MENU;
+    if (isInvestor) return INVESTOR_MENU;
+    return STARTUP_MENU;
+  }, [isAdminMode, isAccelerator, isInvestor]);
 
   const groupedItems = {
     main: allowedItems.filter((i) => i.section === 'main'),
@@ -202,56 +158,89 @@ export function Sidebar({
         )}
       </div>
 
-      {/* Superuser / Admin Role Switcher with Admin | Investor | Startup buttons */}
+      {/* Superuser / Admin Role Switcher with Admin | Accelerator | Investor | Startup buttons */}
       {canSwitchRole && !collapsed && (
         <div className="p-2.5 border-b border-slate-100 bg-slate-50/80">
           <div className="px-1 pb-1.5 flex items-center justify-between">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Superuser Mode
+              Superuser Switcher
             </span>
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">
-              {isAdminMode ? 'ADMIN' : isInvestor ? 'INVESTOR' : 'STARTUP'}
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 uppercase">
+              {isAdminMode ? 'ADMIN' : isAccelerator ? 'ACCELERATOR' : isInvestor ? 'INVESTOR' : 'STARTUP'}
             </span>
           </div>
-          <div className="grid grid-cols-3 gap-1 bg-slate-200/70 p-1 rounded-xl">
+          <div className="grid grid-cols-4 gap-1 bg-slate-200/70 p-1 rounded-xl">
+            {/* Admin */}
             <button
               type="button"
-              onClick={() => setActiveRole(UserRole.ADMIN)}
+              onClick={() => {
+                setActiveRole(UserRole.ADMIN);
+                router.push('/admin');
+              }}
               className={cn(
-                'flex flex-col items-center justify-center py-1.5 px-1 rounded-lg transition-all text-[11px] font-bold',
+                'flex flex-col items-center justify-center py-1.5 px-0.5 rounded-lg transition-all text-[10px] font-bold',
                 isAdminMode
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
               )}
-              title="Admin Dashboard Mode"
+              title="Admin Dashboard"
             >
               <ShieldCheck className={cn('h-3.5 w-3.5 mb-0.5', isAdminMode ? 'text-emerald-400' : 'text-slate-500')} />
               <span>Admin</span>
             </button>
+
+            {/* Accelerator */}
             <button
               type="button"
-              onClick={() => setActiveRole(UserRole.INVESTOR)}
+              onClick={() => {
+                setActiveRole(UserRole.ACCELERATOR);
+                router.push('/accelerator');
+              }}
               className={cn(
-                'flex flex-col items-center justify-center py-1.5 px-1 rounded-lg transition-all text-[11px] font-bold',
+                'flex flex-col items-center justify-center py-1.5 px-0.5 rounded-lg transition-all text-[10px] font-bold',
+                isAccelerator
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
+              )}
+              title="Accelerator Dashboard"
+            >
+              <Layers className={cn('h-3.5 w-3.5 mb-0.5', isAccelerator ? 'text-purple-400' : 'text-slate-500')} />
+              <span>Accel</span>
+            </button>
+
+            {/* Investor */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveRole(UserRole.INVESTOR);
+                if (pathname === '/admin' || pathname === '/accelerator') router.push('/newsfeed');
+              }}
+              className={cn(
+                'flex flex-col items-center justify-center py-1.5 px-0.5 rounded-lg transition-all text-[10px] font-bold',
                 isInvestor
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
               )}
-              title="Investor Dashboard Mode"
+              title="Investor Dashboard"
             >
               <Briefcase className={cn('h-3.5 w-3.5 mb-0.5', isInvestor ? 'text-indigo-400' : 'text-slate-500')} />
               <span>Investor</span>
             </button>
+
+            {/* Startup */}
             <button
               type="button"
-              onClick={() => setActiveRole(UserRole.STARTUP)}
+              onClick={() => {
+                setActiveRole(UserRole.STARTUP);
+                if (pathname === '/admin' || pathname === '/accelerator') router.push('/newsfeed');
+              }}
               className={cn(
-                'flex flex-col items-center justify-center py-1.5 px-1 rounded-lg transition-all text-[11px] font-bold',
+                'flex flex-col items-center justify-center py-1.5 px-0.5 rounded-lg transition-all text-[10px] font-bold',
                 isStartup
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
               )}
-              title="Startup Dashboard Mode"
+              title="Startup Dashboard"
             >
               <Rocket className={cn('h-3.5 w-3.5 mb-0.5', isStartup ? 'text-brand-orange-400' : 'text-slate-500')} />
               <span>Startup</span>
@@ -282,8 +271,14 @@ export function Sidebar({
 
       <nav className="flex-1 overflow-y-auto scrollbar-thin px-2 py-4">
         {!collapsed && (
-          <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
-            {isAdminMode ? 'Admin Console' : isStartup ? 'Startup Workspace' : 'Investor Workspace'}
+          <p className="mb-2 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            {isAdminMode
+              ? 'Platform Governance'
+              : isAccelerator
+              ? 'Cohort Management'
+              : isInvestor
+              ? 'Diligence & Dealflow'
+              : 'Pitch & Fundability'}
           </p>
         )}
         <ul className="space-y-1">
@@ -306,8 +301,14 @@ export function Sidebar({
             {!collapsed && (
               <>
                 <Separator className="my-4" />
-                <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Manage
+                <p className="mb-2 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  {isAdminMode
+                    ? 'System & Audit'
+                    : isAccelerator
+                    ? 'Dealflow Syndicate'
+                    : isInvestor
+                    ? 'Portfolio & Returns'
+                    : 'Fundraising Pipeline'}
                 </p>
               </>
             )}

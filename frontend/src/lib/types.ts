@@ -63,20 +63,15 @@ export interface User {
 }
 
 export interface StartupProfile {
-  /** Primary key (integer serialised as string by DRF) */
   id: string;
-  /** FK to User — serialised as id string */
   user: string;
   company_name: string;
   startup_name?: string;
   tagline?: string;
   description?: string;
-  /** Contact / legacy columns mapped to backend serializer fields */
   address?: string;
   phone?: string;
-  /** Comma-separated investment niches / industries (legacy "niche" column) */
   niche?: string;
-  /** Extended profile fields */
   logo_url?: string;
   website?: string;
   linkedin?: string;
@@ -85,10 +80,10 @@ export interface StartupProfile {
   industry?: string;
   location?: string;
   founded_year?: number;
-  /** employee_count is a string range on the backend ("1-10", "11-50", …) */
   employee_count?: string;
   pitch_video_url?: string;
   target_market?: string;
+  asking_amount?: string;
   team_members?: TeamMember[];
   created_at: string;
   updated_at: string;
@@ -96,24 +91,19 @@ export interface StartupProfile {
 
 export interface InvestorProfile {
   id: string;
-  /** FK to User — serialised as id string */
   user: string;
   full_name: string;
   company_name?: string;
   title?: string;
   bio?: string;
-  /** Contact / legacy columns */
   address?: string;
   phone?: string;
-  /** Comma-separated investment niche (legacy column, also mirrored in preferred_industries) */
   niche?: string;
-  /** Extended profile fields */
   avatar_url?: string;
   website?: string;
   linkedin?: string;
   twitter?: string;
   location?: string;
-  /** Comma-separated string on the backend */
   preferred_industries?: string;
   investment_range_min?: string;
   investment_range_max?: string;
@@ -123,7 +113,6 @@ export interface InvestorProfile {
 
 export interface TeamMember {
   id: string;
-  /** FK to StartupProfile (not exposed as startup_profile_id) */
   startup_profile?: string;
   name: string;
   role: string;
@@ -137,13 +126,11 @@ export interface TeamMember {
 
 export interface Pitch {
   id: string;
-  /** FK to StartupProfile serialised as id */
   startup: string;
   startup_name?: string;
   startup_id?: string;
   title: string;
   description: string;
-  /** Extended fields (added in migration T2-3) */
   problem?: string;
   solution?: string;
   market_size?: string;
@@ -152,7 +139,6 @@ export interface Pitch {
   use_of_funds?: string;
   tags?: string[];
   cover_image_url?: string;
-  /** Decimal fields serialised as strings by DRF */
   asking_amount?: string;
   equity_offered?: string;
   image_url?: string;
@@ -160,8 +146,8 @@ export interface Pitch {
   deck_url?: string;
   is_draft: boolean;
   is_featured?: boolean;
-  /** Annotated counts */
   like_count: number;
+  view_count?: number;
   is_liked_by_me?: boolean;
   offers_count?: number;
   pitched_at?: string;
@@ -186,11 +172,30 @@ export interface PitchLike {
   created_at: string;
 }
 
+export interface MatchDimensions {
+  industry: number;
+  stage: number;
+  ticket_size: number;
+  location: number;
+  semantic: number;
+}
+
+export interface OfferEconomics {
+  implied_valuation: number | null;
+  median_dilution_pct: number | null;
+  capital_weighted_dilution_pct: number | null;
+}
+
+export type IntentTier =
+  | 'COLD'
+  | 'WARM'
+  | 'HIGH_CONVICTION'
+  | 'IMMINENT_TERM_SHEET';
+
 export interface Offer {
   id: string;
   pitch: string;
   investor: string;
-  /** Nested read-only data when serialiser includes nested objects */
   pitch_title?: string;
   startup_name?: string;
   investor_name?: string;
@@ -207,20 +212,68 @@ export interface Offer {
   responded_at?: string;
   created_at: string;
   updated_at: string;
+
+  match_score?: number | null;
+  match_dimensions?: MatchDimensions | null;
+  investor_intent_pct?: number | null;
+  intent_tier?: IntentTier | string | null;
+  close_probability_pct?: number | null;
+  behavioral_signals?: string[];
+  engagement_score?: number | null;
+  offer_economics?: OfferEconomics | null;
+}
+
+export interface LikelyOffer {
+  investor_name: string;
+  investor_company: string;
+  offer_probability_pct: number;
+  match_score?: number;
+  rationale_signals: string[];
+}
+
+export type DealHealthFactor = 'up' | 'down' | 'flat';
+
+export interface DealHealthSummary {
+  score: number;
+  tier: string;
+  factors: Record<string, DealHealthFactor>;
+}
+
+export interface PitchmicIntelligenceSummary {
+  high_conviction_count: number;
+  likely_offer_count: number;
+  best_offer_amount: number | null;
+  highest_intent_pct: number | null;
+  negotiation_opportunity_tier: 'Low' | 'Medium' | 'High' | string;
+  next_milestone_term_sheet_probability_pct: number;
+}
+
+export interface OffersListSummary extends Partial<PitchmicIntelligenceSummary> {
+  offers_received_count?: number;
+  offers_sent_count?: number;
+  capital_offered_sum: number;
+  active_negotiation_count: number;
+  accepted_count: number;
+  best_offer_amount: number | null;
+  high_conviction_count: number;
+  likely_offer_count: number;
+  likely_offers: LikelyOffer[];
+  highest_intent_pct: number | null;
+  negotiation_opportunity_tier: string;
+  next_milestone_term_sheet_probability_pct: number;
+  deal_health_score: number;
+  deal_health_tier: string;
+  deal_health_factors: Record<string, DealHealthFactor>;
 }
 
 export interface Notification {
   id: string;
   user: string;
-  /** notification_type on the backend: info | success | warning | error */
   notification_type: 'info' | 'success' | 'warning' | 'error';
-  /** category on the backend */
   category: 'new_offer' | 'offer_updated' | 'new_pitch' | 'new_like' | 'system';
   title: string;
   body?: string;
-  /** data JSON field */
   data?: Record<string, unknown>;
-  /** Derived from read_at — true when read_at is non-null */
   is_read: boolean;
   created_at: string;
   read_at?: string;
@@ -237,3 +290,33 @@ export interface AuthTokens {
   access: string;
   refresh: string;
 }
+
+export type OfferPerspective = 'startup' | 'investor';
+
+export type Instrument =
+  | 'SAFE'
+  | 'Convertible Note'
+  | 'Equity'
+  | 'Debt'
+  | 'Other'
+  | 'Unknown';
+
+export type InvestorTypeLabel =
+  | 'VC'
+  | 'Angel'
+  | 'Family Office'
+  | 'Corporate'
+  | 'Accelerator'
+  | 'Unknown';
+
+export type TicketBucket =
+  | '<$100K'
+  | '$100K–$500K'
+  | '$500K–$1M'
+  | '$1M+';
+
+export type StrategicFitLabel = 'High' | 'Medium' | 'Low';
+
+export type ScoreColorScheme = 'match' | 'intent' | 'close' | 'generic';
+
+export type OfferComparisonSelection = Set<string>;

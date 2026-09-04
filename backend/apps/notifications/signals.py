@@ -1,19 +1,3 @@
-"""
-apps.notifications.signals
-==========================
-Signal handlers that create Notification + InAppNotification rows when
-domain events occur.
-
-Notification recipients
------------------------
-  offer_made        → startup owner (someone offered on their pitch)
-  offer_accepted    → investor   (their offer was accepted)
-  offer_rejected    → investor   (their offer was rejected)
-  offer_negotiating → investor   (startup opened negotiation)
-  pitch_liked       → startup owner (someone liked their pitch)
-
-All handlers are connected in NotificationsConfig.ready().
-"""
 from __future__ import annotations
 
 import logging
@@ -193,7 +177,7 @@ def on_pitch_liked(sender, instance, created: bool, **kwargs) -> None:  # noqa: 
 
 
 # ---------------------------------------------------------------------------
-# Registration — called from NotificationsConfig.ready()
+# Registration - called from NotificationsConfig.ready()
 # ---------------------------------------------------------------------------
 
 def connect() -> None:

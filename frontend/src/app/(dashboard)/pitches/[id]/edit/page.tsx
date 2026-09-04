@@ -40,7 +40,7 @@ export default function EditPitchPage() {
   const [tags, setTags] = React.useState<string[]>([]);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [saved, setSaved] = React.useState(false);
-  // Media URL fields not included in the strict form schema — tracked separately
+  // Media URL fields not included in the strict form schema - tracked separately
   const [coverImageUrl, setCoverImageUrl] = React.useState('');
   const [imageUrl, setImageUrl] = React.useState('');
 
@@ -208,7 +208,7 @@ export default function EditPitchPage() {
               </Label>
               <Input
                 id="edit-title"
-                placeholder="e.g. Kipawa — Agency Banking & Logistics Platform for Africa"
+                placeholder="e.g. Kipawa - Agency Banking & Logistics Platform for Africa"
                 {...register('title')}
                 className={cn(errors.title && 'border-red-300 focus:ring-red-500')}
               />
@@ -339,7 +339,7 @@ export default function EditPitchPage() {
                 />
               </div>
             ))}
-            {/* Extra media fields not in strict schema — managed via local state */}
+            {/* Extra media fields not in strict schema - managed via local state */}
             <div>
               <Label htmlFor="edit-cover-image-url" className="text-sm font-semibold text-slate-700 mb-1.5 block">
                 Cover Image URL

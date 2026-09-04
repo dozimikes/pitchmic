@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     try {
       const body = await request.json();
       if (body?.refresh) refresh = body.refresh;
-    } catch { /* ignore — use cookie only */ }
+    } catch { /* ignore - use cookie only */ }
     if (!refresh) {
       return NextResponse.json({ detail: 'No refresh token' }, { status: 401 });
     }

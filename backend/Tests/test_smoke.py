@@ -1,5 +1,5 @@
 """
-Smoke tests — focused vertical-slice through the critical backend paths:
+Smoke tests - focused vertical-slice through the critical backend paths:
   1. Offer FSM transitions (model-level, unit tests)
   2. Offer transitions via API end-to-end
   3. Activity feed role-based visibility
@@ -27,7 +27,7 @@ from apps.users.models import InvestorProfile, StartupProfile, User
 
 
 # ---------------------------------------------------------------------------
-# 1. Offer FSM transitions — pure model-level unit tests (no DB in can_transition)
+# 1. Offer FSM transitions - pure model-level unit tests (no DB in can_transition)
 # ---------------------------------------------------------------------------
 
 

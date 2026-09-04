@@ -5,10 +5,10 @@ Multi-agent due diligence pipeline.
 
 Architecture
 ------------
-Stage 1: ForensicAuditor   — extract financial DNA, red flags, founder signals
-Stage 2: MarketStrategist  — competitive landscape, TAM validation, timing
-Stage 3: ManagingPartner   — synthesise Stage 1+2, run bull/bear debate
-Stage 4: MemoGenerator     — produce cited IC memo from all prior outputs
+Stage 1: ForensicAuditor   - extract financial DNA, red flags, founder signals
+Stage 2: MarketStrategist  - competitive landscape, TAM validation, timing
+Stage 3: ManagingPartner   - synthesise Stage 1+2, run bull/bear debate
+Stage 4: MemoGenerator     - produce cited IC memo from all prior outputs
 
 Each stage is implemented as a pure function that receives structured data and
 returns a dict.  When an LLM API key is configured (OPENAI_API_KEY or
@@ -154,7 +154,7 @@ Startup data:
     if not startup.gross_margin:
         red_flags.append("Gross margin not provided")
     if len(list(startup.team_members.all())) < 2:
-        red_flags.append("Solo founder — no co-founder")
+        red_flags.append("Solo founder - no co-founder")
 
     health = (
         "strong" if startup.current_revenue and (startup.runway_months or 0) >= 18 and forensic_report.unit_economics.is_mathematically_coherent
@@ -324,7 +324,7 @@ def generate_ic_memo(startup, forensic: dict, market: dict, partner: dict) -> st
     market_pos = market.get("competitive_positioning", {})
 
     return f"""
-INVESTMENT COMMITTEE MEMO — {company.upper()}
+INVESTMENT COMMITTEE MEMO - {company.upper()}
 {'=' * 60}
 VERDICT: {verdict}  |  OVERALL SCORE: {score}/100
 

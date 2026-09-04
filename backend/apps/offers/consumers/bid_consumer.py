@@ -4,8 +4,8 @@ apps.offers.consumers.bid_consumer
 WebSocket consumer for real-time bid/offer updates.
 
 Channel group naming:
-  pitch_<pitch_id>   — all connected clients watching a specific pitch
-  investor_<user_id> — per-investor channel for outbound offer status updates
+  pitch_<pitch_id>   - all connected clients watching a specific pitch
+  investor_<user_id> - per-investor channel for outbound offer status updates
 
 Message shape sent to clients::
 
@@ -78,7 +78,7 @@ class BidConsumer(AsyncWebsocketConsumer):
                 await self.send(text_data=json.dumps({"type": "pong"}))
 
     # -----------------------------------------------------------------------
-    # Handlers — called by channel_layer.group_send from Django signal/task
+    # Handlers - called by channel_layer.group_send from Django signal/task
     # -----------------------------------------------------------------------
 
     async def offer_update(self, event: dict[str, Any]) -> None:

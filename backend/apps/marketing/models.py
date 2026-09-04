@@ -3,8 +3,8 @@ apps.marketing.models
 ======================
 Automated Outreach & Campaign management.
 
-OutreachCampaign  — startup-created campaign targeting a filtered set of investors
-OutreachMessage   — individual personalised message instance per investor per campaign
+OutreachCampaign  - startup-created campaign targeting a filtered set of investors
+OutreachMessage   - individual personalised message instance per investor per campaign
 """
 from __future__ import annotations
 

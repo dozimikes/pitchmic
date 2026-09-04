@@ -58,8 +58,8 @@ interface TermModelPreset {
 
 const VC_TERM_PRESETS: TermModelPreset[] = [
   {
-    id: 'antler_standard',
-    name: 'Antler Standard Model',
+    id: 'accelerator_standard_10',
+    name: 'Standard Accelerator Tier (10%)',
     vcCategory: 'Global Accelerator',
     checkAmount: 100000,
     mode: 'fixed_pct',
@@ -110,7 +110,7 @@ export default function AnalyticsPage() {
   const [investorTab, setInvestorTab] = React.useState<InvestorTab>('deal_flow');
 
   // Pre-Seed Dilution Simulator State
-  const [selectedPresetId, setSelectedPresetId] = React.useState<string>('antler_standard');
+  const [selectedPresetId, setSelectedPresetId] = React.useState<string>('accelerator_standard_10');
   const [checkAmount, setCheckAmount] = React.useState<number>(100000);
   const [pricingMode, setPricingMode] = React.useState<'fixed_pct' | 'val_cap'>('fixed_pct');
   const [fixedEquityPct, setFixedEquityPct] = React.useState<number>(10.0);
@@ -203,7 +203,7 @@ export default function AnalyticsPage() {
           </div>
           <p className="text-xs sm:text-sm text-slate-500">
             {isStartup
-              ? 'Calibrate SAFE terms ($100k for 10% [Antler], $100k for 7%, custom caps), pitch deck views, and active term sheets.'
+              ? 'Calibrate SAFE terms ($100k for 10%, $125k for 7%, custom caps), pitch deck views, and active term sheets.'
               : 'Institutional deal triage velocity, Monte Carlo ROI distributions, and pan-African deal density.'}
           </p>
         </div>
@@ -219,7 +219,7 @@ export default function AnalyticsPage() {
                 startupTab === 'traction' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
               )}
             >
-              📊 Traction Funnel
+              Traction Funnel
             </button>
             <button
               type="button"
@@ -229,7 +229,7 @@ export default function AnalyticsPage() {
                 startupTab === 'preseed_calc' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
               )}
             >
-              💰 Pre-Seed &amp; SAFE Terms Calc
+              Pre-Seed &amp; SAFE Terms Calc
             </button>
             <button
               type="button"
@@ -239,7 +239,7 @@ export default function AnalyticsPage() {
                 startupTab === 'milestones' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
               )}
             >
-              🚀 Milestones &amp; Outcomes
+              Milestones &amp; Outcomes
             </button>
             <button
               type="button"
@@ -249,7 +249,7 @@ export default function AnalyticsPage() {
                 startupTab === 'heatmap' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
               )}
             >
-              🗺️ Deal Heatmap
+              Deal Heatmap
             </button>
           </div>
         )}
@@ -265,7 +265,7 @@ export default function AnalyticsPage() {
                 investorTab === 'deal_flow' ? 'bg-slate-900 text-white shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
               )}
             >
-              📈 Inbound Deal Flow ({allPitches.length})
+              Inbound Deal Flow ({allPitches.length})
             </button>
             <button
               type="button"
@@ -275,7 +275,7 @@ export default function AnalyticsPage() {
                 investorTab === 'roi' ? 'bg-slate-900 text-white shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
               )}
             >
-              💵 Portfolio ROI Simulator
+              Portfolio ROI Simulator
             </button>
             <button
               type="button"
@@ -285,7 +285,7 @@ export default function AnalyticsPage() {
                 investorTab === 'milestones' ? 'bg-slate-900 text-white shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
               )}
             >
-              🎯 Outcome Probabilities
+              Outcome Probabilities
             </button>
             <button
               type="button"
@@ -295,7 +295,7 @@ export default function AnalyticsPage() {
                 investorTab === 'heatmap' ? 'bg-slate-900 text-white shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
               )}
             >
-              🗺️ Geographic Heatmap
+              Geographic Heatmap
             </button>
           </div>
         )}
@@ -310,7 +310,7 @@ export default function AnalyticsPage() {
               <CardContent className="p-4">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Published Decks</div>
                 <div className="text-2xl font-black text-slate-900 mt-1">
-                  {isLoadingPitches ? '—' : publishedCount} <span className="text-xs font-normal text-slate-400">/ {myPitches.length} total</span>
+                  {isLoadingPitches ? '-' : publishedCount} <span className="text-xs font-normal text-slate-400">/ {myPitches.length} total</span>
                 </div>
                 <p className="text-[11px] text-emerald-600 mt-0.5">Live on VC discovery feed</p>
               </CardContent>
@@ -320,7 +320,7 @@ export default function AnalyticsPage() {
               <CardContent className="p-4">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Investor Likes &amp; Saves</div>
                 <div className="text-2xl font-black text-rose-500 mt-1">
-                  {isLoadingPitches ? '—' : totalLikes}
+                  {isLoadingPitches ? '-' : totalLikes}
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">Watchlist additions</p>
               </CardContent>
@@ -330,7 +330,7 @@ export default function AnalyticsPage() {
               <CardContent className="p-4">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Term Sheets &amp; Offers</div>
                 <div className="text-2xl font-black text-brand-orange-500 mt-1">
-                  {isLoadingOffers ? '—' : totalOffersCount}
+                  {isLoadingOffers ? '-' : totalOffersCount}
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">Active term sheets</p>
               </CardContent>
@@ -482,7 +482,7 @@ export default function AnalyticsPage() {
                         pricingMode === 'fixed_pct' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-600'
                       )}
                     >
-                      Fixed Equity % (Antler / YC)
+                      Fixed Equity % (Accelerator Terms)
                     </button>
                     <button
                       type="button"
@@ -528,7 +528,7 @@ export default function AnalyticsPage() {
                         onChange={(e) => { setFixedEquityPct(Number(e.target.value)); setSelectedPresetId(''); }}
                         className="mt-1"
                       />
-                      <span className="text-[10px] text-slate-400">Antler = 10%, Angels = 7%, Seed = 12%</span>
+                      <span className="text-[10px] text-slate-400">Typical: Accelerators = 7–10%, Angels = 5–7%, Seed = 10–15%</span>
                     </div>
                   ) : (
                     <div>

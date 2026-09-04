@@ -1,5 +1,5 @@
 """
-Shared pytest fixtures — live here so pytest auto-discovers them for
+Shared pytest fixtures - live here so pytest auto-discovers them for
 tests under backend/apps/*/ (e.g. apps/users/tests.py).
 Identical to backend/Tests/conftest.py.
 """

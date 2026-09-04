@@ -383,7 +383,7 @@ export default function AvatarUploadPage() {
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               {[
-                'Use a real photo of you (not a logo — that goes on Company Logo).',
+                'Use a real photo of you (not a logo - that goes on Company Logo).',
                 'Crop tightly around your face and shoulders.',
                 'Make sure the background is clean and not distracting.',
                 'Good lighting, natural smile, eye contact = trust.',

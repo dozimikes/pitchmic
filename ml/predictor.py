@@ -1,17 +1,3 @@
-"""
-ml/predictor.py
-===============
-Production-grade Startup Success Predictor.
-
-All heavy sub-system classes (registry, cache, metrics) are imported from
-their dedicated sub-packages. This module owns:
-  - Feature schema & extraction (30 features)
-  - Circuit breaker
-  - ModelManager (load / hot-reload / heuristic fallback)
-  - PredictionService (orchestration, caching, metrics, batch)
-  - Public convenience API  (predict / batch_predict / health_check)
-  - Module-level aliases kept for backward-compat with main.py
-"""
 from __future__ import annotations
 
 import concurrent.futures

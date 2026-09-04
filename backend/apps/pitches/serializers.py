@@ -37,7 +37,7 @@ class PitchLikeSerializer(serializers.ModelSerializer):
 class PitchListSerializer(serializers.ModelSerializer):
     startup_name = serializers.CharField(source="startup.company_name", read_only=True)
     startup_id = serializers.IntegerField(source="startup.id", read_only=True)
-    # Both annotated on the queryset in PitchViewSet.get_queryset() — no extra DB hits
+    # Both annotated on the queryset in PitchViewSet.get_queryset() - no extra DB hits
     like_count = serializers.IntegerField(read_only=True)
     offers_count = serializers.IntegerField(read_only=True)
     is_liked_by_me = serializers.SerializerMethodField()
@@ -89,7 +89,7 @@ class PitchListSerializer(serializers.ModelSerializer):
 class PitchSerializer(serializers.ModelSerializer):
     attachments = PitchAttachmentSerializer(many=True, required=False)
     startup_name = serializers.CharField(source="startup.company_name", read_only=True)
-    # Annotated on the queryset — plain IntegerField, no extra DB hit
+    # Annotated on the queryset - plain IntegerField, no extra DB hit
     like_count = serializers.IntegerField(read_only=True)
     offers_count = serializers.IntegerField(read_only=True)
     is_liked_by_me = serializers.SerializerMethodField()

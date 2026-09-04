@@ -328,7 +328,7 @@ export default function CompanyLogoPage() {
               {[
                 'Use a transparent PNG or SVG so it works on any background.',
                 'Square aspect ratio · your logo will be shown in circles, cards, and lists.',
-                'Avoid tiny text or intricate detail — it won\';t read at small sizes.',
+                'Avoid tiny text or intricate detail - it won\';t read at small sizes.',
                 'If you don\'t have a logo yet, a wordmark or simple monogram works well.',
                 'Keep it legible at 32×32px (the size it appears in a feed).',
               ].map((tip) => (

@@ -97,7 +97,7 @@ class StartupProfile(models.Model):
     # Contact fields (from legacy startups table)
     address: models.CharField = models.CharField(_("contact address"), max_length=512, blank=True)
     phone: models.CharField = models.CharField(_("phone number"), max_length=50, blank=True)
-    # Industry / niche (from legacy "niche" column — stored comma-separated)
+    # Industry / niche (from legacy "niche" column - stored comma-separated)
     niche: models.CharField = models.CharField(
         _("niche"),
         max_length=500,

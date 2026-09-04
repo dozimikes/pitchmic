@@ -5,44 +5,44 @@ apps.predictive_intelligence.views
 REST endpoints for the Predictive Venture Intelligence Engine.
 
   Feature Store:
-    GET  /api/v1/predictive/features/{startup_id}/list/       — List feature snapshots
-    POST /api/v1/predictive/features/{startup_id}/capture/    — Capture a feature snapshot
-    GET  /api/v1/predictive/features/snapshot/{pk}/           — Single snapshot detail
-    GET  /api/v1/predictive/features/capabilities/            — Feature capability matrix (ML vs AI-augmented)
+    GET  /api/v1/predictive/features/{startup_id}/list/       - List feature snapshots
+    POST /api/v1/predictive/features/{startup_id}/capture/    - Capture a feature snapshot
+    GET  /api/v1/predictive/features/snapshot/{pk}/           - Single snapshot detail
+    GET  /api/v1/predictive/features/capabilities/            - Feature capability matrix (ML vs AI-augmented)
 
   Venture Outcome Prediction (multi-task multi-horizon):
-    GET  /api/v1/predictive/outcomes/startup/{pk}/latest/     — Latest VentureOutcomePrediction
-    POST /api/v1/predictive/outcomes/startup/{pk}/generate/   — Run predictor and persist
-    GET  /api/v1/predictive/outcomes/{pk}/                    — Prediction detail (incl. survival & Bayesian)
-    POST /api/v1/predictive/outcomes/{pk}/feedback/           — Submit V2 feedback
+    GET  /api/v1/predictive/outcomes/startup/{pk}/latest/     - Latest VentureOutcomePrediction
+    POST /api/v1/predictive/outcomes/startup/{pk}/generate/   - Run predictor and persist
+    GET  /api/v1/predictive/outcomes/{pk}/                    - Prediction detail (incl. survival & Bayesian)
+    POST /api/v1/predictive/outcomes/{pk}/feedback/           - Submit V2 feedback
 
   Historical Time Machine / Backtesting:
-    GET  /api/v1/predictive/time-machine/{startup_id}/list/   — Historical snapshots
-    POST /api/v1/predictive/time-machine/{startup_id}/build/  — Build historical snapshot
-    POST /api/v1/predictive/time-machine/evaluate/            — Backtest evaluation endpoint
+    GET  /api/v1/predictive/time-machine/{startup_id}/list/   - Historical snapshots
+    POST /api/v1/predictive/time-machine/{startup_id}/build/  - Build historical snapshot
+    POST /api/v1/predictive/time-machine/evaluate/            - Backtest evaluation endpoint
 
   Investor Intent:
-    GET  /api/v1/predictive/intent/startup/{startup_id}/      — Top investors by P(invest)
-    POST /api/v1/predictive/intent/investor/{investor_id}/score/ — Sequence scoring
+    GET  /api/v1/predictive/intent/startup/{startup_id}/      - Top investors by P(invest)
+    POST /api/v1/predictive/intent/investor/{investor_id}/score/ - Sequence scoring
 
   Knowledge Graph:
-    GET  /api/v1/predictive/graph/entities/                   — Graph entities list
-    POST /api/v1/predictive/graph/entity/                     — Create entity
-    POST /api/v1/predictive/graph/relation/                   — Create relation
-    POST /api/v1/predictive/graph/traverse/                   — Graph traversal queries
+    GET  /api/v1/predictive/graph/entities/                   - Graph entities list
+    POST /api/v1/predictive/graph/entity/                     - Create entity
+    POST /api/v1/predictive/graph/relation/                   - Create relation
+    POST /api/v1/predictive/graph/traverse/                   - Graph traversal queries
 
   Anomaly Detection:
-    GET  /api/v1/predictive/anomalies/                        — List unresolved anomalies
-    POST /api/v1/predictive/anomalies/audit/                  — Audit metrics list → anomaly records
-    POST /api/v1/predictive/anomalies/{pk}/resolve/           — Analyst resolution
+    GET  /api/v1/predictive/anomalies/                        - List unresolved anomalies
+    POST /api/v1/predictive/anomalies/audit/                  - Audit metrics list → anomaly records
+    POST /api/v1/predictive/anomalies/{pk}/resolve/           - Analyst resolution
 
   Model Registry & Calibration:
-    GET  /api/v1/predictive/registry/                         — List model families
-    POST /api/v1/predictive/registry/                         — Create registry entry
-    GET  /api/v1/predictive/registry/{pk}/versions/           — Model versions
-    GET  /api/v1/predictive/evaluations/                      — Backtest evaluation runs
-    GET  /api/v1/predictive/experiments/                      — A-B experiments
-    GET  /api/v1/predictive/calibration/{model_version_id}/   — Calibration records
+    GET  /api/v1/predictive/registry/                         - List model families
+    POST /api/v1/predictive/registry/                         - Create registry entry
+    GET  /api/v1/predictive/registry/{pk}/versions/           - Model versions
+    GET  /api/v1/predictive/evaluations/                      - Backtest evaluation runs
+    GET  /api/v1/predictive/experiments/                      - A-B experiments
+    GET  /api/v1/predictive/calibration/{model_version_id}/   - Calibration records
 """
 from __future__ import annotations
 
@@ -183,7 +183,7 @@ class FeatureSnapshotListView(generics.ListAPIView):
 
 
 class FeatureSnapshotCaptureView(APIView):
-    """POST — capture a feature snapshot from a request payload or from current state."""
+    """POST - capture a feature snapshot from a request payload or from current state."""
 
     permission_classes = (IsAuthenticated & IsStaffOrVisibleStartup,)
 
@@ -220,7 +220,7 @@ class FeatureSnapshotDetailView(generics.RetrieveAPIView):
 
 
 class LatestVentureOutcomeView(APIView):
-    """GET — retrieve the most recent VentureOutcomePrediction for a startup."""
+    """GET - retrieve the most recent VentureOutcomePrediction for a startup."""
 
     permission_classes = (IsAuthenticated & IsStaffOrVisibleStartup,)
 
@@ -295,7 +295,7 @@ def _safe_datetime(request_data, key, default):
 
 class VentureOutcomeGenerateView(APIView):
     """
-    POST — generate or refresh a VentureOutcomePrediction.
+    POST - generate or refresh a VentureOutcomePrediction.
 
     Accepts optional feature overrides; otherwise uses the latest
     StartupFeatureSnapshot for the startup.  Delegates to the existing
@@ -517,7 +517,7 @@ class HistoricalSnapshotListView(generics.ListAPIView):
 
 
 class HistoricalSnapshotBuildView(APIView):
-    """POST — trigger construction of a historical time-machine snapshot."""
+    """POST - trigger construction of a historical time-machine snapshot."""
 
     permission_classes = (IsAuthenticated & IsStaffOrVisibleStartup,)
 
@@ -556,7 +556,7 @@ class HistoricalSnapshotBuildView(APIView):
 
 class HistoricalEvaluateView(APIView):
     """
-    POST — run the time-machine evaluator over a cohort.
+    POST - run the time-machine evaluator over a cohort.
     Uses apps.intelligence.ml.time_machine.HistoricalTimeMachine.
     """
 
@@ -614,7 +614,7 @@ class HistoricalEvaluateView(APIView):
 
 
 class StartupTopInvestorIntentsView(generics.ListAPIView):
-    """GET — investors ranked by P(invest) for a startup."""
+    """GET - investors ranked by P(invest) for a startup."""
 
     permission_classes = (IsAuthenticated,)
     serializer_class = InvestorIntentPredictionSerializer
@@ -632,7 +632,7 @@ class StartupTopInvestorIntentsView(generics.ListAPIView):
 
 class ScoreInvestorIntentView(APIView):
     """
-    POST — score a behavioural event sequence for an investor.
+    POST - score a behavioural event sequence for an investor.
     Uses apps.intelligence.ml.sequences.BehavioralSequenceModel.
     """
 
@@ -731,7 +731,7 @@ class GraphRelationCreateView(generics.CreateAPIView):
 
 
 class GraphTraverseView(APIView):
-    """POST — graph traversal queries (co-investors, competitor cluster, nearest neighbours)."""
+    """POST - graph traversal queries (co-investors, competitor cluster, nearest neighbours)."""
 
     permission_classes = (IsAuthenticated,)
 
@@ -825,7 +825,7 @@ class GraphTraverseView(APIView):
 
 
 class AnomalyListView(generics.ListAPIView):
-    """GET — unresolved anomaly records (default) or filter by status/startup."""
+    """GET - unresolved anomaly records (default) or filter by status/startup."""
 
     permission_classes = (IsAuthenticated & IsStaff,)
     serializer_class = AnomalyDetectionRecordSerializer
@@ -845,7 +845,7 @@ class AnomalyListView(generics.ListAPIView):
 
 class AnomalyAuditView(APIView):
     """
-    POST — run the statistical anomaly auditor over a list of
+    POST - run the statistical anomaly auditor over a list of
     claimed metrics and persist the results.
 
     Payload shape:
@@ -921,7 +921,7 @@ class AnomalyAuditView(APIView):
 
 
 class AnomalyResolveView(APIView):
-    """POST — analyst resolution of a specific anomaly record."""
+    """POST - analyst resolution of a specific anomaly record."""
 
     permission_classes = (IsAuthenticated & IsStaff,)
 
@@ -1008,7 +1008,7 @@ class CalibrationListView(generics.ListAPIView):
 
 class FeatureCapabilitiesView(APIView):
     """
-    GET — expose which predictive-intelligence features are ML-only
+    GET - expose which predictive-intelligence features are ML-only
     (always on) vs AI-augmented (require a live LLM provider).
 
     Payload shape:

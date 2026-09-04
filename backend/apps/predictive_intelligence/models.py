@@ -38,7 +38,7 @@ _PROB_VALIDATORS = [
 
 
 # =========================================================================
-# SECTION 1 — FEATURE STORE
+# SECTION 1 - FEATURE STORE
 # =========================================================================
 
 
@@ -149,11 +149,11 @@ class StartupFeatureSnapshot(models.Model):
     # --- Per-feature confidence & source (parallel JSON arrays) ------------
     per_feature_confidence = models.JSONField(
         default=dict,
-        help_text=_("{feature_key: 0..1} — per-feature data-quality weight."),
+        help_text=_("{feature_key: 0..1} - per-feature data-quality weight."),
     )
     per_feature_source = models.JSONField(
         default=dict,
-        help_text=_("{feature_key: source_code} — maps to FEATURE_SOURCE_CHOICES."),
+        help_text=_("{feature_key: source_code} - maps to FEATURE_SOURCE_CHOICES."),
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -180,7 +180,7 @@ class StartupFeatureSnapshot(models.Model):
 
 
 # =========================================================================
-# SECTION 2 — HISTORICAL "TIME MACHINE" SNAPSHOTS (Backtesting)
+# SECTION 2 - HISTORICAL "TIME MACHINE" SNAPSHOTS (Backtesting)
 # =========================================================================
 
 
@@ -194,7 +194,7 @@ class StartupHistoricalSnapshot(models.Model):
 
     The `state_json` blob contains the denormalised StartupProfile,
     its pitches, offers, dataroom metadata, investor engagement, and
-    forensic reports — everything a model would have seen at `as_of`.
+    forensic reports - everything a model would have seen at `as_of`.
     """
 
     startup = models.ForeignKey(
@@ -253,7 +253,7 @@ class StartupHistoricalSnapshot(models.Model):
 
 
 # =========================================================================
-# SECTION 3 — VENTURE OUTCOME PREDICTION (Multi-task multi-horizon)
+# SECTION 3 - VENTURE OUTCOME PREDICTION (Multi-task multi-horizon)
 # =========================================================================
 
 
@@ -447,11 +447,11 @@ class VentureOutcomePrediction(models.Model):
 
     def __str__(self) -> str:
         u = self.unicorn_prob_60m or 0.0
-        return f"VentureForecast {self.startup.company_name} — 🦄60m={u * 100:.1f}%"
+        return f"VentureForecast {self.startup.company_name} - 🦄60m={u * 100:.1f}%"
 
 
 # =========================================================================
-# SECTION 4 — VENTURE SURVIVAL ANALYSIS (Time-to-event)
+# SECTION 4 - VENTURE SURVIVAL ANALYSIS (Time-to-event)
 # =========================================================================
 
 
@@ -526,7 +526,7 @@ class VentureSurvivalForecast(models.Model):
 
 
 # =========================================================================
-# SECTION 5 — BAYESIAN INFERENCE & UNCERTAINTY ENGINE PERSISTENCE
+# SECTION 5 - BAYESIAN INFERENCE & UNCERTAINTY ENGINE PERSISTENCE
 # =========================================================================
 
 
@@ -662,7 +662,7 @@ class UncertaintyDecomposition(models.Model):
 
 
 # =========================================================================
-# SECTION 6 — KNOWLEDGE GRAPH (Entity + Relationship persistence)
+# SECTION 6 - KNOWLEDGE GRAPH (Entity + Relationship persistence)
 # =========================================================================
 
 
@@ -832,7 +832,7 @@ class GraphRelation(models.Model):
 
 
 # =========================================================================
-# SECTION 7 — INVESTOR INTENT / BEHAVIORAL SEQUENCE ML
+# SECTION 7 - INVESTOR INTENT / BEHAVIORAL SEQUENCE ML
 # =========================================================================
 
 
@@ -906,7 +906,7 @@ class InvestorIntentPrediction(models.Model):
 
     Predictions:
       P(interest), P(introduction requested), P(DD), P(offer), P(investment)
-      — all within horizon_days.
+      - all within horizon_days.
     """
 
     HORIZON_CHOICES = [
@@ -1005,7 +1005,7 @@ class InvestorIntentPrediction(models.Model):
 
 
 # =========================================================================
-# SECTION 8 — ANOMALY DETECTION PERSISTENCE
+# SECTION 8 - ANOMALY DETECTION PERSISTENCE
 # =========================================================================
 
 
@@ -1103,7 +1103,7 @@ class AnomalyDetectionRecord(models.Model):
 
 
 # =========================================================================
-# SECTION 9 — MODEL CALIBRATION ENGINE
+# SECTION 9 - MODEL CALIBRATION ENGINE
 # =========================================================================
 
 
@@ -1187,7 +1187,7 @@ class CalibrationRecord(models.Model):
 
 
 # =========================================================================
-# SECTION 10 — MODEL REGISTRY & EXPERIMENTATION TRACKING
+# SECTION 10 - MODEL REGISTRY & EXPERIMENTATION TRACKING
 # =========================================================================
 
 
@@ -1455,7 +1455,7 @@ class EvaluationRun(models.Model):
     def __str__(self) -> str:
         return (
             f"EvalRun {self.run_id} {self.cohort_tag} "
-            f"(h={self.lookahead_horizon_months}m) — {self.status}"
+            f"(h={self.lookahead_horizon_months}m) - {self.status}"
         )
 
 
@@ -1682,18 +1682,18 @@ class PredictionFeedbackV2(models.Model):
     def __str__(self) -> str:
         return (
             f"Feedback v2 {self.prediction.startup.company_name}/"
-            f"{self.outcome_head} — rated {self.accuracy_rating}/5"
+            f"{self.outcome_head} - rated {self.accuracy_rating}/5"
         )
 
 
 # =========================================================================
-# SECTION 11 — AI PROVIDER REGISTRY, CAPABILITIES, & USAGE LOG
+# SECTION 11 - AI PROVIDER REGISTRY, CAPABILITIES, & USAGE LOG
 # =========================================================================
 #
 # PitchMic = ML-native venture intelligence.  AI / LLMs are an AUXILIARY
 # layer.  The models here track:
-#   1. AICapability          — canonical registry + per-tenant runtime overrides
-#   2. AIProviderUsageLog    — auditable token / cost / latency trail for every LLM call
+#   1. AICapability          - canonical registry + per-tenant runtime overrides
+#   2. AIProviderUsageLog    - auditable token / cost / latency trail for every LLM call
 #
 
 
@@ -1705,7 +1705,7 @@ class AICapability(models.Model):
     ``apps.predictive_intelligence.ai_gateway`` but adds runtime toggles
     (per-tenant / per-install overrides) and admin-editable documentation.
 
-    ``tier`` — see ai_gateway.FEATURE_CAPABILITIES for semantics:
+    ``tier`` - see ai_gateway.FEATURE_CAPABILITIES for semantics:
         ml_only  → Always active; no LLM involvement.
         ai_opt   → Uses LLM when available; heuristic fallback always present.
         ai_req   → Requires live LLM provider; disabled in pure-ML mode.

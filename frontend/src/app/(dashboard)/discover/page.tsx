@@ -312,7 +312,7 @@ export default function DiscoverPage() {
       {refreshMutation.isSuccess && (
         <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-xs text-indigo-700 flex items-center gap-2">
           <Zap className="w-4 h-4 text-indigo-500" />
-          Match scores are being recalculated — results will refresh automatically in ~10 seconds.
+          Match scores are being recalculated - results will refresh automatically in ~10 seconds.
         </div>
       )}
 

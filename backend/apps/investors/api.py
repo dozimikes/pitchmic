@@ -1,7 +1,7 @@
 """
 apps.investors.api
 ==================
-Thin delegation layer — all business logic lives in apps.users.
+Thin delegation layer - all business logic lives in apps.users.
 Re-exports InvestorProfile views so a dedicated ``/api/v1/investors/``
 router prefix can be wired without duplicating code.
 

@@ -3,10 +3,10 @@ apps.matching.models
 =====================
 AI-powered matching engine models.
 
-MatchScore      — persisted compatibility scores between startups and investors,
+MatchScore      - persisted compatibility scores between startups and investors,
                   refreshed nightly by the Celery beat task update_all_match_scores.
 
-InvestorIntentSignal — granular behavioural events (views, likes, offers …) used as
+InvestorIntentSignal - granular behavioural events (views, likes, offers …) used as
                   training data for the recommendation model and live feed ranking.
 """
 from __future__ import annotations
@@ -145,3 +145,12 @@ class InvestorIntentSignal(models.Model):
 
     def __str__(self) -> str:
         return f"{self.investor} → {self.startup} [{self.signal_type}]"
+
+
+# Expose Opportunity Intelligence models
+from apps.matching.models_opportunity import (  # noqa: E402
+    FundingSource,
+    FundingOpportunity,
+    OpportunityVersion,
+    StartupOpportunityMatch,
+)

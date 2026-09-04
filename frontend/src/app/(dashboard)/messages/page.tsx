@@ -756,6 +756,44 @@ export default function MessagesPage() {
                   )}
                 </AnimatePresence>
 
+                {/* Quick Deal Actions Bar */}
+                <div className="flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 bg-slate-50/70 px-4 py-2 text-xs">
+                  <span className="font-semibold text-slate-500 text-[11px] shrink-0 mr-1 flex items-center gap-1">
+                    <Briefcase className="h-3 w-3 text-brand-orange-500" />
+                    Deal Actions:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDraft("I have granted you full DataRoom NDA access. You can review our financials, cap table, and tech architecture at /dataroom.");
+                    }}
+                    className="inline-flex items-center gap-1 shrink-0 rounded-md border border-slate-200 bg-white px-2.5 py-1 font-medium text-slate-700 hover:border-brand-orange-300 hover:text-brand-orange-700 hover:bg-brand-orange-50/50 transition-colors shadow-2xs"
+                  >
+                    <ShieldCheck className="h-3 w-3 text-emerald-600" />
+                    Grant DataRoom NDA
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDraft("Following up on terms: We would like to propose a Post-Money SAFE at a $4,000,000 valuation cap with standard MFN protection.");
+                    }}
+                    className="inline-flex items-center gap-1 shrink-0 rounded-md border border-slate-200 bg-white px-2.5 py-1 font-medium text-slate-700 hover:border-brand-orange-300 hover:text-brand-orange-700 hover:bg-brand-orange-50/50 transition-colors shadow-2xs"
+                  >
+                    <HandCoins className="h-3 w-3 text-brand-orange-500" />
+                    Propose SAFE Counter
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDraft("Here is our latest traction brief: $42K MRR (15% MoM growth), 18 enterprise contracts, and 78% gross margin.");
+                    }}
+                    className="inline-flex items-center gap-1 shrink-0 rounded-md border border-slate-200 bg-white px-2.5 py-1 font-medium text-slate-700 hover:border-brand-orange-300 hover:text-brand-orange-700 hover:bg-brand-orange-50/50 transition-colors shadow-2xs"
+                  >
+                    <FileText className="h-3 w-3 text-sky-600" />
+                    Share Traction Brief
+                  </button>
+                </div>
+
                 {/* Message Input Box */}
                 <div className="border-t border-slate-200 bg-white p-3.5 sm:p-4">
                   <div className="flex items-end gap-2">

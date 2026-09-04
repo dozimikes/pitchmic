@@ -1,17 +1,4 @@
 from __future__ import annotations
-
-"""
-apps.intelligence.forensics
-===========================
-Stage-Aware Multimodal Investment Underwriting Engine v2 (100% Dynamic).
-
-Zero Hardcoded Fallbacks:
-- Every dimension score is dynamically evaluated from token presence,
-  semantic claim density, structural slide analysis, and mathematical consistency.
-- Stage calibration adjusts expectations dynamically (Pre-Seed vs Seed vs Series A).
-- Competitor taxonomy is discovered dynamically based on sector, geography, and keywords.
-"""
-
 import logging
 import re
 from dataclasses import asdict, dataclass, field

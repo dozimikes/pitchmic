@@ -122,7 +122,7 @@ const HERO_PERSONAS: HeroPersona[] = [
     accentColor: 'text-indigo-600',
     badgeBg: 'bg-indigo-50 text-indigo-700 border-indigo-200',
     borderActive: 'border-indigo-500',
-    headline: 'AI deal flow — from inbound to IC memo in minutes.',
+    headline: 'AI deal flow - from inbound to IC memo in minutes.',
     subtitle: 'Automate first-pass triage, verify multi-currency unit economics (USD/NGN/KES/ZAR), audit Delaware TopCo governance, and generate 1-click Investment Committee memos at institutional speed.',
     primaryCta: 'Request VC Diligence Access',
     primaryHref: '/sign-up/investor',
@@ -139,7 +139,7 @@ const HERO_PERSONAS: HeroPersona[] = [
     badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     borderActive: 'border-emerald-500',
     headline: 'Manage 3,000 applications. Surface the top 1%.',
-    subtitle: 'Batch-upload cohorts, sync bi-directionally with Antler Hub, configure custom underwriting rubrics, and route shortlisted startups automatically with white-label diligence reporting.',
+    subtitle: 'Batch-upload cohorts, sync bi-directionally with accelerator hubs and CRMs, configure custom underwriting rubrics, and route shortlisted startups automatically with white-label diligence reporting.',
     primaryCta: 'Book Accelerator Demo',
     primaryHref: '/sign-up/investor',
     secondaryCta: 'View Enterprise Pricing',
@@ -238,7 +238,7 @@ const CAPABILITIES = [
     color: 'bg-cyan-600',
     title: 'B2B API & CRM Webhooks',
     persona: 'Accelerators & Enterprise',
-    desc: 'Deep integration with Antler Hub, internal CRMs, and custom deal flow pipelines with automated scoring webhooks.',
+    desc: 'Deep integration with external accelerator hubs, internal CRMs, and custom deal flow pipelines with automated scoring webhooks.',
     stats: 'Real-time bi-directional sync',
   },
 ];
@@ -344,7 +344,7 @@ const PRICING_PLANS = [
     features: [
       'Everything in Institutional VC Pro',
       'Cohort Batch Upload & Scoring Dashboard',
-      'Antler Hub Bi-Directional Integration',
+      'Multi-Accelerator & CRM Bi-Directional Integration',
       'Dedicated B2B API Keys & Ingestion Webhooks',
       'Custom Rubric & White-Label Diligence Reports',
       'Multi-Tenant Enterprise Isolation & DFI Reports',
@@ -359,19 +359,19 @@ const PRICING_PLANS = [
 const FAQS = [
   {
     q: 'Who is PitchMic built for?',
-    a: 'PitchMic is purpose-built for three key groups: (1) Founders pre-auditing their decks to know their fundability score before pitching. (2) VC funds automating inbound deal screening, forensic unit economics, and 1-click IC memos. (3) Accelerators and DFIs managing high-volume cohort applications with batch scoring and Antler Hub integration.',
+    a: 'PitchMic is purpose-built for three key groups: (1) Founders pre-auditing their decks to know their fundability score before pitching. (2) VC funds automating inbound deal screening, forensic unit economics, and 1-click IC memos. (3) Accelerators and DFIs managing high-volume cohort applications with batch scoring and CRM integration.',
   },
   {
     q: 'How does the Fundability Score work for founders?',
     a: 'The 0–100 Fundability Score analyzes your pitch deck across 8 institutional venture pillars: FX-adjusted unit economics, Delaware/Mauritius TopCo governance, payment rail redundancy, cross-border SAM, regulatory moats, founder ground velocity, market narrative, and financial coherence.',
   },
   {
-    q: 'What is the Antler Hub integration for accelerators?',
-    a: 'PitchMic provides bi-directional sync with Antler Hub and cohort application management tools. Accelerators can batch-upload thousands of applicant decks, run automated 8-pillar scoring, filter the top 5% decile, and generate white-label diligence memos for investment committees.',
+    q: 'How does PitchMic integrate with accelerator hubs and CRMs?',
+    a: 'PitchMic provides bi-directional sync with any accelerator hub (Y Combinator, Techstars, Flat6Labs, Norrsken, Antler) and cohort application management tools. Accelerators can batch-upload thousands of applicant decks, run automated 8-pillar scoring, filter the top 5% decile, and generate white-label diligence memos for investment committees.',
   },
   {
     q: 'How does the Autonomous Voice Screener work?',
-    a: 'An AI venture associate calls founders on behalf of your fund, conducts a structured 15-minute qualification interview, cross-references founder responses against the deck, and generates a structured screening debrief — saving hundreds of partner hours.',
+    a: 'An AI venture associate calls founders on behalf of your fund, conducts a structured 15-minute qualification interview, cross-references founder responses against the deck, and generates a structured screening debrief - saving hundreds of partner hours.',
   },
   {
     q: 'Is data confidential and compliant across African jurisdictions?',
@@ -392,7 +392,7 @@ export default function LandingPage() {
     <MarketingShell>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          HERO SECTION — Unified Persona Engine Above the Fold
+          HERO SECTION - Unified Persona Engine Above the Fold
       ══════════════════════════════════════════════════════════════════════ */}
       <section className="relative overflow-hidden pt-8 pb-20 sm:pt-14 sm:pb-28">
         {/* Ambient Glows */}
@@ -609,7 +609,7 @@ export default function LandingPage() {
                       </div>
                       <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-200/60 text-indigo-900 flex items-start gap-2">
                         <DollarSign className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
-                        <span><strong>Antler Term Calibration:</strong> $100k for 10% equity SAFE modeled with 18-month runway projection.</span>
+                        <span><strong>Standard Accelerator Term:</strong> $100k for 10% equity SAFE modeled with 18-month runway projection.</span>
                       </div>
                     </div>
                   </motion.div>
@@ -667,7 +667,7 @@ export default function LandingPage() {
                       </div>
                       <div className="p-3 rounded-xl bg-rose-50/70 border border-rose-200/60 text-rose-900 flex items-start gap-2">
                         <AlertCircle className="h-3.5 w-3.5 text-rose-600 shrink-0 mt-0.5" />
-                        <span>Slide 8 claims unverified CMA sandbox exemption — requires partner clarification</span>
+                        <span>Slide 8 claims unverified CMA sandbox exemption - requires partner clarification</span>
                       </div>
                     </div>
                   </motion.div>
@@ -684,14 +684,14 @@ export default function LandingPage() {
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-5 border-b border-slate-100">
                       <div className="flex items-center gap-3.5">
                         <div className="h-12 w-12 rounded-2xl bg-emerald-600 text-white font-black text-sm flex items-center justify-center">
-                          AH
+                          PA
                         </div>
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-bold text-slate-900 text-base">Antler East Africa Cohort 12</h3>
+                            <h3 className="font-bold text-slate-900 text-base">Pan-African Accelerator Cohort 1</h3>
                             <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">1,420 Applications</Badge>
                           </div>
-                          <p className="text-xs text-slate-500 mt-0.5">Bi-Directional Antler Hub Sync • Batch 8-Pillar Scoring Active</p>
+                          <p className="text-xs text-slate-500 mt-0.5">Bi-Directional Hub &amp; CRM Sync • Batch 8-Pillar Scoring Active</p>
                         </div>
                       </div>
 
@@ -807,7 +807,7 @@ export default function LandingPage() {
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-lg mb-5">
                     <step.icon className="h-6 w-6" />
                   </div>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-brand-orange-500 mb-1">Step {step.num} — {step.phase}</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-brand-orange-500 mb-1">Step {step.num} - {step.phase}</div>
                   <h3 className="text-sm font-bold text-slate-900 mb-2">{step.title}</h3>
                   <p className="text-xs text-slate-500 leading-relaxed">{step.desc}</p>
                 </motion.div>
@@ -818,7 +818,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          CAPABILITIES — 6 Feature Deep-Dives
+          CAPABILITIES - 6 Feature Deep-Dives
       ══════════════════════════════════════════════════════════════════════ */}
       <section id="features" className="py-20 sm:py-28 bg-white border-b border-slate-200/80">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -835,7 +835,7 @@ export default function LandingPage() {
               <span className="gradient-text">Nothing you don&apos;t.</span>
             </h2>
             <p className="mt-4 text-base sm:text-lg text-slate-600 max-w-2xl mx-auto">
-              Six integrated intelligence modules covering the entire venture lifecycle — from pre-pitch to portfolio management.
+              Six integrated intelligence modules covering the entire venture lifecycle - from pre-pitch to portfolio management.
             </p>
           </motion.div>
 
@@ -889,7 +889,7 @@ export default function LandingPage() {
                 <span className="gradient-text">LP-ready IC Memos in 1 click.</span>
               </h2>
               <p className="mt-5 text-base sm:text-lg text-slate-600 leading-relaxed">
-                Auto-generate comprehensive memos with bull/bear thesis debates, Bayesian Series A follow-on probability, multi-partner consensus voting, and LP-ready citations — in seconds.
+                Auto-generate comprehensive memos with bull/bear thesis debates, Bayesian Series A follow-on probability, multi-partner consensus voting, and LP-ready citations - in seconds.
               </p>
 
               {/* Sector selector chips */}
@@ -1026,13 +1026,13 @@ export default function LandingPage() {
                 <span className="text-emerald-400">Surface the top 1%.</span>
               </h2>
               <p className="mt-5 text-lg leading-relaxed text-white/60">
-                Accelerators and seed programs receive thousands of pitch decks per cohort. PitchMic cuts first-pass triage time by 80%, integrates directly with Antler Hub, and provides batch scoring with configurable rubrics.
+                Accelerators and seed programs receive thousands of pitch decks per cohort. PitchMic cuts first-pass triage time by 80%, integrates directly with any accelerator hub or CRM, and provides batch scoring with configurable rubrics.
               </p>
 
               <div className="mt-8 space-y-4">
                 {[
                   { icon: Activity, title: 'Batch Upload & Score Entire Cohorts', body: 'Upload thousands of applications at once. Every deck gets scored, ranked, and routed automatically.' },
-                  { icon: GitMerge, title: 'Antler Hub Deep Integration', body: 'Bi-directional sync with Antler\'s application pipeline. Shortlists, scores, and IC memos flow directly into your workflow.' },
+                  { icon: GitMerge, title: 'Multi-Accelerator & CRM Integration', body: 'Bi-directional sync with any accelerator’s application pipeline. Shortlists, scores, and IC memos flow directly into your workflow.' },
                   { icon: Target, title: 'Custom Rubric & White-Label Reports', body: 'Configure your own underwriting criteria and generate white-label branded diligence reports for your LPs.' },
                 ].map((item) => (
                   <div key={item.title} className="flex items-start gap-4">
@@ -1285,12 +1285,12 @@ export default function LandingPage() {
               <Link href="/sign-up/startup">
                 <Button size="lg" variant="outline" className="h-13 px-8 font-semibold border-white/25 text-white hover:bg-white/10 gap-2">
                   <RocketIcon className="h-4 w-4" />
-                  <span>Founders — Start Free</span>
+                  <span>Founders - Start Free</span>
                 </Button>
               </Link>
               <Link href="/sign-up/investor">
                 <Button size="lg" className="h-13 px-8 font-semibold gap-2 bg-brand-orange-500 hover:bg-brand-orange-400 text-white shadow-lg shadow-brand-orange-500/30">
-                  <span>VCs &amp; Accelerators — Request Access</span>
+                  <span>VCs &amp; Accelerators - Request Access</span>
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>

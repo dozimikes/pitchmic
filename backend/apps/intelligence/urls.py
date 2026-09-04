@@ -67,6 +67,8 @@ urlpatterns = [
     path("cohorts/<int:cohort_id>/leaderboard/", CohortLeaderboardView.as_view(), name="cohorts-leaderboard"),
     path("cohorts/<int:cohort_id>/apply/", CohortApplyView.as_view(), name="cohorts-apply"),
     path("funding-events/", FundingEventListView.as_view(), name="funding-events"),
+    path("accelerator/webhook/", AntlerHubWebhookView.as_view(), name="accelerator-webhook"),
+    path("crm/webhook/", AntlerHubWebhookView.as_view(), name="crm-webhook"),
     path("antler/webhook/", AntlerHubWebhookView.as_view(), name="antler-webhook"),
 ]
 

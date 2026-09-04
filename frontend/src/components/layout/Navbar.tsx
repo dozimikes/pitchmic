@@ -374,7 +374,7 @@ export function Navbar({
                     type="button"
                     onClick={() => {
                       setActiveRole(UserRole.INVESTOR);
-                      if (pathname === '/admin' || pathname === '/accelerator') router.push('/newsfeed');
+                      if (pathname === '/admin' || pathname === '/accelerator' || pathname === '/newsfeed') router.push('/discover');
                     }}
                     className={cn(
                       'flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all text-xs font-semibold',
@@ -412,7 +412,7 @@ export function Navbar({
               )}
 
 
-              {/* New Pitch button removed — accessible via sidebar */}
+              {/* New Pitch button removed - accessible via sidebar */}
 
               {/* Messages Popover */}
               <DropdownMenu>

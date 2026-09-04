@@ -48,7 +48,7 @@ export function useInfiniteScroll({
 }: UseInfiniteScrollOptions): React.RefCallback<HTMLElement | null> {
   const observerRef = React.useRef<IntersectionObserver | null>(null);
 
-  // Stable callback ref — avoids re-creating the observer on every render
+  // Stable callback ref - avoids re-creating the observer on every render
   const sentinelRef = React.useCallback(
     (node: HTMLElement | null) => {
       // Clean up previous observer

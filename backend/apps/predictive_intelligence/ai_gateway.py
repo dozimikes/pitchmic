@@ -1,25 +1,3 @@
-"""
-apps.predictive_intelligence.ai_gateway
-========================================
-
-Centralized facade — the ONE place callers should import AI helpers from.
-
-Philosophy (ML-core, AI-optional):
-  - ML models ALWAYS run and own every probability / score / rank.
-  - AI/LLMs are an AUXILIARY layer used ONLY for:
-      1. Unstructured-data ingestion (pitch-deck claim extraction)
-      2. Natural-language explanation of ML outputs
-  - When AI is disabled (ENABLE_AI_FEATURES=False or no provider available)
-    every function here returns deterministic "empty" results so callers
-    never crash.
-
-Public API (import these, never import from providers.py directly):
-    is_ai_enabled()            → bool
-    get_ai_provider(name=None) → AIProvider (Protocol)
-    ai_complete(prompt, ...)   → AIResponse (never raises)
-    is_feature_enabled(key)    → bool   (fine-grained feature gate)
-    list_available_features()  → list[dict]  (for the /features/capabilities endpoint)
-"""
 from __future__ import annotations
 
 import logging
@@ -47,9 +25,9 @@ logger = logging.getLogger(__name__)
 # provider is configured).
 #
 # capability tiers:
-#   "ml_only"   — no LLM required; pure statistical / rule-based ML.
-#   "ai_opt"    — uses LLM when available; falls back to heuristic.
-#   "ai_req"    — requires a live LLM; without it this feature is disabled.
+#   "ml_only"   - no LLM required; pure statistical / rule-based ML.
+#   "ai_opt"    - uses LLM when available; falls back to heuristic.
+#   "ai_req"    - requires a live LLM; without it this feature is disabled.
 #
 # Categories match the top-level domain areas:
 #   "pitch_enrichment", "due_diligence", "explanations",
@@ -199,7 +177,7 @@ FEATURE_CAPABILITIES: list[dict[str, Any]] = [
 
 
 # ---------------------------------------------------------------------------
-# Caching — avoid re-instantiating providers on every call
+# Caching - avoid re-instantiating providers on every call
 # ---------------------------------------------------------------------------
 
 _provider_cache: dict[str, AIProvider] = {}
@@ -283,7 +261,7 @@ def ai_complete(
     """
     Convenience one-liner: resolve provider + call complete().
 
-    Never raises — on any failure returns an AIResponse with fallback=True.
+    Never raises - on any failure returns an AIResponse with fallback=True.
     """
     prov = get_ai_provider(provider)
     try:
@@ -305,8 +283,8 @@ def is_feature_enabled(feature_key: str) -> bool:
     Fine-grained feature gate.
 
     Resolution order (first False wins):
-      1. settings.AI_CAPABILITY_OVERRIDES[feature_key] — per-install kill switch
-      2. AICapability.admin_enabled (ORM) — admin runtime toggle
+      1. settings.AI_CAPABILITY_OVERRIDES[feature_key] - per-install kill switch
+      2. AICapability.admin_enabled (ORM) - admin runtime toggle
       3. tier check:
            - "ml_only"  → always True
            - "ai_opt"   → True (heuristic path always exists)
@@ -327,7 +305,7 @@ def is_feature_enabled(feature_key: str) -> bool:
             return False
     except AppRegistryNotReady:
         pass
-    except Exception:  # noqa: BLE001 — defensive: ORM access can fail during migrations
+    except Exception:  # noqa: BLE001 - defensive: ORM access can fail during migrations
         logger.debug(
             "is_feature_enabled: ORM lookup skipped for '%s' (apps not ready?)",
             feature_key,

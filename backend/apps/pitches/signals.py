@@ -5,9 +5,9 @@ Signal handlers for the pitches app.
 
 on_pitch_saved
     When a pitch is published (draft → published) or updated, queues:
-    1. compute_and_cache_embedding — refreshes the startup's semantic vector
-    2. update_match_scores_for_startup — refreshes all MatchScore rows
-    3. update_predictions_for_startup — refreshes FundraisingPrediction
+    1. compute_and_cache_embedding - refreshes the startup's semantic vector
+    2. update_match_scores_for_startup - refreshes all MatchScore rows
+    3. update_predictions_for_startup - refreshes FundraisingPrediction
 
 All handlers are connected in PitchesConfig.ready() to avoid import-time
 side effects and circular imports.

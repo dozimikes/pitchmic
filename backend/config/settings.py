@@ -57,6 +57,9 @@ INSTALLED_APPS: list[str] = [
     "apps.predictive_intelligence",
     "apps.dataroom",
     "apps.marketing",
+    "apps.accelerator",
+    # Intelligence Engine — real-time funding intelligence pipeline
+    "apps.intelligence_engine",
 ]
 
 MIDDLEWARE: list[str] = [
@@ -229,6 +232,38 @@ CELERY_TIMEZONE: str = TIME_ZONE
 CELERY_TASK_TRACK_STARTED: bool = True
 CELERY_TASK_TIME_LIMIT: int = 30 * 60
 
+# ── Intelligence Engine Celery Beat schedule ──────────────────────────────────
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BEAT_SCHEDULE: dict = {
+    # Crawl all due sources every 30 minutes (T1 hourly sources crawled 2x/hr)
+    "ie_crawl_due_sources": {
+        "task": "intelligence_engine.crawl_due_sources",
+        "schedule": crontab(minute="*/30"),
+        "kwargs": {"limit": 25},
+    },
+    # Retire expired opportunities daily at 00:30
+    "ie_retire_expired_opportunities": {
+        "task": "intelligence_engine.retire_expired_opportunities",
+        "schedule": crontab(hour="0", minute="30"),
+    },
+    # Recompute investor thesis alignment daily at 03:00
+    "ie_recompute_investor_theses": {
+        "task": "intelligence_engine.recompute_investor_theses",
+        "schedule": crontab(hour="3", minute="0"),
+    },
+    # Recompute freshness scores every 2 hours
+    "ie_recompute_freshness": {
+        "task": "intelligence_engine.recompute_freshness_scores",
+        "schedule": crontab(minute="0", hour="*/2"),
+    },
+    # Legacy matching sync (kept for backward compat)
+    "matching_sync_ecosystem": {
+        "task": "matching.sync_ecosystem_opportunities",
+        "schedule": crontab(minute="0", hour="*/6"),
+    },
+}
+
 DEFAULT_FILE_STORAGE: str = "django.core.files.storage.FileSystemStorage"
 
 FRONTEND_BASE_URL: str = env("FRONTEND_BASE_URL", default="http://localhost:3000")
@@ -285,7 +320,7 @@ LOGGING: dict = {
             "level": "INFO",
             "propagate": False,
         },
-        # App-level debug logging — useful during development
+        # App-level debug logging - useful during development
         "apps.pitches": {
             "handlers": ["console"],
             "level": "DEBUG",

@@ -37,7 +37,7 @@ function makeQueryClient() {
   });
 }
 
-// Module-level client — shared across all uses in a single Node.js process
+// Module-level client - shared across all uses in a single Node.js process
 // (client component renders create a new one per browser navigation via the
 // singleton pattern below)
 let browserClient: QueryClient | undefined;

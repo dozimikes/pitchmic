@@ -37,6 +37,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Separator } from '@/components/ui/Separator';
 import { Logo } from '@/components/ui/Logo';
 import { useAuth } from '@/hooks/useAuth';
+import { useNotifications } from '@/hooks/useNotifications';
 import { UserRole } from '@/lib/types';
 
 export interface SidebarProps {
@@ -50,12 +51,13 @@ interface MenuItem {
   label: string;
   icon: React.ComponentType<{ className?: string | undefined }>;
   badge?: string;
-  section: 'main' | 'manage' | 'account';
+  section: 'main' | 'manage' | 'account' | 'venture' | 'fundraising';
 }
 
 const ADMIN_MENU: MenuItem[] = [
   { href: '/admin', label: 'Overview & Telemetry', icon: Activity, section: 'main', badge: 'Live' },
   { href: '/admin#users', label: 'User Directory', icon: Users, section: 'main' },
+  { href: '/investors', label: 'Investor OS', icon: Briefcase, section: 'main', badge: 'VC' },
   { href: '/accelerator', label: 'Cohort Pipeline', icon: Layers, section: 'main', badge: 'Batches' },
   { href: '/intelligence#api-keys', label: 'Enterprise API Keys', icon: Key, section: 'main' },
   { href: '/admin#audit', label: 'Audit Logs & NDPR', icon: ShieldCheck, section: 'manage', badge: 'GDPR' },
@@ -64,26 +66,33 @@ const ADMIN_MENU: MenuItem[] = [
 ];
 
 const ACCELERATOR_MENU: MenuItem[] = [
-  { href: '/accelerator', label: 'Cohort Intake Funnel', icon: Layers, section: 'main', badge: 'C-12' },
+  // Major #5 — removed duplicate "/accelerator" entry. The route is already the
+  // landing page for this role; sub-navigation is done via hash tabs, and all
+  // tab hash entries share an active highlight via pathname.startsWith('/accelerator').
   { href: '/accelerator#triage', label: 'Applicant Triage', icon: Mic, section: 'main', badge: 'Active' },
-  { href: '/accelerator#rubric', label: '8-Pillar Scoring', icon: Award, section: 'main' },
+  { href: '/accelerator#rubric', label: '7-Pillar Scoring', icon: Award, section: 'main' }, // Minor #15 — 7 actual rubric dims
   { href: '/accelerator#voting', label: 'Committee Votes', icon: CheckSquare, section: 'main' },
-  { href: '/accelerator#sync', label: 'Antler Hub Sync', icon: RefreshCw, section: 'main', badge: 'API' },
-  { href: '/newsfeed', label: 'Dealflow Radar', icon: Home, section: 'manage' },
-  { href: '/offers', label: 'Syndicate Term Sheets', icon: HandCoins, section: 'manage' },
-  { href: '/dataroom', label: 'DataRoom Diligence', icon: FolderLock, section: 'manage' },
-  { href: '/messages', label: 'Inbound Messages', icon: MessageSquare, section: 'manage', badge: '3' },
+  { href: '/accelerator#sync', label: 'CRM & Ingestion Sync', icon: RefreshCw, section: 'main', badge: 'API' },
+  // Critical #3 — accelerator-relevant relabelling of shared routes. Pages themselves
+  // still render role-gated content, but the sidebar taxonomy is now correct for
+  // accelerator/cohort operators (no VC/investor jargon).
+  { href: '/investors', label: 'Partner VC Network', icon: Briefcase, section: 'main' },
+  { href: '/newsfeed', label: 'Cohort & Alumni Radar', icon: Home, section: 'manage' },
+  { href: '/offers', label: 'Batch Placement Offers', icon: HandCoins, section: 'manage' },
+  { href: '/dataroom', label: 'Founder DataRoom Uploads', icon: FolderLock, section: 'manage' },
+  { href: '/messages', label: 'Inbound Messages', icon: MessageSquare, section: 'manage' },
   { href: '/profile/edit', label: 'Accelerator Profile', icon: User, section: 'account' },
   { href: '/settings', label: 'Settings', icon: Settings, section: 'account' },
 ];
 
 const INVESTOR_MENU: MenuItem[] = [
-  { href: '/newsfeed', label: 'Live Deal Stream', icon: Home, section: 'main', badge: 'Deals' },
-  { href: '/discover', label: 'Deal Discovery Radar', icon: Sparkles, section: 'main', badge: 'Match' },
-  { href: '/intelligence', label: 'VC Forensics & AI', icon: Brain, section: 'main', badge: 'PRO' },
+  { href: '/investors', label: 'Investment Operating System', icon: Layers, section: 'main', badge: 'VC OS' },
+  { href: '/discover', label: 'Dealflow Radar', icon: Sparkles, section: 'main', badge: 'AI Match' },
   { href: '/offers', label: 'Term Sheets & Offers', icon: HandCoins, section: 'main', badge: 'Active' },
   { href: '/dataroom', label: 'Diligence DataRooms', icon: FolderLock, section: 'main' },
-  { href: '/analytics', label: 'Portfolio ROI & Heatmap', icon: BarChart3, section: 'manage' },
+  { href: '/intelligence', label: 'VC Forensics & AI', icon: Brain, section: 'main', badge: 'PRO' },
+  { href: '/analytics', label: 'Portfolio & Heatmap', icon: BarChart3, section: 'manage' },
+  { href: '/newsfeed', label: 'Ecosystem Pitch Stream', icon: Home, section: 'manage' },
   { href: '/messages', label: 'Direct Messages', icon: MessageSquare, section: 'manage' },
   { href: '/notifications', label: 'Notifications', icon: Bell, section: 'manage' },
   { href: '/profile/edit', label: 'Investor Profile', icon: User, section: 'account' },
@@ -91,15 +100,20 @@ const INVESTOR_MENU: MenuItem[] = [
 ];
 
 const STARTUP_MENU: MenuItem[] = [
-  { href: '/pitches', label: 'Founder Studio & Pitches', icon: Lightbulb, section: 'main', badge: 'Live' },
-  { href: '/pitches/new', label: 'Record Pitch Deck', icon: Mic, section: 'main', badge: 'Studio' },
-  { href: '/fundability', label: '8-Pillar Fundability', icon: ShieldCheck, section: 'main', badge: 'AI Audit' },
-  { href: '/company', label: 'Company Profile', icon: Building2, section: 'main' },
-  { href: '/offers', label: 'Offers Received', icon: HandCoins, section: 'manage', badge: 'Offers' },
-  { href: '/dataroom', label: 'DataRoom Vault', icon: FolderLock, section: 'manage' },
-  { href: '/analytics', label: 'Traction & SAFE Calc', icon: BarChart3, section: 'manage' },
-  { href: '/newsfeed', label: 'Peer Ecosystem Feed', icon: Home, section: 'manage' },
-  { href: '/messages', label: 'Direct Messages', icon: MessageSquare, section: 'manage' },
+  // VENTURE section
+  { href: '/company', label: 'Venture Profile', icon: Building2, section: 'venture' },
+  { href: '/pitches', label: 'Pitch Studio', icon: Lightbulb, section: 'venture' },
+  { href: '/pitches/new', label: 'Pitch Decks', icon: FileText, section: 'venture' },
+  { href: '/fundability', label: 'Fundability & Readiness', icon: ShieldCheck, section: 'venture' },
+  { href: '/application-intelligence', label: 'Application Intelligence', icon: Brain, section: 'venture', badge: 'NEW' },
+  // FUNDRAISING section
+  { href: '/pipeline', label: 'Fundraising Pipeline', icon: Activity, section: 'fundraising' },
+  { href: '/newsfeed', label: 'Investor Network', icon: Users, section: 'fundraising' },
+  { href: '/offers', label: 'Offers & Term Sheets', icon: HandCoins, section: 'fundraising' },
+  { href: '/dataroom', label: 'Data Room', icon: FolderLock, section: 'fundraising' },
+  { href: '/analytics', label: 'Traction & Metrics', icon: BarChart3, section: 'fundraising' },
+  { href: '/messages', label: 'Messages', icon: MessageSquare, section: 'fundraising' },
+  // ACCOUNT section
   { href: '/profile/edit', label: 'Profile', icon: User, section: 'account' },
   { href: '/settings', label: 'Settings', icon: Settings, section: 'account' },
 ];
@@ -112,17 +126,34 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const { user, isStartup, isInvestor, isAccelerator, isAdminMode, canSwitchRole, activeRole, setActiveRole, toggleRole } = useAuth();
+  // Major #8 — live unread message / notification counts from the notifications
+  // hook (which can be wired to a real API). Replaces previously hardcoded '3'.
+  const { messageCount, notificationCount } = useNotifications();
 
   const allowedItems = React.useMemo(() => {
-    if (isAdminMode) return ADMIN_MENU;
-    if (isAccelerator) return ACCELERATOR_MENU;
-    if (isInvestor) return INVESTOR_MENU;
-    return STARTUP_MENU;
-  }, [isAdminMode, isAccelerator, isInvestor]);
+    const raw = isAdminMode ? ADMIN_MENU : isAccelerator ? ACCELERATOR_MENU : isInvestor ? INVESTOR_MENU : STARTUP_MENU;
+    // Inject live counts into Messages / Notifications entries so the badge
+    // updates dynamically instead of being a stale literal.
+    return raw.map((item) => {
+      const href = item.href.split('?')[0];
+      if (href === '/messages' && messageCount > 0) {
+        return { ...item, badge: String(messageCount) };
+      }
+      if (href === '/notifications' && notificationCount > 0) {
+        return { ...item, badge: String(notificationCount) };
+      }
+      if (href === '/messages' || href === '/notifications') {
+        // Strip any stale hardcoded badge literal when count is 0
+        const { badge: _omit, ...rest } = item;
+        return rest as MenuItem;
+      }
+      return item;
+    });
+  }, [isAdminMode, isAccelerator, isInvestor, messageCount, notificationCount]);
 
   const groupedItems = {
-    main: allowedItems.filter((i) => i.section === 'main'),
-    manage: allowedItems.filter((i) => i.section === 'manage'),
+    main: allowedItems.filter((i) => i.section === 'main' || i.section === 'venture'),
+    manage: allowedItems.filter((i) => i.section === 'manage' || i.section === 'fundraising'),
     account: allowedItems.filter((i) => i.section === 'account'),
   };
 
@@ -213,7 +244,7 @@ export function Sidebar({
               type="button"
               onClick={() => {
                 setActiveRole(UserRole.INVESTOR);
-                if (pathname === '/admin' || pathname === '/accelerator') router.push('/newsfeed');
+                if (pathname === '/admin' || pathname === '/accelerator' || pathname === '/newsfeed') router.push('/discover');
               }}
               className={cn(
                 'flex flex-col items-center justify-center py-1.5 px-0.5 rounded-lg transition-all text-[10px] font-bold',
@@ -278,22 +309,25 @@ export function Sidebar({
               ? 'Cohort Management'
               : isInvestor
               ? 'Diligence & Dealflow'
-              : 'Pitch & Fundability'}
+              : 'Venture'}
           </p>
         )}
         <ul className="space-y-1">
-          {groupedItems.main.map((item) => (
-            <SidebarItem
-              key={item.href}
-              item={item}
-              collapsed={collapsed}
-              isActive={
-                item.href === '/newsfeed'
-                  ? pathname === item.href
-                  : pathname?.startsWith(item.href)
-              }
-            />
-          ))}
+          {groupedItems.main.map((item) => {
+            const itemPath = item.href.split('?')[0];
+            const isExact = item.href === '/newsfeed' || item.href === '/company';
+            const isActive = isExact
+              ? pathname === itemPath
+              : pathname?.startsWith(itemPath);
+            return (
+              <SidebarItem
+                key={item.label}
+                item={item}
+                collapsed={collapsed}
+                isActive={isActive}
+              />
+            );
+          })}
         </ul>
 
         {groupedItems.manage.length > 0 && (
@@ -308,19 +342,26 @@ export function Sidebar({
                     ? 'Dealflow Syndicate'
                     : isInvestor
                     ? 'Portfolio & Returns'
-                    : 'Fundraising Pipeline'}
+                    : 'Fundraising'}
                 </p>
               </>
             )}
             <ul className="space-y-1">
-              {groupedItems.manage.map((item) => (
-                <SidebarItem
-                  key={item.href}
-                  item={item}
-                  collapsed={collapsed}
-                  isActive={pathname?.startsWith(item.href)}
-                />
-              ))}
+              {groupedItems.manage.map((item) => {
+                const itemPath = item.href.split('?')[0];
+                const isExact = item.href === '/newsfeed';
+                const isActive = isExact
+                  ? pathname === itemPath
+                  : pathname?.startsWith(itemPath);
+                return (
+                  <SidebarItem
+                    key={item.label}
+                    item={item}
+                    collapsed={collapsed}
+                    isActive={isActive}
+                  />
+                );
+              })}
             </ul>
           </>
         )}
@@ -399,18 +440,22 @@ function SidebarItem({ item, collapsed, isActive = false }: SidebarItemProps) {
             isActive ? 'text-brand-orange-500' : 'text-slate-500 group-hover:text-slate-700'
           )}
         />
-        {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
+        {!collapsed && <span className="flex-1 truncate mr-2">{item.label}</span>}
         {!collapsed && item.badge && (
-          <Badge
-            variant={isActive ? 'default' : 'secondary'}
-            className={cn(
-              isActive
-                ? 'bg-brand-orange-500 text-white'
-                : 'bg-slate-200 text-slate-700'
-            )}
-          >
-            {item.badge}
-          </Badge>
+          <>
+            <span className="sr-only"> </span>
+            <Badge
+              variant={isActive ? 'default' : 'secondary'}
+              className={cn(
+                'ml-auto text-[10px] font-semibold px-1.5 py-0.5 shrink-0',
+                isActive
+                  ? 'bg-brand-orange-500 text-white'
+                  : 'bg-slate-100 text-slate-600'
+              )}
+            >
+              {item.badge}
+            </Badge>
+          </>
         )}
       </Link>
     </li>

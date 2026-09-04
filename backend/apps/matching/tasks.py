@@ -1,18 +1,3 @@
-"""
-apps.matching.tasks
-===================
-Celery tasks for the matching engine.
-
-update_all_match_scores   — nightly batch job that computes / refreshes
-                            MatchScore rows for all startup × investor pairs.
-
-update_match_scores_for_startup  — single-startup refresh, triggered whenever
-                            a startup profile is substantially updated.
-
-compute_and_cache_embedding      — generate a sentence-transformer embedding
-                            for a profile and cache it on the model instance.
-                            Queued when a pitch or profile changes.
-"""
 from __future__ import annotations
 
 import logging
@@ -31,7 +16,7 @@ logger = logging.getLogger(__name__)
 )
 def update_all_match_scores(self) -> dict:
     """
-    Nightly job — refreshes MatchScore for every startup × investor combination.
+    Nightly job - refreshes MatchScore for every startup × investor combination.
     Uses chunked queries to avoid loading the full Cartesian product into memory.
     """
     from apps.matching.models import MatchScore
@@ -125,7 +110,7 @@ def compute_and_cache_embedding(self, entity_type: str, entity_id: int) -> bool:
 
     entity_type: "startup" | "investor"
 
-    Falls back gracefully if sentence-transformers is not installed — embeddings
+    Falls back gracefully if sentence-transformers is not installed - embeddings
     simply stay null and semantic_score defaults to 0.
     """
     from django.utils import timezone
@@ -134,7 +119,7 @@ def compute_and_cache_embedding(self, entity_type: str, entity_id: int) -> bool:
         from sentence_transformers import SentenceTransformer  # type: ignore[import]
         encoder = SentenceTransformer("all-MiniLM-L6-v2")
     except ImportError:
-        logger.info("sentence-transformers not installed — skipping embedding computation")
+        logger.info("sentence-transformers not installed - skipping embedding computation")
         return False
 
     if entity_type == "startup":
@@ -182,3 +167,80 @@ def compute_and_cache_embedding(self, entity_type: str, entity_id: int) -> bool:
         return False
 
     return True
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 2},
+    name="matching.sync_ecosystem_opportunities",
+    soft_time_limit=300,   # 5 minutes
+    time_limit=360,
+)
+def sync_ecosystem_opportunities(self) -> dict:
+    """
+    Periodic ingestion task — fetches live funding opportunity data from all
+    Tier-1 sources, runs multi-strategy signal extraction, and upserts the DB
+    with full change detection and provenance.
+
+    Schedule recommendation (Celery Beat / Django-celery-beat):
+        "matching.sync_ecosystem_opportunities": {
+            "task": "matching.sync_ecosystem_opportunities",
+            "schedule": crontab(minute=0, hour="*/6"),  # every 6 hours
+        }
+
+    On failure, auto-retries up to 2 times with exponential backoff.
+    The task never raises — errors are captured in the result dict.
+    """
+    from apps.matching.opportunity_service import OpportunityIngestionEngine
+
+    logger.info("sync_ecosystem_opportunities: starting live ingestion cycle")
+    result = OpportunityIngestionEngine.sync_ecosystem_sources()
+    logger.info(
+        "sync_ecosystem_opportunities: complete — status=%s created=%d updated=%d errors=%d",
+        result.get("status"),
+        result.get("opportunities_created", 0),
+        result.get("opportunities_updated", 0),
+        len(result.get("errors", [])),
+    )
+    return result
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 1},
+    name="matching.force_sync_single_source",
+    soft_time_limit=120,
+    time_limit=150,
+)
+def force_sync_single_source(self, source_id: str) -> dict:
+    """
+    On-demand ingestion for a single FundingSource (by UUID string).
+    Used by admin actions, webhooks, or manual refresh triggers.
+    """
+    from apps.matching.models_opportunity import FundingSource
+    from apps.matching.opportunity_fetcher import SourceFetcher
+    from apps.matching.opportunity_service import OpportunityIngestionEngine
+
+    try:
+        source = FundingSource.objects.get(id=source_id)
+    except FundingSource.DoesNotExist:
+        logger.warning("force_sync_single_source: source %s not found", source_id)
+        return {"error": "source_not_found", "source_id": source_id}
+
+    try:
+        created, updated = OpportunityIngestionEngine._ingest_opportunities_for_source(source)
+        return {
+            "status": "success",
+            "source": source.name,
+            "created": created,
+            "updated": updated,
+        }
+    except Exception as exc:
+        logger.error(
+            "force_sync_single_source: failed for %s: %s", source.name, exc, exc_info=True,
+        )
+        return {"status": "failed", "source": source.name, "error": str(exc)}

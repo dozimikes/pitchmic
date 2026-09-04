@@ -13,7 +13,7 @@ Tasks
     Max age:       24 hours (86400 seconds)
     Signing key:   settings.SECRET_KEY  (via TimestampSigner default)
 
-  The token is stateless — no DB row is created.  Validation is done in
+  The token is stateless - no DB row is created.  Validation is done in
   VerifyEmailView by calling TimestampSigner.unsign(token, max_age=86400).
 """
 from __future__ import annotations
@@ -92,7 +92,7 @@ def send_verification_email(self, user_id: int) -> None:  # noqa: ANN001
         f"{verify_url}\n\n"
         f"This link expires in 24 hours.\n\n"
         f"If you did not create a PitchMic account, you can safely ignore this email.\n\n"
-        f"— The PitchMic Team"
+        f"- The PitchMic Team"
     )
     html_body = (
         f"<p>Hi {user.first_name or user.email},</p>"
@@ -100,7 +100,7 @@ def send_verification_email(self, user_id: int) -> None:  # noqa: ANN001
         f'<p><a href="{verify_url}" style="color:#f97316;font-weight:bold;">Verify email address</a></p>'
         f"<p>This link expires in <strong>24 hours</strong>.</p>"
         f"<p>If you did not create a PitchMic account, you can safely ignore this email.</p>"
-        f"<p>— The PitchMic Team</p>"
+        f"<p>- The PitchMic Team</p>"
     )
 
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@pitchmic.com")

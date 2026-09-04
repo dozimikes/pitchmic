@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def on_startup_profile_updated(sender, instance, created: bool, **kwargs) -> None:  # noqa: ANN001
     """Trigger ML refresh on startup profile changes (excluding new creations)."""
-    # Skip the very first creation — the registration flow fires this before
+    # Skip the very first creation - the registration flow fires this before
     # any useful data is present; let the first pitch publish do the real work.
     if created:
         return

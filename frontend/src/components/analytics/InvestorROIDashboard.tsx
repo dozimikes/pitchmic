@@ -141,7 +141,7 @@ export function InvestorROIDashboard({ startupId, startupName, investmentAmount 
         <div>
           <h2 className="text-xl font-bold text-slate-900">
             Investor ROI Projections
-            {startupName && <span className="text-slate-500 font-normal ml-2">— {startupName}</span>}
+            {startupName && <span className="text-slate-500 font-normal ml-2">- {startupName}</span>}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             Monte Carlo simulation · 1,000 scenarios · based on heuristic ML engine

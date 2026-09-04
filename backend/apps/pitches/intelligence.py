@@ -1,11 +1,11 @@
 """
 apps.pitches.intelligence
 =========================
-PitchAnalyzer — rule-based + LLM pitch quality scoring.
+PitchAnalyzer - rule-based + LLM pitch quality scoring.
 
 Implements:
-  POST /api/v1/pitches/{id}/analyze/   — completeness, readability, quality score
-  POST /api/v1/pitches/{id}/enhance/   — AI-generated improvement suggestions
+  POST /api/v1/pitches/{id}/analyze/   - completeness, readability, quality score
+  POST /api/v1/pitches/{id}/enhance/   - AI-generated improvement suggestions
 """
 from __future__ import annotations
 
@@ -232,7 +232,7 @@ class PitchAnalyzer:
         weak = [f for f, d in sections.items() if d["present"] and not d["adequate"]]
 
         for f in missing[:2]:
-            suggestions.append(f"Add a {f.replace('_', ' ')} section — investors need this to evaluate your pitch.")
+            suggestions.append(f"Add a {f.replace('_', ' ')} section - investors need this to evaluate your pitch.")
         for f in weak[:2]:
             suggestions.append(
                 f"Expand your {f.replace('_', ' ')} section to at least 50 words with specific evidence."
@@ -240,6 +240,6 @@ class PitchAnalyzer:
         if not pitch.asking_amount:
             suggestions.append("State your funding ask clearly with a target amount and use-of-funds breakdown.")
         if not pitch.deck_url:
-            suggestions.append("Upload a pitch deck — decks receive 3x more investor engagement.")
+            suggestions.append("Upload a pitch deck - decks receive 3x more investor engagement.")
 
         return suggestions[:5]

@@ -42,7 +42,7 @@ interface DataRoomAccess {
   can_view_technical: boolean;
   nda_required: boolean;
   nda_signed_at?: string;
-  view_log: { category: string; viewed_at: string; duration_seconds?: number }[];
+  view_log?: { category: string; viewed_at: string; duration_seconds?: number }[];
   granted_at: string;
   watermark_text?: string;
 }
@@ -175,7 +175,7 @@ function AccessRow({ access, onRevoke, onSignNDA }: {
       </div>
 
       {/* View log count */}
-      {access.view_log.length > 0 && (
+      {Array.isArray(access.view_log) && access.view_log.length > 0 && (
         <div className="text-[10px] text-slate-400 flex items-center gap-1">
           <Eye className="w-3 h-3" />
           {access.view_log.length} document view{access.view_log.length !== 1 ? 's' : ''} recorded
@@ -222,21 +222,32 @@ export default function DataRoomPage() {
   const [uploadCategory, setUploadCategory] = React.useState('pitch_deck');
   const [uploadDesc, setUploadDesc] = React.useState('');
 
+  function ensureArray<T>(val: unknown): T[] {
+    if (Array.isArray(val)) return val as T[];
+    if (val && typeof val === 'object') {
+      const obj = val as Record<string, unknown>;
+      if (Array.isArray(obj.results)) return obj.results as T[];
+      if (Array.isArray(obj.data)) return obj.data as T[];
+    }
+    return [];
+  }
+
   //  Queries 
-  const { data: docs, isLoading: docsLoading, refetch: refetchDocs } = useQuery<DataRoomDocument[]>({
+  const { data: docsRaw, isLoading: docsLoading, refetch: refetchDocs } = useQuery({
     queryKey: ['dataroom-documents'],
     queryFn: () =>
-      apiGet<{ results?: DataRoomDocument[] } | DataRoomDocument[]>('/dataroom/documents/')
-        .then((r) => (Array.isArray(r) ? r : r.results ?? [])),
+      apiGet<{ results?: DataRoomDocument[] } | DataRoomDocument[]>('/dataroom/documents/'),
   });
+  const docs = ensureArray<DataRoomDocument>(docsRaw);
 
-  const { data: accesses, isLoading: accessLoading, refetch: refetchAccess } = useQuery<DataRoomAccess[]>({
+  const { data: accessesRaw, isLoading: accessLoading, refetch: refetchAccess } = useQuery({
     queryKey: ['dataroom-access'],
     queryFn: () =>
       apiGet<{ results?: DataRoomAccess[] } | DataRoomAccess[]>(
         isStartup ? '/dataroom/access/' : '/dataroom/my-access/'
-      ).then((r) => (Array.isArray(r) ? r : r.results ?? [])),
+      ),
   });
+  const accesses = ensureArray<DataRoomAccess>(accessesRaw);
 
   //  Mutations 
   const addDocMutation = useMutation({

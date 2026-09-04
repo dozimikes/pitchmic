@@ -215,7 +215,7 @@ def on_team_member_added(sender, instance, created: bool, **kwargs) -> None:  # 
 
 
 # ---------------------------------------------------------------------------
-# Registration — called from NewsfeedConfig.ready()
+# Registration - called from NewsfeedConfig.ready()
 # ---------------------------------------------------------------------------
 
 def connect() -> None:

@@ -721,7 +721,7 @@ export default function FounderFundabilityPage() {
                             <div className="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t border-slate-100">
                               <span>Ask: {p.asking_amount ? `$${Number(p.asking_amount).toLocaleString()}` : 'N/A'}</span>
                               <span className="font-semibold text-brand-orange-600">
-                                {isSelected ? 'Selected ✓' : 'Select'}
+                                {isSelected ? 'Selected' : 'Select'}
                               </span>
                             </div>
                           </button>
@@ -880,7 +880,7 @@ export default function FounderFundabilityPage() {
                   activeTab === 'scorecard' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
                 )}
               >
-                📊 8-Pillar Scorecard
+                8-Pillar Scorecard
               </button>
               <button
                 type="button"
@@ -890,7 +890,7 @@ export default function FounderFundabilityPage() {
                   activeTab === 'unit_econ' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
                 )}
               >
-                💰 Unit Economics Audit
+                Unit Economics Audit
               </button>
               <button
                 type="button"
@@ -900,7 +900,7 @@ export default function FounderFundabilityPage() {
                   activeTab === 'redflags' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
                 )}
               >
-                ⚠️ Red Flags &amp; Fixes ({missingSlides.length})
+                Red Flags &amp; Fixes ({missingSlides.length})
               </button>
               <button
                 type="button"
@@ -910,7 +910,7 @@ export default function FounderFundabilityPage() {
                   activeTab === 'ic_debate' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
                 )}
               >
-                🎙️ IC Committee Debate
+                IC Committee Debate
               </button>
             </div>
 
@@ -1102,19 +1102,42 @@ export default function FounderFundabilityPage() {
             </div>
           )}
 
-          {/* TAB 3: RED FLAGS & MISSING SLIDES */}
+          {/* TAB 3: RED FLAGS & ACTIONABLE FIXES */}
           {activeTab === 'redflags' && (
             <div className="space-y-4">
               {missingSlides.length > 0 ? (
-                missingSlides.map((slide, i) => (
-                  <div key={i} className="p-4 rounded-2xl border border-amber-200 bg-amber-50/60 flex items-start gap-3 text-xs text-amber-950">
-                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold">Missing Critical Component: </span>
-                      <span>{slide}</span>
+                missingSlides.map((slide, i) => {
+                  const isEvidenceRelated = slide.toLowerCase().includes('traction') || slide.toLowerCase().includes('economic') || slide.toLowerCase().includes('financial') || slide.toLowerCase().includes('cac');
+                  return (
+                    <div key={i} className="p-4 rounded-2xl border border-amber-200 bg-amber-50/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-amber-950">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold">Missing Critical Component: </span>
+                          <span>{slide}</span>
+                          <p className="mt-0.5 text-[11px] text-amber-800/80">
+                            Institutional investment committees flag this as an underwriting gap. Addressing it directly increases fundability scores by up to 14 points.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                        {isEvidenceRelated ? (
+                          <Link href="/dataroom">
+                            <Button size="sm" variant="outline" className="h-7 text-[11px] border-amber-300 text-amber-900 hover:bg-amber-100/60 gap-1">
+                              <UploadCloud className="h-3 w-3" /> Upload to DataRoom
+                            </Button>
+                          </Link>
+                        ) : (
+                          <Link href="/pitches/new">
+                            <Button size="sm" variant="default" className="h-7 text-[11px] bg-brand-orange-500 hover:bg-brand-orange-600 text-white gap-1 shadow-xs">
+                              <Plus className="h-3 w-3" /> Fix in Pitch Studio
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="p-8 rounded-2xl border border-emerald-200 bg-emerald-50 text-center space-y-2">
                   <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto" />

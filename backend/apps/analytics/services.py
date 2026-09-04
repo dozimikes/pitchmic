@@ -5,7 +5,7 @@ Rule-based / heuristic prediction engine.
 
 This service produces FundraisingPrediction data using structured startup
 fields (financial metrics, traction, team size, market data).  It is
-intentionally dependency-free — no heavy ML libraries required at runtime.
+intentionally dependency-free - no heavy ML libraries required at runtime.
 
 When the full ML service (ml/ FastAPI container) is running, the Celery task
 can delegate to it via HTTP.  This module serves as the reliable fallback and

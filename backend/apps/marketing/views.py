@@ -3,14 +3,14 @@ apps.marketing.views
 ====================
 REST endpoints for outreach campaign management.
 
-POST /api/v1/marketing/campaigns/              — create a campaign
-GET  /api/v1/marketing/campaigns/              — list my campaigns
-GET  /api/v1/marketing/campaigns/{pk}/         — campaign detail
-POST /api/v1/marketing/campaigns/{pk}/activate/ — activate & generate investor list
-POST /api/v1/marketing/campaigns/{pk}/pause/   — pause campaign
-GET  /api/v1/marketing/campaigns/{pk}/analytics/ — detailed metrics
-GET  /api/v1/marketing/campaigns/{pk}/messages/ — messages for a campaign
-POST /api/v1/marketing/generate-list/          — AI investor list preview (no campaign)
+POST /api/v1/marketing/campaigns/              - create a campaign
+GET  /api/v1/marketing/campaigns/              - list my campaigns
+GET  /api/v1/marketing/campaigns/{pk}/         - campaign detail
+POST /api/v1/marketing/campaigns/{pk}/activate/ - activate & generate investor list
+POST /api/v1/marketing/campaigns/{pk}/pause/   - pause campaign
+GET  /api/v1/marketing/campaigns/{pk}/analytics/ - detailed metrics
+GET  /api/v1/marketing/campaigns/{pk}/messages/ - messages for a campaign
+POST /api/v1/marketing/generate-list/          - AI investor list preview (no campaign)
 """
 from __future__ import annotations
 
@@ -55,7 +55,7 @@ class CampaignDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class ActivateCampaignView(APIView):
-    """Activate a campaign — generates the investor list and queues sends."""
+    """Activate a campaign - generates the investor list and queues sends."""
 
     permission_classes = (IsAuthenticated,)
 
@@ -154,7 +154,7 @@ class CampaignMessagesView(generics.ListAPIView):
 class GenerateInvestorListView(APIView):
     """
     Preview AI-generated investor list based on targeting criteria.
-    Does NOT create messages — just returns a ranked investor list.
+    Does NOT create messages - just returns a ranked investor list.
     """
 
     permission_classes = (IsAuthenticated,)

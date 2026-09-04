@@ -402,7 +402,7 @@ class DeckParser:
                     is_consistent=consistent,
                     delta_pct=round(delta * 100, 1),
                     note=f"Deck claims {ratio.value}x; Calculated LTV÷CAC = {calc_ratio}x"
-                         + (" (Consistent)" if consistent else f" — Discrepancy of {round(delta*100, 1)}%"),
+                         + (" (Consistent)" if consistent else f" - Discrepancy of {round(delta*100, 1)}%"),
                 ))
             else:
                 checks.append(MathCheck(

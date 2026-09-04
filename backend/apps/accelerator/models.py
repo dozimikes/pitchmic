@@ -1,0 +1,1293 @@
+"""
+apps.accelerator.models
+=======================
+Venture Admissions & Investment Operating System - Application Orchestration Engine.
+
+Models:
+  AcceleratorProgram          - Configurable program with eligibility rules, workflow config
+  FounderApplicationProfile   - Canonical "apply once, reuse everywhere" founder profile
+  StartupApplicationProfile   - Company snapshot at time of application
+  AcceleratorApplication      - Orchestration spine with full lifecycle (17 status stages)
+  ApplicationQuestion         - Dynamic question engine with metadata
+  QuestionResponse            - Structured responses (narrative / numeric / boolean)
+  ApplicationDocument         - Uploaded documents with parsing state
+  ApplicationClaim            - Structured claim objects extracted from app + docs
+  ClaimEvidence               - Evidence linked to claims with verification detail
+  ApplicationAssessment       - Multi-dimensional scored assessment (per-dimension confidence)
+  ReviewerAssessment          - Per-reviewer scorecard
+  ReviewerDisagreement        - Auto-detected cross-reviewer variance
+  InterviewSession            - AI + human interview with transcript intelligence
+  CommitteeDecision           - IC committee workspace + vote aggregation
+  EvidenceRequest             - Evidence re-request loop with before/after score tracking
+  ProgramMembership           - Post-acceptance cohort enrolment
+  MilestoneTemplate           - Reusable milestone templates per program
+  StartupMilestone            - Per-company milestone tracking
+  ContinuousAssessment        - Readiness score evolution over time (Wk0 → Demo Day → Post-Raise)
+"""
+from __future__ import annotations
+
+from django.conf import settings
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+
+from apps.users.models import StartupProfile
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 1. AcceleratorProgram
+# ──────────────────────────────────────────────────────────────────────────────
+
+class AcceleratorProgram(models.Model):
+    """
+    A configurable accelerator / VC program. Each program has its own eligibility
+    rules, question set, scoring rubric, workflow stages, and committee structure.
+    Replaces / extends the legacy `intelligence.Cohort` model for new applications.
+    """
+
+    WORKFLOW_CHOICES = [
+        ("yc_style", _("YC-Style (Online → Interview → Same-Day Decision)")),
+        ("techstars_style", _("Techstars-Style (Multi-Stage Committee)")),
+        ("custom", _("Custom Workflow")),
+    ]
+
+    # Identity
+    name = models.CharField(_("program name"), max_length=255)
+    organization_name = models.CharField(_("organization"), max_length=255)
+    slug = models.SlugField(unique=True, max_length=120)
+    logo_url = models.URLField(_("logo URL"), blank=True)
+    website = models.URLField(_("website"), blank=True)
+    description = models.TextField(_("description"), blank=True)
+    tagline = models.CharField(_("tagline"), max_length=255, blank=True)
+
+    # Focus
+    sector_focus = models.CharField(_("sector focus"), max_length=500, blank=True,
+                                    help_text=_("Comma-separated sectors"))
+    geography_focus = models.CharField(_("geography focus"), max_length=500, blank=True,
+                                       help_text=_("Countries/regions targeted"))
+    stage_focus = models.CharField(
+        _("stage focus"), max_length=50, blank=True,
+        choices=[
+            ("idea", "Idea"),
+            ("pre_seed", "Pre-Seed"),
+            ("seed", "Seed"),
+            ("series_a", "Series A"),
+            ("any", "Any Stage"),
+        ],
+        default="pre_seed",
+    )
+
+    # Terms
+    equity_offered_pct = models.FloatField(_("equity offered (%)"), default=0.0)
+    funding_amount_usd = models.DecimalField(
+        _("funding amount (USD)"), max_digits=15, decimal_places=2, null=True, blank=True
+    )
+    program_duration_weeks = models.PositiveIntegerField(_("duration (weeks)"), default=12)
+    is_remote = models.BooleanField(_("remote-friendly"), default=True)
+    location = models.CharField(_("location"), max_length=255, blank=True)
+
+    # Dates
+    application_deadline = models.DateTimeField(_("application deadline"), null=True, blank=True)
+    cohort_start_date = models.DateField(_("cohort start date"), null=True, blank=True)
+    cohort_end_date = models.DateField(_("cohort end date"), null=True, blank=True)
+    program_cycle = models.CharField(_("program cycle"), max_length=100, default="2026-Q1")
+    target_cohort_size = models.PositiveIntegerField(_("target cohort size"), default=20)
+
+    # Eligibility rules (JSON schema validated by serializer)
+    eligibility_rules = models.JSONField(
+        _("eligibility rules"), default=dict, blank=True,
+        help_text=_(
+            "e.g. {incorporated_required: true, full_time_required: true, "
+            "previous_funding_max_usd: 500000, geography_whitelist: ['NG','KE','ZA'], "
+            "sector_whitelist: ['fintech','healthtech'], min_team_size: 2}"
+        ),
+    )
+
+    # Question configuration
+    question_config = models.JSONField(_("question config"), default=dict, blank=True)
+
+    # Scoring rubric weights (JSON: {problem: 15, market: 15, founder: 20, ...})
+    scoring_rubric_config = models.JSONField(_("scoring rubric"), default=dict, blank=True)
+
+    # Workflow configuration
+    workflow_style = models.CharField(
+        _("workflow style"), max_length=30, choices=WORKFLOW_CHOICES, default="techstars_style"
+    )
+    workflow_config = models.JSONField(
+        _("workflow config"), default=dict, blank=True,
+        help_text=_(
+            "e.g. {stages: [...], committee_size: 5, interview_rounds: 2, "
+            "multi_reviewer: true, evidence_request_enabled: true}"
+        ),
+    )
+
+    # Status
+    is_active = models.BooleanField(_("active"), default=True)
+    is_public = models.BooleanField(_("public"), default=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="created_programs"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("accelerator program")
+        verbose_name_plural = _("accelerator programs")
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.organization_name} - {self.name} ({self.program_cycle})"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 2. FounderApplicationProfile
+# ──────────────────────────────────────────────────────────────────────────────
+
+class FounderApplicationProfile(models.Model):
+    """
+    Canonical founder profile - created once and reused across multiple applications.
+    The "apply once, reuse everywhere" foundation.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="founder_application_profile",
+    )
+
+    # Identity
+    full_name = models.CharField(_("full name"), max_length=255, blank=True)
+    location = models.CharField(_("location"), max_length=255, blank=True)
+    country = models.CharField(_("country"), max_length=100, blank=True)
+    linkedin = models.URLField(_("LinkedIn"), blank=True)
+    twitter = models.CharField(_("Twitter/X"), max_length=255, blank=True)
+
+    # Background
+    education = models.JSONField(
+        _("education"), default=list, blank=True,
+        help_text=_("[{institution, degree, field, year}]"),
+    )
+    employment = models.JSONField(
+        _("employment history"), default=list, blank=True,
+        help_text=_("[{company, role, start_year, end_year, current}]"),
+    )
+    previous_companies = models.JSONField(
+        _("previous companies founded"), default=list, blank=True,
+        help_text=_("[{name, role, outcome, year_founded, year_exited}]"),
+    )
+
+    # Team
+    cofounders = models.JSONField(
+        _("cofounders"), default=list, blank=True,
+        help_text=_("[{name, email, role, equity_pct, full_time, linkedin}]"),
+    )
+    full_time_status = models.BooleanField(_("full-time on startup"), default=True)
+    technical_capability_score = models.FloatField(
+        _("technical capability (0-10)"), default=0.0,
+        help_text=_("Self-assessed; validated during interview")
+    )
+    business_capability_score = models.FloatField(
+        _("business capability (0-10)"), default=0.0
+    )
+
+    # Availability
+    available_from = models.DateField(_("available from"), null=True, blank=True)
+
+    # Profile completeness
+    profile_completeness = models.FloatField(_("profile completeness (%)"), default=0.0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("founder application profile")
+        verbose_name_plural = _("founder application profiles")
+
+    def __str__(self) -> str:
+        return f"{self.full_name or self.user.email} - Founder Profile"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 3. StartupApplicationProfile
+# ──────────────────────────────────────────────────────────────────────────────
+
+class StartupApplicationProfile(models.Model):
+    """
+    Canonical company snapshot - reused across applications to different programs.
+    Links to the platform StartupProfile but captures a point-in-time snapshot.
+    """
+
+    REVENUE_STATUS_CHOICES = [
+        ("pre_revenue", _("Pre-Revenue")),
+        ("early_revenue", _("Early Revenue")),
+        ("growing_revenue", _("Growing Revenue")),
+        ("scaling_revenue", _("Scaling Revenue")),
+    ]
+
+    BUSINESS_MODEL_CHOICES = [
+        ("b2b_saas", "B2B SaaS"),
+        ("b2c", "B2C"),
+        ("marketplace", "Marketplace"),
+        ("fintech", "Fintech"),
+        ("deeptech", "Deep Tech / Hardware"),
+        ("d2c", "D2C"),
+        ("other", "Other"),
+    ]
+
+    founder_profile = models.ForeignKey(
+        FounderApplicationProfile,
+        on_delete=models.CASCADE,
+        related_name="startup_profiles",
+    )
+    linked_startup = models.ForeignKey(
+        StartupProfile,
+        on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="application_profiles",
+        help_text=_("Optional link to platform StartupProfile"),
+    )
+
+    # Company
+    company_name = models.CharField(_("company name"), max_length=255)
+    website = models.URLField(_("website"), blank=True)
+    industry = models.CharField(_("industry"), max_length=255, blank=True)
+    sector_tags = models.CharField(_("sector tags"), max_length=500, blank=True,
+                                   help_text=_("Comma-separated"))
+    business_model = models.CharField(
+        _("business model"), max_length=50, choices=BUSINESS_MODEL_CHOICES, default="b2b_saas"
+    )
+    geography = models.CharField(_("primary geography"), max_length=255, blank=True)
+    incorporated = models.BooleanField(_("incorporated"), default=False)
+    incorporation_country = models.CharField(_("incorporation country"), max_length=100, blank=True)
+    founded_date = models.DateField(_("founded date"), null=True, blank=True)
+    employee_count = models.PositiveIntegerField(_("employee count"), default=1)
+
+    # Product
+    product_description = models.TextField(_("product description"), blank=True)
+    product_stage = models.CharField(
+        _("product stage"), max_length=50, blank=True,
+        choices=[
+            ("idea", "Idea"), ("prototype", "Prototype"), ("mvp", "MVP"),
+            ("pilot", "Pilot"), ("live", "Live"), ("scaling", "Scaling"),
+        ],
+    )
+    has_live_product = models.BooleanField(_("product is live"), default=False)
+
+    # Customers / Traction
+    customer_description = models.TextField(_("customer description"), blank=True)
+    customer_count = models.PositiveIntegerField(_("paying customers"), default=0)
+    monthly_active_users = models.PositiveIntegerField(_("monthly active users"), default=0)
+    loi_count = models.PositiveIntegerField(_("LOI count"), default=0)
+    pilot_count = models.PositiveIntegerField(_("pilot count"), default=0)
+
+    # Revenue
+    revenue_status = models.CharField(
+        _("revenue status"), max_length=30,
+        choices=REVENUE_STATUS_CHOICES, default="pre_revenue"
+    )
+    mrr_usd = models.DecimalField(_("MRR (USD)"), max_digits=15, decimal_places=2,
+                                  null=True, blank=True)
+    arr_usd = models.DecimalField(_("ARR (USD)"), max_digits=15, decimal_places=2,
+                                  null=True, blank=True)
+    gross_margin_pct = models.FloatField(_("gross margin (%)"), null=True, blank=True)
+
+    # Funding history
+    declared_stage = models.CharField(
+        _("declared funding stage"), max_length=50, default="pre_seed",
+        choices=[
+            ("pre_idea", "Pre-Idea"), ("idea", "Idea"), ("pre_seed", "Pre-Seed"),
+            ("seed", "Seed"), ("series_a", "Series A"),
+        ],
+    )
+    total_funding_raised_usd = models.DecimalField(
+        _("total funding raised (USD)"), max_digits=15, decimal_places=2, default=0
+    )
+    funding_sources = models.JSONField(_("funding sources"), default=list, blank=True)
+    cap_table = models.JSONField(_("cap table"), default=list, blank=True)
+
+    # Documents (URLs, may point to uploaded ApplicationDocument)
+    pitch_deck_url = models.URLField(_("pitch deck URL"), blank=True)
+    financial_model_url = models.URLField(_("financial model URL"), blank=True)
+
+    # Profile completeness
+    profile_completeness = models.FloatField(_("profile completeness (%)"), default=0.0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("startup application profile")
+        verbose_name_plural = _("startup application profiles")
+
+    def __str__(self) -> str:
+        return f"{self.company_name} - Application Profile"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 4. AcceleratorApplication  (the orchestration spine)
+# ──────────────────────────────────────────────────────────────────────────────
+
+class AcceleratorApplication(models.Model):
+    """
+    The central object in the Venture Admissions OS.
+    Tracks a startup through the complete admissions lifecycle.
+    """
+
+    STATUS_CHOICES = [
+        ("DRAFT", _("Draft")),
+        ("SUBMITTED", _("Submitted")),
+        ("SCREENING", _("Screening")),
+        ("SHORTLISTED", _("Shortlisted")),
+        ("INTERVIEW_INVITED", _("Interview Invited")),
+        ("INTERVIEW_COMPLETE", _("Interview Complete")),
+        ("COMMITTEE_REVIEW", _("Committee Review")),
+        ("EVIDENCE_REQUESTED", _("Evidence Requested")),
+        ("WAITLISTED", _("Waitlisted")),
+        ("ACCEPTED", _("Accepted")),
+        ("REJECTED", _("Rejected")),
+        ("WITHDRAWN", _("Withdrawn")),
+        ("DEFERRED", _("Deferred")),
+    ]
+
+    TIER_CHOICES = [
+        ("A", _("Tier A - Highly aligned + high evidence")),
+        ("B", _("Tier B - Strong but needs review")),
+        ("C", _("Tier C - Interesting but evidence gaps")),
+        ("D", _("Tier D - Poor fit / eligibility issues")),
+    ]
+
+    program = models.ForeignKey(
+        AcceleratorProgram, on_delete=models.CASCADE, related_name="applications"
+    )
+    startup_profile = models.ForeignKey(
+        StartupApplicationProfile, on_delete=models.CASCADE, related_name="applications"
+    )
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="submitted_applications"
+    )
+
+    status = models.CharField(
+        _("status"), max_length=30, choices=STATUS_CHOICES, default="DRAFT"
+    )
+
+    # Eligibility
+    eligibility_score = models.FloatField(_("eligibility score (%)"), default=0.0)
+    eligibility_breakdown = models.JSONField(_("eligibility breakdown"), default=dict, blank=True)
+    eligibility_checked_at = models.DateTimeField(null=True, blank=True)
+
+    # Scores (set by automated assessment engine)
+    application_completeness_score = models.FloatField(_("completeness (%)"), default=0.0)
+    startup_strength_score = models.FloatField(_("startup strength (0-100)"), default=0.0)
+    evidence_confidence_score = models.FloatField(_("evidence confidence (%)"), default=0.0)
+    program_fit_score = models.FloatField(_("program fit (0-100)"), default=0.0)
+    founder_score = models.FloatField(_("founder score (0-100)"), default=0.0)
+
+    # Stage intelligence
+    inferred_stage = models.CharField(_("inferred stage"), max_length=50, blank=True)
+    stage_conflict_detected = models.BooleanField(_("stage conflict detected"), default=False)
+
+    # Automated screening
+    automated_screening_tier = models.CharField(
+        _("screening tier"), max_length=1, choices=TIER_CHOICES, blank=True
+    )
+    screening_summary = models.JSONField(_("screening summary"), default=dict, blank=True)
+    risk_flags = models.JSONField(_("risk flags"), default=list, blank=True)
+
+    # Timestamps
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    shortlisted_at = models.DateTimeField(null=True, blank=True)
+    decision_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    # Notes
+    internal_notes = models.TextField(_("internal notes"), blank=True)
+
+    class Meta:
+        verbose_name = _("accelerator application")
+        verbose_name_plural = _("accelerator applications")
+        ordering = ["-created_at"]
+        unique_together = [["program", "startup_profile"]]
+
+    def __str__(self) -> str:
+        return (
+            f"{self.startup_profile.company_name} → {self.program.name} [{self.status}]"
+        )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 5. ApplicationQuestion + QuestionResponse
+# ──────────────────────────────────────────────────────────────────────────────
+
+class ApplicationQuestion(models.Model):
+    """
+    Dynamic question engine. Each question has full metadata used for
+    conditional branching, scoring, and AI extraction.
+    """
+
+    QUESTION_TYPE_CHOICES = [
+        ("narrative", _("Narrative (long text)")),
+        ("short_text", _("Short text")),
+        ("numeric", _("Numeric")),
+        ("boolean", _("Yes / No")),
+        ("multi_choice", _("Multiple choice")),
+        ("url", _("URL")),
+        ("date", _("Date")),
+    ]
+
+    CATEGORY_CHOICES = [
+        ("problem", _("Problem")),
+        ("product", _("Product")),
+        ("market", _("Market")),
+        ("traction", _("Traction")),
+        ("team", _("Team")),
+        ("financials", _("Financials")),
+        ("legal", _("Legal & Compliance")),
+        ("other", _("Other")),
+    ]
+
+    MATERIALITY_CHOICES = [
+        ("critical", _("Critical")),
+        ("high", _("High")),
+        ("medium", _("Medium")),
+        ("low", _("Low")),
+    ]
+
+    program = models.ForeignKey(
+        AcceleratorProgram, on_delete=models.CASCADE, related_name="questions"
+    )
+    text = models.TextField(_("question text"))
+    help_text = models.TextField(_("help text"), blank=True)
+    question_type = models.CharField(
+        _("type"), max_length=20, choices=QUESTION_TYPE_CHOICES, default="narrative"
+    )
+    category = models.CharField(
+        _("category"), max_length=30, choices=CATEGORY_CHOICES, default="problem"
+    )
+    materiality = models.CharField(
+        _("materiality"), max_length=20, choices=MATERIALITY_CHOICES, default="high"
+    )
+    is_required = models.BooleanField(_("required"), default=True)
+    evidence_required = models.BooleanField(_("evidence required"), default=False)
+    expected_word_count_min = models.PositiveIntegerField(default=0)
+    expected_word_count_max = models.PositiveIntegerField(default=500)
+
+    # Scoring
+    scoring_dimensions = models.JSONField(
+        _("scoring dimensions"), default=list, blank=True,
+        help_text=_("e.g. ['problem_severity', 'market_insight', 'founder_fit']")
+    )
+
+    # Conditional display
+    conditional_on = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="dependent_questions",
+        help_text=_("Show this question only if the referenced question has a certain value"),
+    )
+    conditional_value = models.CharField(_("conditional trigger value"), max_length=255, blank=True)
+
+    # Stage relevance
+    stage_relevance = models.JSONField(
+        _("stage relevance"), default=list, blank=True,
+        help_text=_("e.g. ['pre_seed', 'seed'] - empty means all stages")
+    )
+
+    # Revenue-based conditional
+    show_if_revenue_status = models.CharField(
+        _("show if revenue status"), max_length=50, blank=True,
+        help_text=_("Leave blank to always show; set to revenue status value to gate")
+    )
+
+    # AI extraction
+    ai_extraction_enabled = models.BooleanField(_("AI extraction enabled"), default=True)
+    claim_categories = models.JSONField(
+        _("claim categories"), default=list, blank=True,
+        help_text=_("Which claim categories AI should extract from this response")
+    )
+
+    # Choices (for multi_choice)
+    choices = models.JSONField(_("choices"), default=list, blank=True)
+
+    order = models.PositiveIntegerField(_("order"), default=0)
+    is_active = models.BooleanField(_("active"), default=True)
+
+    class Meta:
+        verbose_name = _("application question")
+        verbose_name_plural = _("application questions")
+        ordering = ["order"]
+
+    def __str__(self) -> str:
+        return f"[{self.category}] {self.text[:80]}"
+
+
+class QuestionResponse(models.Model):
+    """
+    A founder's response to a single application question.
+    """
+
+    EVIDENCE_STATUS_CHOICES = [
+        ("none", _("No evidence provided")),
+        ("pending", _("Evidence upload pending")),
+        ("partial", _("Partially evidenced")),
+        ("verified", _("Verified")),
+        ("failed", _("Verification failed")),
+    ]
+
+    application = models.ForeignKey(
+        AcceleratorApplication, on_delete=models.CASCADE, related_name="responses"
+    )
+    question = models.ForeignKey(
+        ApplicationQuestion, on_delete=models.CASCADE, related_name="responses"
+    )
+
+    # Response content (only one type will be populated)
+    text_response = models.TextField(_("text response"), blank=True)
+    numeric_response = models.FloatField(_("numeric response"), null=True, blank=True)
+    boolean_response = models.BooleanField(_("boolean response"), null=True, blank=True)
+    selected_choices = models.JSONField(_("selected choices"), default=list, blank=True)
+    url_response = models.URLField(_("URL response"), blank=True)
+
+    # Evidence
+    evidence_status = models.CharField(
+        _("evidence status"), max_length=20,
+        choices=EVIDENCE_STATUS_CHOICES, default="none"
+    )
+    evidence_notes = models.TextField(_("evidence notes"), blank=True)
+
+    # AI extraction output
+    extracted_claims = models.JSONField(_("extracted claims"), default=list, blank=True)
+    ai_score = models.FloatField(_("AI dimension score"), null=True, blank=True)
+    ai_score_reasoning = models.TextField(_("AI scoring reasoning"), blank=True)
+
+    word_count = models.PositiveIntegerField(_("word count"), default=0)
+    last_saved_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("question response")
+        verbose_name_plural = _("question responses")
+        unique_together = [["application", "question"]]
+
+    def __str__(self) -> str:
+        return f"{self.application} - Q: {self.question_id}"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 6. ApplicationDocument
+# ──────────────────────────────────────────────────────────────────────────────
+
+class ApplicationDocument(models.Model):
+    """
+    Document uploaded as part of an application. Parsed automatically to extract claims.
+    """
+
+    DOCUMENT_TYPE_CHOICES = [
+        ("pitch_deck", _("Pitch Deck")),
+        ("financial_model", _("Financial Model")),
+        ("cap_table", _("Cap Table")),
+        ("incorporation", _("Incorporation Documents")),
+        ("business_registration", _("Business Registration")),
+        ("founder_cv", _("Founder CV")),
+        ("product_demo", _("Product Demo")),
+        ("customer_contracts", _("Customer Contracts")),
+        ("lois", _("Letters of Intent (LOIs)")),
+        ("invoices", _("Invoices")),
+        ("bank_statements", _("Bank / Payment Evidence")),
+        ("analytics", _("Analytics Screenshots")),
+        ("patents", _("Patents / IP")),
+        ("regulatory", _("Regulatory Documents")),
+        ("previous_investment", _("Previous Investment Documents")),
+        ("other", _("Other")),
+    ]
+
+    EXTRACTION_STATUS_CHOICES = [
+        ("pending", _("Pending")),
+        ("processing", _("Processing")),
+        ("complete", _("Complete")),
+        ("failed", _("Failed")),
+    ]
+
+    application = models.ForeignKey(
+        AcceleratorApplication, on_delete=models.CASCADE, related_name="documents"
+    )
+    document_type = models.CharField(
+        _("document type"), max_length=40, choices=DOCUMENT_TYPE_CHOICES
+    )
+    file_url = models.URLField(_("file URL"), max_length=1000)
+    file_name = models.CharField(_("file name"), max_length=500, blank=True)
+    file_size_bytes = models.PositiveIntegerField(_("file size (bytes)"), default=0)
+    mime_type = models.CharField(_("MIME type"), max_length=100, blank=True)
+
+    # Parsing
+    parsed_content = models.JSONField(_("parsed content"), default=dict, blank=True)
+    extraction_status = models.CharField(
+        _("extraction status"), max_length=20,
+        choices=EXTRACTION_STATUS_CHOICES, default="pending"
+    )
+    extracted_claims_count = models.PositiveIntegerField(_("extracted claims count"), default=0)
+
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    extracted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("application document")
+        verbose_name_plural = _("application documents")
+        ordering = ["document_type", "-uploaded_at"]
+
+    def __str__(self) -> str:
+        return f"{self.get_document_type_display()} - {self.file_name}"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 7. ApplicationClaim
+# ──────────────────────────────────────────────────────────────────────────────
+
+class ApplicationClaim(models.Model):
+    """
+    Every material statement from the application/documents becomes a structured claim object.
+    e.g. "We have 100 signed LOIs" → claim object with verification workflow.
+    """
+
+    CATEGORY_CHOICES = [
+        ("commercial_traction", _("Commercial Traction")),
+        ("revenue", _("Revenue")),
+        ("team", _("Team")),
+        ("market", _("Market")),
+        ("product", _("Product")),
+        ("funding", _("Funding History")),
+        ("ip", _("IP / Patents")),
+        ("regulatory", _("Regulatory")),
+        ("other", _("Other")),
+    ]
+
+    MATERIALITY_CHOICES = [
+        ("critical", _("Critical")),
+        ("high", _("High")),
+        ("medium", _("Medium")),
+        ("low", _("Low")),
+    ]
+
+    SOURCE_CHOICES = [
+        ("application_answer", _("Application Answer")),
+        ("document", _("Document")),
+        ("interview", _("Interview")),
+        ("pitch_deck", _("Pitch Deck")),
+        ("financial_model", _("Financial Model")),
+    ]
+
+    VERIFICATION_STATUS_CHOICES = [
+        ("pending", _("Pending")),
+        ("verified", _("Verified")),
+        ("partially_verified", _("Partially Verified")),
+        ("unverified", _("Unverified")),
+        ("contradicted", _("Contradicted")),
+        ("flagged", _("Flagged")),
+    ]
+
+    application = models.ForeignKey(
+        AcceleratorApplication, on_delete=models.CASCADE, related_name="claims"
+    )
+    claim_id = models.CharField(_("claim ID"), max_length=20, blank=True)  # e.g. C-00127
+    claim_text = models.TextField(_("claim text"))
+    category = models.CharField(_("category"), max_length=30, choices=CATEGORY_CHOICES)
+    materiality = models.CharField(_("materiality"), max_length=20, choices=MATERIALITY_CHOICES)
+    source = models.CharField(_("source"), max_length=30, choices=SOURCE_CHOICES)
+    source_document = models.ForeignKey(
+        ApplicationDocument, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="extracted_claims"
+    )
+    source_question = models.ForeignKey(
+        ApplicationQuestion, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="extracted_claims"
+    )
+
+    founder_asserted = models.BooleanField(_("founder asserted"), default=True)
+    evidence_required = models.BooleanField(_("evidence required"), default=False)
+    evidence_status = models.CharField(
+        _("evidence status"), max_length=20,
+        choices=[
+            ("none", "None"), ("partial", "Partial"), ("provided", "Provided"),
+        ],
+        default="none"
+    )
+    verification_status = models.CharField(
+        _("verification status"), max_length=30,
+        choices=VERIFICATION_STATUS_CHOICES, default="pending"
+    )
+    verified_value = models.JSONField(_("verified value"), default=dict, blank=True)
+    discrepancy_notes = models.TextField(_("discrepancy notes"), blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("application claim")
+        verbose_name_plural = _("application claims")
+        ordering = ["materiality", "-created_at"]
+
+    def __str__(self) -> str:
+        return f"[{self.claim_id}] {self.claim_text[:80]} ({self.verification_status})"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 8. ClaimEvidence
+# ──────────────────────────────────────────────────────────────────────────────
+
+class ClaimEvidence(models.Model):
+    """
+    Detailed evidence verification result for a specific claim.
+    e.g. "100 LOIs claimed → 82 found, 76 unique, 69 signed, 61 current, 48 commercial intent"
+    """
+
+    claim = models.OneToOneField(
+        ApplicationClaim, on_delete=models.CASCADE, related_name="evidence_detail"
+    )
+    document = models.ForeignKey(
+        ApplicationDocument, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="claim_evidences"
+    )
+
+    # Quantitative verification
+    claimed_count = models.PositiveIntegerField(_("claimed count"), default=0)
+    documents_found = models.PositiveIntegerField(_("documents found"), default=0)
+    documents_signed = models.PositiveIntegerField(_("documents signed"), default=0)
+    unique_entities = models.PositiveIntegerField(_("unique entities"), default=0)
+    current_documents = models.PositiveIntegerField(_("current / unexpired"), default=0)
+    commercial_intent_count = models.PositiveIntegerField(_("commercial intent"), default=0)
+
+    # Qualitative
+    verification_summary = models.JSONField(_("verification summary"), default=dict, blank=True)
+    confidence = models.FloatField(_("confidence (0-1)"), default=0.0)
+    flags = models.JSONField(_("verification flags"), default=list, blank=True)
+
+    verified_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("claim evidence")
+        verbose_name_plural = _("claim evidences")
+
+    def __str__(self) -> str:
+        return f"Evidence for {self.claim}"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 9. ApplicationAssessment
+# ──────────────────────────────────────────────────────────────────────────────
+
+class ApplicationAssessment(models.Model):
+    """
+    Multi-dimensional automated assessment. Each dimension has a score AND a confidence %.
+    Separates startup strength from application completeness from evidence confidence.
+    """
+
+    RECOMMENDATION_CHOICES = [
+        ("INTERVIEW", _("Recommend Interview")),
+        ("REJECT", _("Recommend Rejection")),
+        ("WAITLIST", _("Recommend Waitlist")),
+        ("REQUEST_EVIDENCE", _("Request Additional Evidence")),
+    ]
+
+    application = models.OneToOneField(
+        AcceleratorApplication, on_delete=models.CASCADE, related_name="assessment"
+    )
+
+    # ── Dimension scores (0-100) + confidence (0-1) ──
+    founder_score = models.FloatField(default=0.0)
+    founder_confidence = models.FloatField(default=0.0)
+
+    problem_score = models.FloatField(default=0.0)
+    problem_confidence = models.FloatField(default=0.0)
+
+    product_score = models.FloatField(default=0.0)
+    product_confidence = models.FloatField(default=0.0)
+
+    market_score = models.FloatField(default=0.0)
+    market_confidence = models.FloatField(default=0.0)
+
+    traction_score = models.FloatField(default=0.0)
+    traction_confidence = models.FloatField(default=0.0)
+
+    revenue_score = models.FloatField(default=0.0)
+    revenue_confidence = models.FloatField(default=0.0)
+
+    team_score = models.FloatField(default=0.0)
+    team_confidence = models.FloatField(default=0.0)
+
+    # ── Stage intelligence ──
+    declared_stage = models.CharField(max_length=50, blank=True)
+    inferred_stage = models.CharField(max_length=50, blank=True)
+    stage_confidence = models.FloatField(default=0.0)
+    stage_conflict = models.BooleanField(default=False)
+    stage_conflict_explanation = models.TextField(blank=True)
+
+    # ── Program fit breakdown (0-100 each) ──
+    stage_fit = models.FloatField(default=0.0)
+    geography_fit = models.FloatField(default=0.0)
+    sector_fit = models.FloatField(default=0.0)
+    founder_fit = models.FloatField(default=0.0)
+    thesis_fit = models.FloatField(default=0.0)
+    timing_fit = models.FloatField(default=0.0)
+    evidence_fit = models.FloatField(default=0.0)
+
+    # ── Composite scores ──
+    overall_program_fit = models.FloatField(default=0.0)
+    startup_strength = models.FloatField(default=0.0)
+    evidence_confidence = models.FloatField(default=0.0)
+    application_completeness = models.FloatField(default=0.0)
+
+    # ── Risk flags ──
+    risk_flags = models.JSONField(
+        default=list, blank=True,
+        help_text=_("[{risk, severity, confidence, evidence, mitigation}]")
+    )
+
+    # ── IC Debate material ──
+    bull_case = models.JSONField(
+        default=list, blank=True,
+        help_text=_("[{point, evidence, strength}]")
+    )
+    bear_case = models.JSONField(
+        default=list, blank=True,
+        help_text=_("[{point, evidence, strength}]")
+    )
+    key_unknowns = models.JSONField(default=list, blank=True)
+    contradictions_detected = models.JSONField(default=list, blank=True)
+
+    # ── Recommendation ──
+    overall_recommendation = models.CharField(
+        _("recommendation"), max_length=20,
+        choices=RECOMMENDATION_CHOICES, default="REQUEST_EVIDENCE"
+    )
+    recommendation_confidence = models.FloatField(_("recommendation confidence"), default=0.0)
+    recommendation_reasoning = models.TextField(blank=True)
+
+    generated_at = models.DateTimeField(auto_now=True)
+    engine_version = models.CharField(max_length=20, default="1.0")
+
+    class Meta:
+        verbose_name = _("application assessment")
+        verbose_name_plural = _("application assessments")
+
+    def __str__(self) -> str:
+        return (
+            f"Assessment: {self.application.startup_profile.company_name} "
+            f"[Fit: {self.overall_program_fit:.0f} | Strength: {self.startup_strength:.0f}]"
+        )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 10. ReviewerAssessment
+# ──────────────────────────────────────────────────────────────────────────────
+
+class ReviewerAssessment(models.Model):
+    """Per-reviewer scorecard. Multiple reviewers can score the same application."""
+
+    RECOMMENDATION_CHOICES = [
+        ("INTERVIEW", _("Interview")),
+        ("REJECT", _("Reject")),
+        ("WAITLIST", _("Waitlist")),
+        ("NEEDS_MORE_INFO", _("Needs More Info")),
+    ]
+
+    application = models.ForeignKey(
+        AcceleratorApplication, on_delete=models.CASCADE, related_name="reviewer_assessments"
+    )
+    reviewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reviewed_applications"
+    )
+
+    founder_score = models.FloatField(_("founder (1-10)"), default=5.0)
+    market_score = models.FloatField(_("market (1-10)"), default=5.0)
+    product_score = models.FloatField(_("product (1-10)"), default=5.0)
+    team_score = models.FloatField(_("team (1-10)"), default=5.0)
+    traction_score = models.FloatField(_("traction (1-10)"), default=5.0)
+    overall_conviction = models.FloatField(_("overall conviction (1-10)"), default=5.0)
+
+    recommendation = models.CharField(
+        _("recommendation"), max_length=20,
+        choices=RECOMMENDATION_CHOICES, default="NEEDS_MORE_INFO"
+    )
+    notes = models.TextField(_("reviewer notes"), blank=True)
+    strengths = models.JSONField(_("key strengths"), default=list, blank=True)
+    concerns = models.JSONField(_("key concerns"), default=list, blank=True)
+
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("reviewer assessment")
+        verbose_name_plural = _("reviewer assessments")
+        unique_together = [["application", "reviewer"]]
+
+    def __str__(self) -> str:
+        return f"{self.reviewer.email} → {self.application}"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 11. ReviewerDisagreement
+# ──────────────────────────────────────────────────────────────────────────────
+
+class ReviewerDisagreement(models.Model):
+    """Auto-detected when reviewers diverge significantly on a dimension."""
+
+    application = models.ForeignKey(
+        AcceleratorApplication, on_delete=models.CASCADE, related_name="reviewer_disagreements"
+    )
+    dimension = models.CharField(_("dimension"), max_length=50)
+    variance_pct = models.FloatField(_("variance (%)"), default=0.0)
+    reviewer_a = models.ForeignKey(
+        ReviewerAssessment, on_delete=models.CASCADE, related_name="disagreements_as_a"
+    )
+    reviewer_b = models.ForeignKey(
+        ReviewerAssessment, on_delete=models.CASCADE, related_name="disagreements_as_b"
+    )
+    resolution_notes = models.TextField(_("resolution notes"), blank=True)
+    resolved = models.BooleanField(_("resolved"), default=False)
+    detected_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("reviewer disagreement")
+        verbose_name_plural = _("reviewer disagreements")
+
+    def __str__(self) -> str:
+        return f"Disagreement on {self.dimension} for {self.application} ({self.variance_pct:.0f}% variance)"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 12. InterviewSession
+# ──────────────────────────────────────────────────────────────────────────────
+
+class InterviewSession(models.Model):
+    """AI-voice or human interview with full transcript and intelligence extraction."""
+
+    INTERVIEW_TYPE_CHOICES = [
+        ("ai_voice", _("AI Voice Screening")),
+        ("human_video", _("Human Video Call")),
+        ("human_in_person", _("Human In-Person")),
+    ]
+
+    STATUS_CHOICES = [
+        ("scheduled", _("Scheduled")),
+        ("in_progress", _("In Progress")),
+        ("complete", _("Complete")),
+        ("cancelled", _("Cancelled")),
+        ("no_show", _("No Show")),
+    ]
+
+    application = models.ForeignKey(
+        AcceleratorApplication, on_delete=models.CASCADE, related_name="interviews"
+    )
+    interview_type = models.CharField(
+        _("type"), max_length=20, choices=INTERVIEW_TYPE_CHOICES, default="ai_voice"
+    )
+    round_number = models.PositiveIntegerField(_("round"), default=1)
+    interviewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="conducted_interviews",
+        help_text=_("Null = AI-conducted interview"),
+    )
+
+    status = models.CharField(
+        _("status"), max_length=20, choices=STATUS_CHOICES, default="scheduled"
+    )
+    scheduled_at = models.DateTimeField(_("scheduled at"), null=True, blank=True)
+    completed_at = models.DateTimeField(_("completed at"), null=True, blank=True)
+    duration_minutes = models.PositiveIntegerField(_("duration (minutes)"), default=0)
+
+    # Interview content
+    questions_asked = models.JSONField(_("questions asked"), default=list, blank=True)
+    transcript = models.JSONField(
+        _("transcript"), default=list, blank=True,
+        help_text=_("[{speaker, text, timestamp}]")
+    )
+    recording_url = models.URLField(_("recording URL"), blank=True)
+
+    # Intelligence extraction
+    extracted_claims = models.JSONField(_("extracted claims"), default=list, blank=True)
+    contradictions = models.JSONField(
+        _("contradictions"), default=list, blank=True,
+        help_text=_("[{claim, application_value, interview_value, severity}]")
+    )
+    new_evidence = models.JSONField(_("new evidence"), default=list, blank=True)
+    red_flags = models.JSONField(_("red flags"), default=list, blank=True)
+    key_insights = models.JSONField(_("key insights"), default=list, blank=True)
+
+    # Scores
+    founder_confidence_score = models.FloatField(_("founder confidence score"), default=0.0)
+    knowledge_depth_score = models.FloatField(_("knowledge depth score"), default=0.0)
+    communication_score = models.FloatField(_("communication score"), default=0.0)
+    overall_interview_score = models.FloatField(_("overall interview score"), default=0.0)
+
+    # Cross-source comparison
+    cross_source_summary = models.JSONField(
+        _("cross-source comparison"), default=dict, blank=True,
+        help_text=_("{application_vs_deck: ..., deck_vs_interview: ..., application_vs_interview: ...}")
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("interview session")
+        verbose_name_plural = _("interview sessions")
+        ordering = ["scheduled_at"]
+
+    def __str__(self) -> str:
+        return (
+            f"{self.get_interview_type_display()} - {self.application} "
+            f"(Round {self.round_number}) [{self.status}]"
+        )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 13. CommitteeDecision
+# ──────────────────────────────────────────────────────────────────────────────
+
+class CommitteeDecision(models.Model):
+    """IC committee workspace - aggregates votes, debate log, and final decision."""
+
+    DECISION_CHOICES = [
+        ("ACCEPT", _("Accept")),
+        ("REJECT", _("Reject")),
+        ("WAITLIST", _("Waitlist")),
+        ("DEFER", _("Defer to Next Cohort")),
+        ("REQUEST_EVIDENCE", _("Request Additional Evidence")),
+    ]
+
+    application = models.OneToOneField(
+        AcceleratorApplication, on_delete=models.CASCADE, related_name="committee_decision"
+    )
+
+    decision = models.CharField(
+        _("decision"), max_length=20, choices=DECISION_CHOICES, blank=True
+    )
+    vote_summary = models.JSONField(
+        _("vote summary"), default=dict, blank=True,
+        help_text=_("{yes: N, no: M, conditional: K, abstain: J}")
+    )
+    individual_votes = models.JSONField(
+        _("individual votes"), default=list, blank=True,
+        help_text=_("[{voter_id, voter_name, vote, conviction_score, notes}]")
+    )
+    debate_log = models.JSONField(
+        _("debate log"), default=list, blank=True,
+        help_text=_("[{participant, point, side (bull/bear), timestamp}]")
+    )
+    decision_rationale = models.TextField(_("decision rationale"), blank=True)
+    conditions = models.TextField(_("conditions (if conditional accept)"), blank=True)
+
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="ic_decisions"
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("committee decision")
+        verbose_name_plural = _("committee decisions")
+
+    def __str__(self) -> str:
+        return f"IC Decision: {self.application} → {self.decision or 'Pending'}"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 14. EvidenceRequest
+# ──────────────────────────────────────────────────────────────────────────────
+
+class EvidenceRequest(models.Model):
+    """
+    Loop-back evidence collection. Committee/reviewer requests specific documents,
+    founder uploads, Pitchmic re-runs assessment automatically.
+    """
+
+    STATUS_CHOICES = [
+        ("PENDING", _("Pending Founder Response")),
+        ("PARTIAL", _("Partially Responded")),
+        ("COMPLETE", _("Complete")),
+        ("EXPIRED", _("Expired")),
+    ]
+
+    application = models.ForeignKey(
+        AcceleratorApplication, on_delete=models.CASCADE, related_name="evidence_requests"
+    )
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="evidence_requests_made"
+    )
+    requested_items = models.JSONField(
+        _("requested items"), default=list,
+        help_text=_("[{type, description, required}]")
+    )
+    message_to_founder = models.TextField(_("message to founder"), blank=True)
+    response_deadline = models.DateTimeField(_("response deadline"), null=True, blank=True)
+    status = models.CharField(_("status"), max_length=20, choices=STATUS_CHOICES, default="PENDING")
+
+    # Before/after assessment delta
+    pre_readiness_score = models.FloatField(_("readiness before"), default=0.0)
+    post_readiness_score = models.FloatField(_("readiness after"), default=0.0)
+
+    founder_response = models.TextField(_("founder response notes"), blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("evidence request")
+        verbose_name_plural = _("evidence requests")
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"Evidence Request: {self.application} [{self.status}]"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 15. ProgramMembership
+# ──────────────────────────────────────────────────────────────────────────────
+
+class ProgramMembership(models.Model):
+    """
+    Created automatically on ACCEPTED decision.
+    Tracks the startup's journey through the active program cohort.
+    """
+
+    application = models.OneToOneField(
+        AcceleratorApplication, on_delete=models.CASCADE, related_name="membership"
+    )
+    program = models.ForeignKey(
+        AcceleratorProgram, on_delete=models.CASCADE, related_name="members"
+    )
+    enrolled_at = models.DateTimeField(auto_now_add=True)
+
+    # Assignments
+    mentor_assignments = models.JSONField(
+        _("mentor assignments"), default=list, blank=True,
+        help_text=_("[{mentor_id, name, focus_area, sessions_completed}]")
+    )
+    investor_profile_url = models.URLField(_("investor-facing profile URL"), blank=True)
+    data_room_url = models.URLField(_("data room URL"), blank=True)
+    reporting_requirements = models.JSONField(
+        _("reporting requirements"), default=dict, blank=True
+    )
+
+    # Post-program tracking
+    is_active = models.BooleanField(_("active in program"), default=True)
+    graduation_date = models.DateField(null=True, blank=True)
+    demo_day_slot = models.PositiveIntegerField(_("Demo Day slot"), null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("program membership")
+        verbose_name_plural = _("program memberships")
+
+    def __str__(self) -> str:
+        return f"{self.application.startup_profile.company_name} - {self.program.name}"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 16. MilestoneTemplate + StartupMilestone
+# ──────────────────────────────────────────────────────────────────────────────
+
+class MilestoneTemplate(models.Model):
+    """Reusable milestone definitions for a program."""
+
+    CATEGORY_CHOICES = [
+        ("product", _("Product")),
+        ("revenue", _("Revenue")),
+        ("hiring", _("Hiring")),
+        ("fundraising", _("Fundraising")),
+        ("customer", _("Customer Development")),
+        ("regulatory", _("Regulatory")),
+        ("other", _("Other")),
+    ]
+
+    program = models.ForeignKey(
+        AcceleratorProgram, on_delete=models.CASCADE, related_name="milestone_templates"
+    )
+    title = models.CharField(_("milestone title"), max_length=255)
+    description = models.TextField(_("description"), blank=True)
+    category = models.CharField(_("category"), max_length=30, choices=CATEGORY_CHOICES)
+    week_number = models.PositiveIntegerField(_("target week number"), default=1)
+    is_required = models.BooleanField(_("required"), default=True)
+    order = models.PositiveIntegerField(_("order"), default=0)
+
+    class Meta:
+        verbose_name = _("milestone template")
+        verbose_name_plural = _("milestone templates")
+        ordering = ["week_number", "order"]
+
+    def __str__(self) -> str:
+        return f"[Wk{self.week_number}] {self.title}"
+
+
+class StartupMilestone(models.Model):
+    """Per-company milestone tracking within the active cohort."""
+
+    STATUS_CHOICES = [
+        ("not_started", _("Not Started")),
+        ("in_progress", _("In Progress")),
+        ("complete", _("Complete")),
+        ("overdue", _("Overdue")),
+        ("waived", _("Waived")),
+    ]
+
+    membership = models.ForeignKey(
+        ProgramMembership, on_delete=models.CASCADE, related_name="milestones"
+    )
+    template = models.ForeignKey(
+        MilestoneTemplate, on_delete=models.CASCADE, related_name="startup_milestones"
+    )
+
+    status = models.CharField(
+        _("status"), max_length=20, choices=STATUS_CHOICES, default="not_started"
+    )
+    evidence_url = models.URLField(_("evidence URL"), blank=True)
+    notes = models.TextField(_("notes"), blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("startup milestone")
+        verbose_name_plural = _("startup milestones")
+        unique_together = [["membership", "template"]]
+
+    def __str__(self) -> str:
+        return f"{self.membership} - {self.template.title} [{self.status}]"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 17. ContinuousAssessment
+# ──────────────────────────────────────────────────────────────────────────────
+
+class ContinuousAssessment(models.Model):
+    """
+    Readiness score snapshots over time - from application through program to post-Demo Day.
+    Enables the calibration flywheel: which signals predict long-term success?
+    """
+
+    application = models.ForeignKey(
+        AcceleratorApplication, on_delete=models.CASCADE, related_name="continuous_assessments"
+    )
+    period_label = models.CharField(
+        _("period label"), max_length=100,
+        help_text=_("e.g. 'Application', 'Week 4', 'Demo Day', 'Post-Raise'")
+    )
+    readiness_score = models.FloatField(_("readiness score (0-100)"), default=0.0)
+    assessment_data = models.JSONField(
+        _("assessment snapshot"), default=dict, blank=True,
+        help_text=_("Full dimension breakdown at this point in time")
+    )
+
+    # Outcome anchors (for calibration)
+    revenue_at_period = models.DecimalField(
+        _("revenue at period (USD)"), max_digits=15, decimal_places=2, null=True, blank=True
+    )
+    customers_at_period = models.PositiveIntegerField(null=True, blank=True)
+    funding_raised_at_period = models.DecimalField(
+        max_digits=15, decimal_places=2, null=True, blank=True
+    )
+
+    recorded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("continuous assessment")
+        verbose_name_plural = _("continuous assessments")
+        ordering = ["recorded_at"]
+
+    def __str__(self) -> str:
+        return f"{self.application} - {self.period_label}: {self.readiness_score:.1f}"

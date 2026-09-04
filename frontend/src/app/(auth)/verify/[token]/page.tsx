@@ -157,7 +157,7 @@ export default function VerifyEmailPage() {
                     </p>
                     <div className="mt-6 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-xs text-green-800">
                       <Mic className="h-4 w-4 text-green-600" />
-                      Welcome to PitchMic — let&apos;s make deals happen.
+                      Welcome to PitchMic - let&apos;s make deals happen.
                     </div>
                   </motion.div>
                 )}
@@ -188,7 +188,7 @@ export default function VerifyEmailPage() {
                       <div className="mt-6 w-full space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-4 text-left text-xs text-amber-800">
                         <p className="font-semibold text-amber-900">What now?</p>
                         <p>
-                          Don&apos;t worry — you can request a new verification
+                          Don&apos;t worry - you can request a new verification
                           email and we&apos;ll send you a fresh link right away.
                         </p>
                       </div>

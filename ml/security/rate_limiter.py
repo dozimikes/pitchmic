@@ -1,14 +1,4 @@
-"""
-ml/security/rate_limiter.py
-============================
-Sliding-window rate limiter.
-
-Redis backend  — uses a single Lua script so the check-and-add is atomic
-                 (fixes the TOCTOU race in the original two-pipeline approach).
-In-memory fallback — protected by a threading.Lock; periodic background
-                     eviction prevents unbounded growth.
-"""
-from __future__ import annotations
+cfrom __future__ import annotations
 
 import logging
 import time

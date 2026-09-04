@@ -4,17 +4,17 @@ apps.dataroom.views
 REST endpoints for the Smart Data Room.
 
 Startup-side
-  POST /api/v1/dataroom/documents/           — add a document
-  PATCH/DELETE /api/v1/dataroom/documents/{pk}/ — manage documents
-  POST /api/v1/dataroom/access/grant/        — grant investor access
-  GET  /api/v1/dataroom/access/              — list all grants for my startup
-  PATCH /api/v1/dataroom/access/{pk}/        — update permissions
-  POST /api/v1/dataroom/access/{pk}/revoke/  — revoke access
+  POST /api/v1/dataroom/documents/           - add a document
+  PATCH/DELETE /api/v1/dataroom/documents/{pk}/ - manage documents
+  POST /api/v1/dataroom/access/grant/        - grant investor access
+  GET  /api/v1/dataroom/access/              - list all grants for my startup
+  PATCH /api/v1/dataroom/access/{pk}/        - update permissions
+  POST /api/v1/dataroom/access/{pk}/revoke/  - revoke access
 
 Investor-side
-  GET  /api/v1/dataroom/my-access/           — my active access grants
-  GET  /api/v1/dataroom/documents/view/{pk}/ — view a document (records analytics)
-  POST /api/v1/dataroom/access/{pk}/sign-nda/ — sign NDA to unlock financials/legal
+  GET  /api/v1/dataroom/my-access/           - my active access grants
+  GET  /api/v1/dataroom/documents/view/{pk}/ - view a document (records analytics)
+  POST /api/v1/dataroom/access/{pk}/sign-nda/ - sign NDA to unlock financials/legal
 """
 from __future__ import annotations
 
@@ -78,7 +78,7 @@ class DataRoomDocumentDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class DataRoomDocumentViewView(APIView):
-    """Investor views a specific document — checks permissions and logs the event."""
+    """Investor views a specific document - checks permissions and logs the event."""
 
     permission_classes = (IsAuthenticated,)
 

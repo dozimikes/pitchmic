@@ -6,7 +6,7 @@
  *   import { AuthProvider } from '@/providers/AuthProvider'
  *   import { AuthProvider } from '@/hooks/useAuth'
  *
- * The canonical implementation lives in hooks/useAuth — this is purely
+ * The canonical implementation lives in hooks/useAuth - this is purely
  * a convenience re-export for the providers/ directory convention.
  */
 export { AuthProvider } from '@/hooks/useAuth';

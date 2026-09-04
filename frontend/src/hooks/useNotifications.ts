@@ -33,7 +33,7 @@ interface NotificationsState {
 /**
  * useNotifications
  *
- * Stub hook — counts default to 0 and item lists are empty.
+ * Stub hook - counts default to 0 and item lists are empty.
  * Wire `notifications` and `messages` to a real API / WebSocket feed
  * by replacing the useState initialisers below.
  */

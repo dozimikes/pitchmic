@@ -44,9 +44,9 @@ export default function SettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="divide-y divide-slate-100 p-0">
-          <SettingRow label="Email" value={user?.email ?? '—'} />
+          <SettingRow label="Email" value={user?.email ?? '-'} />
           <SettingRow label="Role" value={
-            <Badge variant="secondary" className="capitalize">{user?.role ?? '—'}</Badge>
+            <Badge variant="secondary" className="capitalize">{user?.role ?? '-'}</Badge>
           } />
           <SettingRow
             label="Email verified"

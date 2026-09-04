@@ -63,7 +63,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     Next.js/TypeScript (camelCase) ↔ DRF (snake_case) boundary bugs.
     Normalized internally to snake_case before validation.
 
-    Startup extra fields (all optional at the API level — profile update
+    Startup extra fields (all optional at the API level - profile update
     can fill them in later):
       startup_name/startupName, founder_name/founderName,
       co_founders/coFounders (list of names),
@@ -188,7 +188,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs: dict) -> dict:
         password_confirm: str | None = attrs.pop("password_confirm", None)
-        # Password confirmation is OPTIONAL at the API level — the frontend
+        # Password confirmation is OPTIONAL at the API level - the frontend
         # may omit it entirely (modern single-field UX + password managers).
         # Only enforce the match when the client explicitly sends it.
         if password_confirm and attrs.get("password") != password_confirm:

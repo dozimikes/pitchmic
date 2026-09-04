@@ -5,8 +5,8 @@ Thin service layer for pushing real-time WebSocket messages to connected
 clients after offer state transitions.
 
 Channel group naming (must match BidConsumer):
-  pitch_<pitch_id>    — all clients watching a specific pitch
-  investor_<user_id>  — per-investor direct channel
+  pitch_<pitch_id>    - all clients watching a specific pitch
+  investor_<user_id>  - per-investor direct channel
 
 Callers should use push_offer_update() or push_offer_created() after
 any offer save that changes the offer's status.  Failures are logged

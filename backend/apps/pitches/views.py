@@ -55,7 +55,7 @@ class PitchViewSet(viewsets.ModelViewSet):
             offers_count=Count("offers", distinct=True),
         ).prefetch_related(user_likes_prefetch)
 
-        # ?mine=true — scope to the current user's own startup pitches
+        # ?mine=true - scope to the current user's own startup pitches
         mine: str | None = self.request.query_params.get("mine")
         if mine and mine.lower() in ("1", "true", "yes"):
             try:

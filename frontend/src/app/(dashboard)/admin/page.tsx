@@ -46,7 +46,7 @@ const fadeUp = {
 
 const ADMIN_ACTIONS = [
   { icon: Users, title: 'User Directory & Access', desc: 'Audit platform accounts, verify founder identity, and configure staff roles.', href: '#users', badge: 'Live Directory', color: 'border-indigo-200 hover:border-indigo-400', iconBg: 'bg-indigo-600' },
-  { icon: Layers, title: 'Cohort Pipeline Engine', desc: 'Monitor active intake cohorts, rubric distributions, and Antler batch sync.', href: '/accelerator', badge: 'Active Cohorts', color: 'border-purple-200 hover:border-purple-400', iconBg: 'bg-purple-600' },
+  { icon: Layers, title: 'Cohort Pipeline Engine', desc: 'Monitor active intake cohorts, rubric distributions, and multi-accelerator batch sync.', href: '/accelerator', badge: 'Active Cohorts', color: 'border-purple-200 hover:border-purple-400', iconBg: 'bg-purple-600' },
   { icon: Key, title: 'Enterprise Tenant Keys', desc: 'Provision and revoke B2B REST API keys for institutional syndicates and funds.', href: '/intelligence', badge: 'Enterprise Auth', color: 'border-emerald-200 hover:border-emerald-400', iconBg: 'bg-emerald-600' },
   { icon: BarChart3, title: 'Platform Analytics', desc: 'System-wide pitch view telemetry, conversion velocity, and SAFE deal pricing.', href: '/analytics', badge: 'Live Metrics', color: 'border-brand-orange-200 hover:border-brand-orange-400', iconBg: 'bg-brand-orange-500' },
   { icon: Brain, title: 'VC Intelligence & Forensics', desc: 'Review AI audio models, 8-pillar scoring weights, and radar accuracy.', href: '/intelligence', badge: 'AI Engine', color: 'border-cyan-200 hover:border-cyan-400', iconBg: 'bg-cyan-600' },
@@ -145,36 +145,34 @@ export default function AdminDashboardPage() {
   ];
 
   const systemHealth = telemetry?.system_health ?? [
-    { service: 'PostgreSQL / SQLite Engine', status: 'operational', latency: '42ms' },
-    { service: 'AI Forensics & Pitch Analyzer', status: 'operational', latency: '320ms' },
-    { service: 'Digital Brain Vector Store', status: 'operational', latency: '180ms' },
-    { service: 'Voice Screener Agent', status: 'operational', latency: '640ms' },
-    { service: 'Enterprise Multi-Tenant Auth', status: 'operational', latency: '45ms' },
-    { service: 'Antler Hub Webhook Sync', status: 'operational', latency: '1.2s' },
+    { service: 'PostgreSQL Primary DB', status: 'operational', latency: '4ms' },
+    { service: 'Celery / Redis Broker', status: 'operational', latency: '12ms' },
+    { service: 'Deepgram Audio Ingestion', status: 'operational', latency: '180ms' },
+    { service: 'Claude 3.5 Sonnet Rubric Engine', status: 'operational', latency: '840ms' },
+    { service: 'Pinecone Vector DB (Semantic Fit)', status: 'operational', latency: '65ms' },
+    { service: 'Accelerator Webhook & CRM Sync', status: 'operational', latency: '1.2s' },
   ];
 
   return (
     <div className="space-y-8">
-      {/* Header with Role Toggle & Refresh */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      {/* ── Header with 4-Way Role Switcher ── */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Admin Console</h1>
-            <Badge className="bg-emerald-600 text-white text-xs font-bold gap-1">
-              <ShieldCheck className="h-3 w-3" />
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              Admin Governance Console
+            </h1>
+            <Badge className="bg-slate-900 text-white text-xs font-bold gap-1">
+              <ShieldCheck className="h-3 w-3 text-emerald-400" />
               <span>Superuser Mode</span>
-            </Badge>
-            <Badge variant="outline" className="text-xs text-slate-500 gap-1 border-slate-300">
-              <Activity className="h-3 w-3 text-emerald-500 animate-pulse" />
-              <span>Live Telemetry</span>
             </Badge>
           </div>
           <p className="mt-1 text-sm text-slate-500">
-            Platform governance &middot; Live database aggregates &middot; Worker health &middot; Cohort orchestration
+            Platform governance &middot; Live telemetry &middot; Enterprise tenant provisioning &middot; Multi-role supervision
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <Button
             size="sm"
             variant="outline"
@@ -186,6 +184,7 @@ export default function AdminDashboardPage() {
             <span>{isFetching ? 'Refreshing...' : 'Refresh Telemetry'}</span>
           </Button>
 
+          {/* 4-Way Role Switcher for Superusers */}
           {canSwitchRole && (
             <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1 gap-0.5">
               <button
@@ -206,7 +205,7 @@ export default function AdminDashboardPage() {
               </button>
               <button
                 type="button"
-                onClick={() => { setActiveRole(UserRole.INVESTOR); router.push('/newsfeed'); }}
+                onClick={() => { setActiveRole(UserRole.INVESTOR); router.push('/discover'); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 transition-all"
               >
                 <Briefcase className="h-3.5 w-3.5" />

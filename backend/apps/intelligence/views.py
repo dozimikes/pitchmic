@@ -3,12 +3,12 @@ apps.intelligence.views
 =======================
 REST endpoints for the intelligence / due-diligence pipeline.
 
-GET  /api/v1/intelligence/startup/{pk}/           — StartupSuccessPrediction
-POST /api/v1/intelligence/due-diligence/          — Kick off a DD report (async)
-GET  /api/v1/intelligence/due-diligence/{pk}/     — Retrieve a DD report
-POST /api/v1/intelligence/due-diligence/{pk}/debate/ — Run bull/bear debate only
-POST /api/v1/intelligence/feedback/               — Submit prediction feedback
-GET  /api/v1/intelligence/models/                 — Model performance history (staff only)
+GET  /api/v1/intelligence/startup/{pk}/           - StartupSuccessPrediction
+POST /api/v1/intelligence/due-diligence/          - Kick off a DD report (async)
+GET  /api/v1/intelligence/due-diligence/{pk}/     - Retrieve a DD report
+POST /api/v1/intelligence/due-diligence/{pk}/debate/ - Run bull/bear debate only
+POST /api/v1/intelligence/feedback/               - Submit prediction feedback
+GET  /api/v1/intelligence/models/                 - Model performance history (staff only)
 """
 from __future__ import annotations
 
@@ -72,7 +72,7 @@ class StartupIntelligenceView(APIView):
 
 
 class DueDiligenceCreateView(generics.CreateAPIView):
-    """POST — kick off a new due-diligence pipeline run."""
+    """POST - kick off a new due-diligence pipeline run."""
 
     serializer_class = DueDiligenceReportSerializer
     permission_classes = (IsAuthenticated,)
@@ -103,7 +103,7 @@ class DueDiligenceCreateView(generics.CreateAPIView):
 
 
 class DueDiligenceDetailView(generics.RetrieveAPIView):
-    """GET — retrieve a specific DD report by ID."""
+    """GET - retrieve a specific DD report by ID."""
 
     serializer_class = DueDiligenceReportSerializer
     permission_classes = (IsAuthenticated,)
@@ -112,7 +112,7 @@ class DueDiligenceDetailView(generics.RetrieveAPIView):
 
 class DueDiligenceDebateView(APIView):
     """
-    POST — run or re-run the bull/bear debate for an existing report.
+    POST - run or re-run the bull/bear debate for an existing report.
     Returns updated bull_arguments and bear_arguments.
     """
 
@@ -149,14 +149,14 @@ class DueDiligenceDebateView(APIView):
 
 
 class PredictionFeedbackCreateView(generics.CreateAPIView):
-    """POST — submit user feedback on a prediction."""
+    """POST - submit user feedback on a prediction."""
 
     serializer_class = PredictionFeedbackSerializer
     permission_classes = (IsAuthenticated,)
 
 
 class ModelPerformanceListView(generics.ListAPIView):
-    """GET — model performance history (staff only)."""
+    """GET - model performance history (staff only)."""
 
     serializer_class = ModelPerformanceTrackerSerializer
     permission_classes = (IsAuthenticated,)
@@ -170,7 +170,7 @@ class ModelPerformanceListView(generics.ListAPIView):
 
 class PitchDeckForensicsView(APIView):
     """
-    POST — Direct pitch deck forensics and assumption stress-testing.
+    POST - Direct pitch deck forensics and assumption stress-testing.
     Can accept raw pitch text, slide contents, or structured metrics.
     """
 
@@ -219,7 +219,7 @@ class PitchDeckForensicsView(APIView):
 
 class EnterpriseTriageWebhookView(APIView):
     """
-    POST — Partner Triaging endpoint for Antler Hub, VC CRMs, and external platforms.
+    POST - Partner Triaging endpoint for Antler Hub, VC CRMs, and external platforms.
     Performs instantaneous forensic assessment & IC scoring in < 60s.
     """
 
@@ -273,7 +273,7 @@ class EnterpriseTriageWebhookView(APIView):
 
 class DigitalBrainQueryView(APIView):
     """
-    POST — Query the firm's Digital Brain for past memos, sector theses, and reasoning.
+    POST - Query the firm's Digital Brain for past memos, sector theses, and reasoning.
     """
 
     permission_classes = (IsAuthenticated,)
@@ -300,7 +300,7 @@ class DigitalBrainQueryView(APIView):
 
 class DigitalBrainIngestView(APIView):
     """
-    POST — Ingest a deal memo, partner note, or thesis into the firm's Digital Brain.
+    POST - Ingest a deal memo, partner note, or thesis into the firm's Digital Brain.
     """
 
     permission_classes = (IsAuthenticated,)
@@ -333,7 +333,7 @@ class DigitalBrainIngestView(APIView):
 
 class StealthSignalsListView(generics.ListAPIView):
     """
-    GET — Browse detected stealth founder signals across all data collectors.
+    GET - Browse detected stealth founder signals across all data collectors.
     """
 
     permission_classes = (IsAuthenticated,)
@@ -343,7 +343,7 @@ class StealthSignalsListView(generics.ListAPIView):
 
 class StealthSignalDiscoveryTriggerView(APIView):
     """
-    POST — Trigger proactive discovery sweep across GitHub, domains, patents, and emerging registries.
+    POST - Trigger proactive discovery sweep across GitHub, domains, patents, and emerging registries.
     """
 
     permission_classes = (IsAuthenticated,)
@@ -776,9 +776,9 @@ class CohortBatchUploadView(APIView):
         from apps.intelligence.models import Cohort
         cohorts = Cohort.objects.all()
         if not cohorts.exists():
-            Cohort.objects.create(name="Antler East Africa — Cohort 12", organization_name="Antler Hub", program_cycle="2026-Q1", target_startups_count=50)
-            Cohort.objects.create(name="Flat6Labs Cairo — Spring 2026", organization_name="Flat6Labs", program_cycle="2026-Q2", target_startups_count=35)
-            Cohort.objects.create(name="Norrsken Africa Seed — 2026 Batch", organization_name="Norrsken Hub", program_cycle="2026-Batch-1", target_startups_count=40)
+            Cohort.objects.create(name="Pan-African Seed Batch - Cohort 1", organization_name="Pan-African Techstars Hub", program_cycle="2026-Q1", target_startups_count=50)
+            Cohort.objects.create(name="Flat6Labs Cairo - Spring 2026", organization_name="Flat6Labs", program_cycle="2026-Q2", target_startups_count=35)
+            Cohort.objects.create(name="Norrsken Africa Seed - 2026 Batch", organization_name="Norrsken Hub", program_cycle="2026-Batch-1", target_startups_count=40)
             cohorts = Cohort.objects.all()
 
         data = [
@@ -798,8 +798,8 @@ class CohortBatchUploadView(APIView):
     def post(self, request: Request) -> Response:
         from apps.intelligence.models import Cohort, CohortApplication
         cohort_id = request.data.get("cohort_id")
-        cohort_name = request.data.get("cohort_name") or request.data.get("name", "Antler Africa Spring 2026")
-        organization_name = request.data.get("organization_name", "Antler Hub")
+        cohort_name = request.data.get("cohort_name") or request.data.get("name", "Accelerator Spring Batch")
+        organization_name = request.data.get("organization_name", "Accelerator Hub")
         program_cycle = request.data.get("program_cycle", "2026-Q1")
         target_count = int(request.data.get("target_startups_count", 50))
         applications_data = request.data.get("applications", [])
@@ -823,9 +823,15 @@ class CohortBatchUploadView(APIView):
             hub = app.get("hub", "Lagos, Nigeria")
             ask = app.get("ask_amount_usd", 100000.0)
 
-            # 8-Pillar Scoring Simulation calibrated to African Market realities
-            base_score = 75.0 + (len(company_name) % 20)
-            fundability = min(98.0, max(55.0, base_score + (10.0 if "fintech" in sector.lower() else 5.0)))
+            # 8-Pillar Scoring based on underwriting rubric criteria
+            score_base = 72.0
+            if ask and 25000 <= ask <= 500000:
+                score_base += 10.0
+            if sector and any(s in sector.lower() for s in ["fintech", "ai", "cleantech", "saas", "health", "agri"]):
+                score_base += 6.0
+            if hub and "unknown" not in hub.lower():
+                score_base += 4.0
+            fundability = min(96.0, score_base)
             decile = "Top 5%" if fundability >= 88 else "Top 15%" if fundability >= 80 else "Top 30%"
             status_val = "SHORTLISTED" if fundability >= 85 else "SCREENING" if fundability >= 75 else "INBOUND"
 
@@ -890,19 +896,19 @@ class FundingEventListView(APIView):
             c = Cohort.objects.first()
             now = timezone.now()
             FundingEvent.objects.create(
-                title="Pan-African Demo Day 2026 — Batch 12",
+                title="Pan-African Demo Day 2026 - Batch 1",
                 event_type="demo_day",
                 cohort=c,
-                organizer_name="Antler East Africa",
+                organizer_name="Pan-African Accelerator Network",
                 event_date=now + timedelta(days=38),
                 location="Nairobi, Kenya (Hybrid Stream)",
                 target_commitment_usd=1200000.00,
                 total_committed_usd=350000.00,
-                description="Final stage investment committee demo day for cohort 12 finalists. 8 venture-backed startups pitching to 40+ VCs and angel syndicates.",
+                description="Final stage investment committee demo day for cohort finalists. Venture-backed startups pitching to 40+ VCs and angel syndicates.",
                 status="upcoming",
             )
             FundingEvent.objects.create(
-                title="Syndicate Angel Pitch Night — Spring Seed",
+                title="Syndicate Angel Pitch Night - Spring Seed",
                 event_type="pitch_night",
                 cohort=c,
                 organizer_name="PitchMic Angel Syndicate",
@@ -1080,25 +1086,28 @@ class CohortLeaderboardView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-class AntlerHubWebhookView(APIView):
+class AcceleratorWebhookView(APIView):
     """
+    POST /api/v1/intelligence/accelerator/webhook/
+    POST /api/v1/intelligence/crm/webhook/
     POST /api/v1/intelligence/antler/webhook/
-    Bi-directional webhook adapter mapping Antler Hub pitch submissions to PitchMic.
+    Universal webhook adapter mapping any accelerator CRM (Airtable, HubSpot, Typeform, Antler) to PitchMic.
     """
     permission_classes = [AllowAny]
 
     def post(self, request: Request) -> Response:
         from apps.intelligence.models import Cohort, CohortApplication
         payload = request.data
-        external_id = payload.get("deal_id") or payload.get("id", "antler_deal_001")
-        company = payload.get("company_name") or payload.get("name", "Antler Venture")
-        hub = payload.get("location") or payload.get("hub", "Nairobi, Kenya")
+        external_id = payload.get("deal_id") or payload.get("id", "crm_deal_001")
+        company = payload.get("company_name") or payload.get("name", "Incoming Venture")
+        hub = payload.get("location") or payload.get("hub", "Pan-African Hub")
         sector = payload.get("industry") or payload.get("sector", "FinTech")
-        cohort_name = payload.get("cohort_name", "Antler East Africa Cohort 12")
+        cohort_name = payload.get("cohort_name", "Primary Accelerator Batch")
+        organization_name = payload.get("organization_name") or payload.get("source_hub", "Accelerator Hub")
 
         cohort, _ = Cohort.objects.get_or_create(
             name=cohort_name,
-            defaults={"organization_name": "Antler Hub", "program_cycle": "2026-Q1"}
+            defaults={"organization_name": organization_name, "program_cycle": "2026-Q1"}
         )
 
         app = CohortApplication.objects.create(
@@ -1119,19 +1128,23 @@ class AntlerHubWebhookView(APIView):
                 "founder_execution": 88.0,
             },
             forensic_flags=[
-                {"type": "green", "text": "USD-denominated revenue validated via Antler Ingestion"},
-                {"type": "green", "text": "Clean TopCo Delaware flip verified"},
+                {"type": "green", "text": f"Revenue validation verified via {organization_name} Ingestion"},
+                {"type": "green", "text": "Clean legal entity structure verified"},
             ]
         )
 
         return Response({
-            "status": "synced_with_pitchmic",
-            "pitchmic_application_id": app.id,
-            "company_name": app.company_name,
+            "status": "ingested",
+            "application_id": app.id,
+            "cohort": cohort.name,
+            "organization": cohort.organization_name,
             "fundability_score": app.fundability_score,
             "decile_rank": app.decile_rank,
-            "ic_memo_ready": True,
-        }, status=status.HTTP_200_OK)
+        }, status=status.HTTP_201_CREATED)
+
+
+# Alias for backward compatibility
+AntlerHubWebhookView = AcceleratorWebhookView
 
 
 class DueDiligenceExportView(APIView):

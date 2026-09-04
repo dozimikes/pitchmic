@@ -8,6 +8,7 @@ from .models import InvestorIntentSignal, MatchScore
 class MatchScoreSerializer(serializers.ModelSerializer):
     startup_name = serializers.CharField(source="startup.company_name", read_only=True)
     investor_name = serializers.CharField(source="investor.full_name", read_only=True)
+    investor_firm = serializers.CharField(source="investor.company_name", read_only=True)
     industry = serializers.CharField(source="startup.industry", read_only=True)
     location = serializers.CharField(source="startup.location", read_only=True)
     funding_stage = serializers.CharField(source="startup.funding_stage", read_only=True)
@@ -24,6 +25,7 @@ class MatchScoreSerializer(serializers.ModelSerializer):
             "startup_name",
             "investor",
             "investor_name",
+            "investor_firm",
             "industry",
             "location",
             "funding_stage",

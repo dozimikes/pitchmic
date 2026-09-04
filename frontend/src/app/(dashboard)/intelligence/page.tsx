@@ -47,6 +47,8 @@ import {
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
 import {
   intelligenceApi,
   PitchDeckForensicReport,
@@ -65,7 +67,7 @@ export default function IntelligencePage() {
 
   // Forensics state
   const [forensicFile, setForensicFile] = React.useState<File | null>(null);
-  const [companyName, setCompanyName] = React.useState('Flirox');
+  const [companyName, setCompanyName] = React.useState('');
   const [industry, setIndustry] = React.useState('Fintech / Financial Intelligence');
   const [declaredStage, setDeclaredStage] = React.useState('pre_seed');
   const [sector, setSector] = React.useState('fintech');
@@ -74,6 +76,16 @@ export default function IntelligencePage() {
   const [analysisError, setAnalysisError] = React.useState<string | null>(null);
   const [showMemoModal, setShowMemoModal] = React.useState(false);
   const [selectedDimension, setSelectedDimension] = React.useState<string | null>(null);
+
+  // Load real pitches from DB
+  const { data: pitchesData } = useQuery({
+    queryKey: ['intelligence_pitches'],
+    queryFn: async () => {
+      const res = await api.get('/pitches/', { params: { page_size: 30 } });
+      return res.data;
+    },
+  });
+  const availablePitches: any[] = (pitchesData as any)?.results ?? [];
 
   // Stealth radar state
   const [stealthKeyword, setStealthKeyword] = React.useState('');
@@ -134,46 +146,38 @@ export default function IntelligencePage() {
     }
   };
 
-  const handleRunSampleDemo = async () => {
+  const handleAnalyzeSelectedPitch = async (pitch: any) => {
+    if (!pitch) return;
     setIsAnalyzing(true);
     setAnalysisError(null);
+    setCompanyName(pitch.startup_name || pitch.title);
     try {
-      const demoDeckText = `
-        Flirox - Autonomous Financial Intelligence & Reconciliation Engine for Emerging Market MSMEs.
-        Problem: Over 40M SMEs across Nigeria and emerging markets face acute cash reconciliation friction, losing up to 4.5% of revenue in untracked bank transfer discrepancies.
-        Solution: Proprietary full-stack reconciliation algorithm and non-custodial intelligence layer sitting above payment rails. Completed MVP build.
-        Market Size: $4.5B TAM across Africa MSME commerce. Serviceable Addressable Market (SAM) of $650M.
-        Business Model: Dual monetization with B2B SaaS subscription tiers ($10k-$50k/mo) plus API corridor transaction fees.
-        Unit Economics: Modelled Proxy CAC of $140 vs Realized Proxy LTV of $820 (5.86x multiple). Target gross margin 72%. Monthly burn $3,500 with 14 months runway.
-        GTM: Institutional partner API integrations with Antler Hub and B2B aggregators. Active pipeline of 8 design partner pilots.
-        Competition: Differentiates from payment rails (Paystack, Flutterwave) and POS software (Omnibiz, Bumpa) by focusing on forensic data reconciliation rather than payment processing fees.
-        Team: Full-stack technical architecture built autonomously with deep local domain expertise.
-        Regulatory: Non-custodial software perimeter isolates operations from banking capital requirements.
-      `;
+      const narrative = [
+        `Title: ${pitch.title}`,
+        pitch.startup_name ? `Startup: ${pitch.startup_name}` : '',
+        pitch.description ? `Overview: ${pitch.description}` : '',
+        pitch.problem ? `Problem: ${pitch.problem}` : '',
+        pitch.solution ? `Solution: ${pitch.solution}` : '',
+        pitch.market_size ? `Market Size: ${pitch.market_size}` : '',
+        pitch.business_model ? `Business Model: ${pitch.business_model}` : '',
+        pitch.traction ? `Traction: ${pitch.traction}` : '',
+        pitch.use_of_funds ? `Use of Funds: ${pitch.use_of_funds}` : '',
+        pitch.asking_amount ? `Asking Amount: $${pitch.asking_amount}` : '',
+        pitch.equity_offered ? `Equity Offered: ${pitch.equity_offered}%` : '',
+      ].filter(Boolean).join('\n');
+
       const res = await intelligenceApi.analyzeDeckText({
-        company_name: companyName || 'Flirox',
-        deck_text: demoDeckText,
+        company_name: pitch.startup_name || pitch.title,
+        deck_text: narrative,
         stage: declaredStage,
         sector: sector,
       });
 
-      // Construct frontend report view from API response
       if (res?.audit) {
         setForensicReport(res);
-      } else {
-        // Trigger file upload endpoint fallback
-        const blob = new Blob([demoDeckText], { type: 'text/plain' });
-        const file = new File([blob], 'Flirox_Demo_Deck.txt', { type: 'text/plain' });
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('company_name', companyName || 'Flirox');
-        formData.append('declared_funding_stage', declaredStage);
-        formData.append('sector', sector);
-        const uploadRes = await intelligenceApi.uploadPitchDeck(formData);
-        setForensicReport(uploadRes);
       }
     } catch (err: any) {
-      setAnalysisError(err?.message || 'Failed to run dynamic analysis.');
+      setAnalysisError(err?.message || 'Failed to analyze selected pitch.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -384,17 +388,26 @@ export default function IntelligencePage() {
                     Upload any PDF or PPTX deck. All scores and evidence assessments are calculated 100% dynamically from extracted slide data.
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRunSampleDemo}
-                  disabled={isAnalyzing}
-                  className="text-xs font-bold text-brand-orange-600 border-brand-orange-300 hover:bg-brand-orange-50"
-                >
-                  <Play className="w-3.5 h-3.5 mr-1" />
-                  Run Live Dynamic Analysis (Flirox Deck)
-                </Button>
+                {availablePitches.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <select
+                      onChange={(e) => {
+                        const p = availablePitches.find((item: any) => item.id === Number(e.target.value));
+                        if (p) handleAnalyzeSelectedPitch(p);
+                      }}
+                      defaultValue=""
+                      disabled={isAnalyzing}
+                      className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-brand-orange-500"
+                    >
+                      <option value="" disabled>Underwrite Live Platform Pitch...</option>
+                      {availablePitches.map((p: any) => (
+                        <option key={p.id} value={p.id}>
+                          {p.title} ({p.startup_name || 'Startup'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-2">
@@ -404,7 +417,7 @@ export default function IntelligencePage() {
                     type="text"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="e.g. Flirox"
+                    placeholder="e.g. Acme Technologies"
                     className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-900 focus:bg-white focus:ring-2 focus:ring-brand-orange-500/20"
                   />
                 </div>
@@ -837,19 +850,21 @@ export default function IntelligencePage() {
               <div className="max-w-md mx-auto space-y-1">
                 <h3 className="text-base font-bold text-slate-900">No Pitch Deck Underwritten Yet</h3>
                 <p className="text-xs text-slate-500">
-                  Upload a PDF or PPTX deck above to generate a 100% dynamic, stage-calibrated institutional score ledger, or run the live demo.
+                  Select a live startup pitch from the dropdown above or upload a PDF/PPTX deck to generate an institutional AI audit ledger.
                 </p>
               </div>
-              <div className="pt-2">
-                <Button
-                  onClick={handleRunSampleDemo}
-                  disabled={isAnalyzing}
-                  className="bg-brand-orange-500 hover:bg-brand-orange-600 text-white text-xs font-bold px-4 shadow-xs"
-                >
-                  <Play className="w-3.5 h-3.5 mr-1.5" />
-                  Run Live Dynamic Analysis (Flirox Demo)
-                </Button>
-              </div>
+              {availablePitches.length > 0 && (
+                <div className="pt-2">
+                  <Button
+                    onClick={() => handleAnalyzeSelectedPitch(availablePitches[0])}
+                    disabled={isAnalyzing}
+                    className="bg-brand-orange-500 hover:bg-brand-orange-600 text-white text-xs font-bold px-4 shadow-xs"
+                  >
+                    <Play className="w-3.5 h-3.5 mr-1.5" />
+                    Audit Featured Pitch ({availablePitches[0].title})
+                  </Button>
+                </div>
+              )}
             </Card>
           )}
         </div>
@@ -1020,7 +1035,7 @@ export default function IntelligencePage() {
               <div className="text-2xl font-black text-slate-900">$50K<span className="text-xs font-normal text-slate-400">/mo</span></div>
               <ul className="text-xs text-slate-600 mt-3 space-y-1.5">
                 <li>• Unlimited Deal Throughput</li>
-                <li>• Antler Hub Deep Integration</li>
+                <li>• Multi-Accelerator CRM Deep Integration</li>
                 <li>• Custom Model Fine-Tuning</li>
                 <li>• Dedicated SLA &amp; Security</li>
               </ul>
@@ -1034,7 +1049,7 @@ export default function IntelligencePage() {
                 Provision B2B Partner API Keys
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Connect external VC platforms (Antler Hub, internal CRMs) to execute instant triaging webhooks.
+                Connect external VC &amp; accelerator platforms (HubSpot, Affinity, custom CRMs) to execute instant triaging webhooks.
               </p>
             </div>
 
@@ -1089,7 +1104,7 @@ export default function IntelligencePage() {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-brand-orange-600">
                   Institutional Investment Committee Memo
                 </span>
-                <h3 className="text-xl font-black text-slate-900">{companyName} — Stage-Calibrated Deal Brief</h3>
+                <h3 className="text-xl font-black text-slate-900">{companyName} - Stage-Calibrated Deal Brief</h3>
               </div>
               <Button variant="ghost" size="sm" onClick={() => setShowMemoModal(false)}>
                 

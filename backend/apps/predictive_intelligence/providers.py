@@ -2,7 +2,7 @@
 apps.predictive_intelligence.providers
 ========================================
 
-AI Provider abstraction — ML-core, AI-optional.
+AI Provider abstraction - ML-core, AI-optional.
 
 Philosophy
 ----------
@@ -73,7 +73,7 @@ class AIProvider(Protocol):
     """Every AI backend must satisfy this protocol.
 
     Two methods are mandatory.  ``is_available`` MUST be cheap (no network).
-    ``complete`` MUST never raise — on any failure it should return an
+    ``complete`` MUST never raise - on any failure it should return an
     ``AIResponse`` with ``fallback=True`` and ``error`` populated.
     """
 

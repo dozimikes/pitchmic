@@ -1,19 +1,3 @@
-"""
-apps.matching.services
-======================
-MatchmakingService — multi-dimensional compatibility scoring between
-StartupProfile and InvestorProfile instances.
-
-Design choices
---------------
-* Pure Python — no heavyweight ML dependency required at inference time.
-  Embeddings are pre-computed and cached on the profile records by the
-  nightly Celery task; this service only reads them.
-* Semantic similarity falls back gracefully to 0 when embeddings are absent
-  so the service degrades cleanly without breaking the API.
-* Scoring logic is intentionally separate from the Celery task so it can be
-  unit-tested without a worker.
-"""
 from __future__ import annotations
 
 import logging
@@ -26,7 +10,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Dimension weights — must sum to 1.0
+# Dimension weights - must sum to 1.0
 _WEIGHTS: dict[str, float] = {
     "industry": 0.30,
     "stage": 0.25,

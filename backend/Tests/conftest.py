@@ -1,5 +1,5 @@
 """
-Shared pytest fixtures — live here so pytest auto-discovers them for
+Shared pytest fixtures - live here so pytest auto-discovers them for
 tests under backend/Tests/.  An identical copy is symlinked / mirrored at
 backend/apps/conftest.py so the apps/* test trees see the same fixtures.
 """

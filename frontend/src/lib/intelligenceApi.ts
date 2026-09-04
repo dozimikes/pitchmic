@@ -305,7 +305,7 @@ export const intelligenceApi = {
   },
 
   // Digital Brain
-  queryDigitalBrain: async (query: string, tenantId = 'antler_global'): Promise<DigitalBrainQueryResult> => {
+  queryDigitalBrain: async (query: string, tenantId = 'pitchmic_enterprise'): Promise<DigitalBrainQueryResult> => {
     return apiPost<DigitalBrainQueryResult>('/intelligence/brain/query/', { query, tenant_id: tenantId });
   },
 

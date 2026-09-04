@@ -145,7 +145,7 @@ export default function NewsfeedPage() {
           </div>
           <p className="mt-1 text-sm text-slate-600">
             {isInvestor
-              ? 'High-signal dealflow — curated Pan-African pitches matched to your investment focus.'
+              ? 'High-signal dealflow - curated Pan-African pitches matched to your investment focus.'
               : 'Explore the pitch ecosystem and track how your own startup is gaining traction.'}
           </p>
         </div>

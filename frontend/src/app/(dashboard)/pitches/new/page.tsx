@@ -23,6 +23,7 @@ import {
   Loader2,
   Eye,
 } from 'lucide-react';
+import { AudioPitchRecorder } from '@/components/studio/AudioPitchRecorder';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -62,6 +63,8 @@ export default function NewPitchPage() {
   const [coverImageUrl, setCoverImageUrl] = React.useState<string | null>(null);
   const [coverUploadError, setCoverUploadError] = React.useState<string | null>(null);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [recordedAudioBlob, setRecordedAudioBlob] = React.useState<Blob | null>(null);
+  const [recordingDuration, setRecordingDuration] = React.useState<number>(0);
 
   const coverUploadMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -486,7 +489,7 @@ export default function NewPitchPage() {
                       <div className="mt-1 text-xl font-bold tracking-tight text-slate-900 tabular-nums">
                         {watchAll.asking_amount && watchAll.equity_offered
                           ? formatCurrency(Math.round(watchAll.asking_amount / (watchAll.equity_offered / 100)))
-                          : '—'}
+                          : '-'}
                       </div>
                     </div>
 
@@ -645,28 +648,52 @@ export default function NewPitchPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Mic className="h-5 w-5 text-brand-orange-500" />
-                    Pitch video URL
+                    Voice Pitch Studio
                   </CardTitle>
                   <CardDescription>
-                    A 1–3 min YouTube, Vimeo, or Loom link.
+                    Record your live pitch directly in the browser, or paste a YouTube / Vimeo / Loom link below.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-5">
+                  <AudioPitchRecorder
+                    onRecordingComplete={(blob, duration) => {
+                      setRecordedAudioBlob(blob);
+                      setRecordingDuration(duration);
+                    }}
+                    cueText={[
+                      '1. Hook (0:00-0:20): Who you are, what you do, and why it matters right now.',
+                      '2. Problem (0:20-0:40): The pain point and why existing solutions fail.',
+                      '3. Solution (0:40-1:10): Your unique approach and key differentiator.',
+                      '4. Traction (1:10-1:30): Real numbers - ARR, customers, growth rate.',
+                      '5. The Ask (1:30-1:50): How much, on what terms, and what you will build with it.',
+                    ].join('\n')}
+                  />
+                  {recordedAudioBlob && (
+                    <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <span className="text-xs font-medium text-emerald-800">
+                        Voice pitch recorded ({Math.floor(recordingDuration / 60)}:{String(recordingDuration % 60).padStart(2, '0')})
+                      </span>
+                    </div>
+                  )}
                   <div className="relative">
-                    <Link className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <Input
-                      id="video_url"
-                      type="url"
-                      placeholder="https://youtube.com/watch?v=..."
-                      className="pl-9"
-                      {...register('video_url')}
-                    />
+                    <p className="mb-1.5 text-xs font-medium text-slate-500">Or paste a video link (YouTube, Vimeo, Loom)</p>
+                    <div className="relative">
+                      <Link className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <Input
+                        id="video_url"
+                        type="url"
+                        placeholder="https://youtube.com/watch?v=..."
+                        className="pl-9"
+                        {...register('video_url')}
+                      />
+                    </div>
+                    <FieldError error={errors.video_url?.message as string | undefined} />
                   </div>
-                  <FieldError error={errors.video_url?.message as string | undefined} />
                 </CardContent>
               </Card>
 
@@ -774,22 +801,22 @@ export default function NewPitchPage() {
                     </Section>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <Section title="Problem">
-                        <p className="text-sm text-slate-700">{watchAll.problem || '—'}</p>
+                        <p className="text-sm text-slate-700">{watchAll.problem || '-'}</p>
                       </Section>
                       <Section title="Solution">
-                        <p className="text-sm text-slate-700">{watchAll.solution || '—'}</p>
+                        <p className="text-sm text-slate-700">{watchAll.solution || '-'}</p>
                       </Section>
                       <Section title="Market size">
-                        <p className="text-sm text-slate-700">{watchAll.market_size || '—'}</p>
+                        <p className="text-sm text-slate-700">{watchAll.market_size || '-'}</p>
                       </Section>
                       <Section title="Business model">
-                        <p className="text-sm text-slate-700">{watchAll.business_model || '—'}</p>
+                        <p className="text-sm text-slate-700">{watchAll.business_model || '-'}</p>
                       </Section>
                       <Section title="Traction">
-                        <p className="text-sm text-slate-700">{watchAll.traction || '—'}</p>
+                        <p className="text-sm text-slate-700">{watchAll.traction || '-'}</p>
                       </Section>
                       <Section title="Use of funds">
-                        <p className="text-sm text-slate-700">{watchAll.use_of_funds || '—'}</p>
+                        <p className="text-sm text-slate-700">{watchAll.use_of_funds || '-'}</p>
                       </Section>
                     </div>
                   </CardContent>
@@ -805,14 +832,14 @@ export default function NewPitchPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <StatRow label="Raising" value={watchAll.asking_amount ? formatCurrency(watchAll.asking_amount) : '—'} highlight />
+                    <StatRow label="Raising" value={watchAll.asking_amount ? formatCurrency(watchAll.asking_amount) : '-'} highlight />
                     <StatRow label="Equity" value={`${watchAll.equity_offered ?? 0}%`} />
                     <StatRow
                       label="Valuation"
                       value={
                         watchAll.asking_amount && watchAll.equity_offered
                           ? formatCurrency(Math.round(watchAll.asking_amount / (watchAll.equity_offered / 100)))
-                          : '—'
+                          : '-'
                       }
                     />
                     <Separator />

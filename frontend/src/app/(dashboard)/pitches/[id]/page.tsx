@@ -491,7 +491,7 @@ export default function PitchDetailPage() {
                 <div className="flex items-start gap-2.5">
                   <Lock className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                   <div>
-                    <div className="text-sm font-bold text-amber-900">Draft — not visible to investors</div>
+                    <div className="text-sm font-bold text-amber-900">Draft - not visible to investors</div>
                     <p className="text-xs text-amber-700 mt-1">
                       Publish this pitch to make it visible on the VC discovery feed.
                     </p>

@@ -1,5 +1,5 @@
 /**
- * BFF register route — proxies POST /api/auth/register/ to Django,
+ * BFF register route - proxies POST /api/auth/register/ to Django,
  * then sets the same httpOnly cookies as the login route so the client
  * is fully authenticated right after sign-up.
  */

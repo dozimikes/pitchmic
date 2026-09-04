@@ -47,6 +47,9 @@ from apps.intelligence.urls import urlpatterns as intelligence_urls
 from apps.dataroom.urls import urlpatterns as dataroom_urls
 from apps.marketing.urls import urlpatterns as marketing_urls
 from apps.predictive_intelligence.urls import urlpatterns as predictive_urls
+from apps.accelerator.urls import urlpatterns as accelerator_urls
+from apps.investors.urls import urlpatterns as investors_urls
+from apps.matching.opportunity_urls import urlpatterns as opportunity_urls
 
 router = routers.DefaultRouter()
 router.register(r"pitches", PitchViewSet, basename="pitch")
@@ -88,7 +91,7 @@ urlpatterns: list = [
     path("", RedirectView.as_view(url="/api/docs/swagger/", permanent=False)),
     path("admin/", admin.site.urls),
     path("api/v1/", include(router.urls)),
-    # Dedicated delegation prefixes — thin delegation layer (see apps.startups.api / apps.investors.api)
+    # Dedicated delegation prefixes - thin delegation layer (see apps.startups.api / apps.investors.api)
     path("api/v1/startups/", include(startups_router.urls)),
     path("api/v1/investors/", include(investors_router.urls)),
     path("api/v1/health/", health_check, name="health-check"),
@@ -116,6 +119,9 @@ urlpatterns: list = [
     path("api/v1/predictive/", include((predictive_urls, "predictive_intelligence"))),
     path("api/v1/dataroom/", include((dataroom_urls, "dataroom"))),
     path("api/v1/marketing/", include((marketing_urls, "marketing"))),
+    path("api/v1/accelerator/", include((accelerator_urls, "accelerator"))),
+    path("api/v1/fundraising/opportunities/", include((opportunity_urls, "fundraising_opportunities"))),
+    path("api/v1/ie/", include("apps.intelligence_engine.urls", namespace="intelligence_engine")),
     #  API docs 
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),

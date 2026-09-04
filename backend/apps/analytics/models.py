@@ -3,15 +3,15 @@ apps.analytics.models
 ======================
 Three model families:
 
-FundraisingPrediction     — ML-generated multi-horizon prediction of a startup's
+FundraisingPrediction     - ML-generated multi-horizon prediction of a startup's
                             fundraising trajectory, success probability, exit type,
                             and investor ROI.  Re-run nightly by Celery beat.
 
-InvestorBehaviorAnalysis  — Aggregate behavioural profile of an investor:
+InvestorBehaviorAnalysis  - Aggregate behavioural profile of an investor:
                             response rates, preferred stages, risk appetite, etc.
                             Derived from InvestorIntentSignal data.
 
-UserBehaviorEvent         — Raw event stream for both roles.  Low-overhead
+UserBehaviorEvent         - Raw event stream for both roles.  Low-overhead
                             append-only log used as ML training data and for
                             real-time personalisation.
 """

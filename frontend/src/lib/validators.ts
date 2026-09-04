@@ -183,7 +183,7 @@ export const PitchCreateSchema = z
         ctx.addIssue({
           code: 'custom',
           path: ['equity_offered'],
-          message: `Equity over 50% in a single round is unusual — please review`,
+          message: `Equity over 50% in a single round is unusual - please review`,
         });
       }
     }
@@ -227,7 +227,7 @@ export const OfferCreateSchema = z
         ctx.addIssue({
           code: 'custom',
           path: ['valuation'],
-          message: `Valuation differs significantly from implied valuation (${Math.round(implied).toLocaleString()}) — please review`,
+          message: `Valuation differs significantly from implied valuation (${Math.round(implied).toLocaleString()}) - please review`,
         });
       }
     }
@@ -249,7 +249,7 @@ export const OfferCreateSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['equity_pct'],
-        message: `${data.equity_pct}% equity for a single round is very high — confirm with the fund mandate`,
+        message: `${data.equity_pct}% equity for a single round is very high - confirm with the fund mandate`,
       });
     }
   });

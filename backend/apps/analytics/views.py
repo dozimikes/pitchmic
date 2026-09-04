@@ -3,12 +3,12 @@ apps.analytics.views
 ====================
 REST endpoints for predictive analytics.
 
-GET  /api/v1/analytics/predict/startup/{pk}/   — FundraisingPrediction for a startup
-POST /api/v1/analytics/predict/startup/{pk}/   — Trigger async prediction refresh
-GET  /api/v1/analytics/insights/startup/{pk}/  — Simplified "readiness" scorecard
-GET  /api/v1/analytics/investor-profile/{pk}/  — InvestorBehaviorAnalysis
-GET  /api/v1/analytics/heatmap/                — Aggregate heatmap data for D3
-POST /api/v1/analytics/events/                 — Record a UserBehaviorEvent
+GET  /api/v1/analytics/predict/startup/{pk}/   - FundraisingPrediction for a startup
+POST /api/v1/analytics/predict/startup/{pk}/   - Trigger async prediction refresh
+GET  /api/v1/analytics/insights/startup/{pk}/  - Simplified "readiness" scorecard
+GET  /api/v1/analytics/investor-profile/{pk}/  - InvestorBehaviorAnalysis
+GET  /api/v1/analytics/heatmap/                - Aggregate heatmap data for D3
+POST /api/v1/analytics/events/                 - Record a UserBehaviorEvent
 """
 from __future__ import annotations
 
@@ -34,8 +34,8 @@ from .serializers import (
 
 class StartupPredictionView(APIView):
     """
-    GET  — return cached prediction (triggers async refresh if stale / absent)
-    POST — force an immediate async refresh
+    GET  - return cached prediction (triggers async refresh if stale / absent)
+    POST - force an immediate async refresh
     """
 
     permission_classes = (IsAuthenticated,)
@@ -163,7 +163,7 @@ class HeatmapView(APIView):
 
 
 class BehaviorEventCreateView(generics.CreateAPIView):
-    """POST /api/v1/analytics/events/ — Record a single user behaviour event."""
+    """POST /api/v1/analytics/events/ - Record a single user behaviour event."""
 
     serializer_class = UserBehaviorEventSerializer
     permission_classes = (IsAuthenticated,)

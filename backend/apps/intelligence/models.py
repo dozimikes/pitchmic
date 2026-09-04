@@ -3,17 +3,17 @@ apps.intelligence.models
 ========================
 Models for the AI due-diligence and prediction infrastructure.
 
-StartupSuccessPrediction  — Full multi-dimensional prediction (mirrors
+StartupSuccessPrediction  - Full multi-dimensional prediction (mirrors
                             FundraisingPrediction but richer; populated by the
                             multi-agent pipeline rather than the heuristic engine).
 
-DueDiligenceReport        — Generated IC memo produced by the agent pipeline.
+DueDiligenceReport        - Generated IC memo produced by the agent pipeline.
                             Stores each section separately plus citations.
 
-PredictionFeedback        — User-provided ratings on prediction quality; drives
+PredictionFeedback        - User-provided ratings on prediction quality; drives
                             continuous model improvement.
 
-ModelPerformanceTracker   — Tracks deployed model versions, accuracy metrics,
+ModelPerformanceTracker   - Tracks deployed model versions, accuracy metrics,
                             and data drift scores over time.
 """
 from __future__ import annotations
@@ -27,7 +27,7 @@ from apps.users.models import InvestorProfile, StartupProfile
 
 class StartupSuccessPrediction(models.Model):
     """
-    Comprehensive startup intelligence report — populated by the multi-agent
+    Comprehensive startup intelligence report - populated by the multi-agent
     due-diligence pipeline when running with LLM backends, and by the heuristic
     engine as a fallback.
     """
@@ -640,7 +640,7 @@ class Cohort(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self) -> str:
-        return f"{self.organization_name} — {self.name} ({self.program_cycle})"
+        return f"{self.organization_name} - {self.name} ({self.program_cycle})"
 
 
 class CohortApplication(models.Model):

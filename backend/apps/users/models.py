@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .managers import UserManager
@@ -31,6 +34,58 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=20,
         choices=ROLE_CHOICES,
         default=ROLE_STARTUP,
+    )
+    SUBSCRIPTION_FREE = "free"
+    SUBSCRIPTION_FOUNDER_PRO = "founder-pro"
+    SUBSCRIPTION_RAISE_PASS = "raise-pass"
+    SUBSCRIPTION_PLAN_CHOICES: tuple[tuple[str, str], ...] = (
+        (SUBSCRIPTION_FREE, _("Free")),
+        (SUBSCRIPTION_FOUNDER_PRO, _("Founder Pro")),
+        (SUBSCRIPTION_RAISE_PASS, _("Raise Pass")),
+    )
+    SUBSCRIPTION_STATUS_INACTIVE = "inactive"
+    SUBSCRIPTION_STATUS_PENDING = "pending"
+    SUBSCRIPTION_STATUS_ACTIVE = "active"
+    SUBSCRIPTION_STATUS_CANCELLED = "cancelled"
+    SUBSCRIPTION_STATUS_CHOICES: tuple[tuple[str, str], ...] = (
+        (SUBSCRIPTION_STATUS_INACTIVE, _("Inactive")),
+        (SUBSCRIPTION_STATUS_PENDING, _("Pending")),
+        (SUBSCRIPTION_STATUS_ACTIVE, _("Active")),
+        (SUBSCRIPTION_STATUS_CANCELLED, _("Cancelled")),
+    )
+    subscription_plan: models.CharField = models.CharField(
+        _("subscription plan"),
+        max_length=32,
+        choices=SUBSCRIPTION_PLAN_CHOICES,
+        default=SUBSCRIPTION_FREE,
+    )
+    subscription_status: models.CharField = models.CharField(
+        _("subscription status"),
+        max_length=24,
+        choices=SUBSCRIPTION_STATUS_CHOICES,
+        default=SUBSCRIPTION_STATUS_INACTIVE,
+    )
+    subscription_started_at: models.DateTimeField = models.DateTimeField(
+        _("subscription started at"),
+        null=True,
+        blank=True,
+    )
+    subscription_expires_at: models.DateTimeField = models.DateTimeField(
+        _("subscription expires at"),
+        null=True,
+        blank=True,
+    )
+    paystack_customer_code: models.CharField = models.CharField(
+        _("Paystack customer code"),
+        max_length=128,
+        blank=True,
+        default="",
+    )
+    paystack_email: models.EmailField = models.EmailField(
+        _("Paystack email"),
+        max_length=255,
+        blank=True,
+        default="",
     )
     is_verified: models.BooleanField = models.BooleanField(
         _("verified"),
@@ -67,6 +122,33 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self) -> str:
         return self.email
+
+    def activate_subscription(
+        self,
+        plan_slug: str,
+        *,
+        status: str = SUBSCRIPTION_STATUS_ACTIVE,
+        billing_cycle: str = "monthly",
+        email: str | None = None,
+    ) -> None:
+        self.subscription_plan = plan_slug
+        self.subscription_status = status
+        self.subscription_started_at = timezone.now()
+        if plan_slug == self.SUBSCRIPTION_FREE:
+            self.subscription_expires_at = None
+        else:
+            days = 365 if billing_cycle == "yearly" else 30
+            self.subscription_expires_at = self.subscription_started_at + timedelta(days=days)
+        if email:
+            self.paystack_email = email
+        self.save(update_fields=[
+            "subscription_plan",
+            "subscription_status",
+            "subscription_started_at",
+            "subscription_expires_at",
+            "paystack_email",
+            "updated_at",
+        ])
 
     @property
     def full_name(self) -> str:

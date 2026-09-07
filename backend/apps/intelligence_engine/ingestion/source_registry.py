@@ -96,11 +96,11 @@ DEFAULT_SOURCES: List[Dict[str, Any]] = [
     dict(
         name="MassChallenge Africa", organization="MassChallenge",
         tier=SourceRegistry.Tier.TIER_1_OFFICIAL,
-        fetch_strategy=SourceRegistry.FetchStrategy.SITEMAP,
+        fetch_strategy=SourceRegistry.FetchStrategy.BROWSER,  # Cloudflare bot-protected — needs browser UA
         crawl_frequency=SourceRegistry.CrawlFrequency.DAILY,
         base_trust_score=0.95,
-        base_url="https://masschallenge.org/programs-all/",
-        application_url="https://apply.masschallenge.org",
+        base_url="https://masschallenge.org/programs/",
+        application_url="https://masschallenge.org/challenge-program/",
     ),
     dict(
         name="Microsoft for Startups Founders Hub", organization="Microsoft",
@@ -168,9 +168,9 @@ DEFAULT_SOURCES: List[Dict[str, Any]] = [
     dict(
         name="54 Collective", organization="54 Collective",
         tier=SourceRegistry.Tier.TIER_1_OFFICIAL,
-        fetch_strategy=SourceRegistry.FetchStrategy.STATIC,
+        fetch_strategy=SourceRegistry.FetchStrategy.BROWSER,  # Cloudflare SSL 526 — needs browser
         crawl_frequency=SourceRegistry.CrawlFrequency.DAILY,
-        base_trust_score=0.90,   # temporarily reduced — site has SSL issue (HTTP 526)
+        base_trust_score=0.90,
         base_url="https://54collective.vc",
         application_url="https://54collective.vc",
     ),

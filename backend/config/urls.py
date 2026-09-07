@@ -40,7 +40,6 @@ from apps.newsfeed.views import ActivityFeedView
 from apps.notifications.views import NotificationViewSet
 from apps.startups.api import router as startups_router
 from apps.investors.api import router as investors_router
-#  New ML/AI app routers 
 from apps.matching.urls import urlpatterns as matching_urls
 from apps.analytics.urls import urlpatterns as analytics_urls
 from apps.intelligence.urls import urlpatterns as intelligence_urls
@@ -48,8 +47,9 @@ from apps.dataroom.urls import urlpatterns as dataroom_urls
 from apps.marketing.urls import urlpatterns as marketing_urls
 from apps.predictive_intelligence.urls import urlpatterns as predictive_urls
 from apps.accelerator.urls import urlpatterns as accelerator_urls
-from apps.investors.urls import urlpatterns as investors_urls
 from apps.matching.opportunity_urls import urlpatterns as opportunity_urls
+from apps.fundability.urls import urlpatterns as fundability_urls
+from apps.application_intelligence.urls import urlpatterns as application_intelligence_urls
 
 router = routers.DefaultRouter()
 router.register(r"pitches", PitchViewSet, basename="pitch")
@@ -91,9 +91,9 @@ urlpatterns: list = [
     path("", RedirectView.as_view(url="/api/docs/swagger/", permanent=False)),
     path("admin/", admin.site.urls),
     path("api/v1/", include(router.urls)),
-    # Dedicated delegation prefixes - thin delegation layer (see apps.startups.api / apps.investors.api)
     path("api/v1/startups/", include(startups_router.urls)),
     path("api/v1/investors/", include(investors_router.urls)),
+    path("api/v1/billing/", include("apps.billing.urls")),
     path("api/v1/health/", health_check, name="health-check"),
     path("api/v1/feed/", ActivityFeedView.as_view(), name="activity-feed"),
     path("api/auth/register/", RegisterView.as_view(), name="auth-register"),
@@ -112,7 +112,6 @@ urlpatterns: list = [
     path("api/v1/me/startup-profile/", MeStartupProfileView.as_view(), name="me-startup-profile"),
     path("api/v1/me/investor-profile/", MeInvestorProfileView.as_view(), name="me-investor-profile"),
     path("api/v1/admin/summary/", AdminSummaryView.as_view(), name="admin-summary"),
-    #  ML / AI intelligence endpoints 
     path("api/v1/matching/", include((matching_urls, "matching"))),
     path("api/v1/analytics/", include((analytics_urls, "analytics"))),
     path("api/v1/intelligence/", include((intelligence_urls, "intelligence"))),
@@ -121,8 +120,9 @@ urlpatterns: list = [
     path("api/v1/marketing/", include((marketing_urls, "marketing"))),
     path("api/v1/accelerator/", include((accelerator_urls, "accelerator"))),
     path("api/v1/fundraising/opportunities/", include((opportunity_urls, "fundraising_opportunities"))),
+    path("api/v1/fundability/", include((fundability_urls, "fundability"))),
+    path("api/v1/application-intelligence/", include((application_intelligence_urls, "application_intelligence"))),
     path("api/v1/ie/", include("apps.intelligence_engine.urls", namespace="intelligence_engine")),
-    #  API docs 
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/docs/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),

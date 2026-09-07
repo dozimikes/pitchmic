@@ -18,6 +18,8 @@ env = environ.Env(
     REDIS_URL=(str, "redis://localhost:6379/0"),
     CELERY_BROKER_URL=(str, "redis://localhost:6379/1"),
     CELERY_RESULT_BACKEND=(str, "redis://localhost:6379/2"),
+    PAYSTACK_SECRET_KEY=(str, "test_paystack_secret_key_local_dev"),
+    PAYSTACK_PUBLIC_KEY=(str, "pk_test_local_dev_public_key"),
 )
 
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
@@ -25,6 +27,8 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 SECRET_KEY: str = env("SECRET_KEY")
 DEBUG: bool = env("DEBUG")
 ALLOWED_HOSTS: list[str] = env("ALLOWED_HOSTS")
+PAYSTACK_SECRET_KEY: str = env("PAYSTACK_SECRET_KEY")
+PAYSTACK_PUBLIC_KEY: str = env("PAYSTACK_PUBLIC_KEY")
 
 INSTALLED_APPS: list[str] = [
     "daphne",
@@ -50,6 +54,7 @@ INSTALLED_APPS: list[str] = [
     "apps.notifications",
     "apps.startups",
     "apps.investors",
+    "apps.billing",
     #  Intelligence / ML apps 
     "apps.matching",
     "apps.analytics",
@@ -60,6 +65,10 @@ INSTALLED_APPS: list[str] = [
     "apps.accelerator",
     # Intelligence Engine — real-time funding intelligence pipeline
     "apps.intelligence_engine",
+    # Fundability Engine
+    "apps.fundability",
+    # Application Intelligence Engine
+    "apps.application_intelligence",
 ]
 
 MIDDLEWARE: list[str] = [

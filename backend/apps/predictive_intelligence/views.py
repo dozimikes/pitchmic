@@ -49,6 +49,11 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from apps.users.models import InvestorProfile, StartupProfile, User
+from apps.core.permissions import (
+    get_authorized_startup_or_404,
+    get_authorized_investor_or_404,
+    ensure_authorized_for_startup,
+)
 from rest_framework import generics, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import BasePermission, IsAuthenticated
@@ -614,7 +619,12 @@ class HistoricalEvaluateView(APIView):
 
 
 class StartupTopInvestorIntentsView(generics.ListAPIView):
-    """GET - investors ranked by P(invest) for a startup."""
+    """GET - investors ranked by P(invest) for a startup.
+
+    SEC-006 / IDOR: only staff, the startup itself, or matched investors
+    may see intent data for a given startup.  Returns NotFound (404) for
+    unauthorized users to prevent ID enumeration.
+    """
 
     permission_classes = (IsAuthenticated,)
     serializer_class = InvestorIntentPredictionSerializer
@@ -623,6 +633,7 @@ class StartupTopInvestorIntentsView(generics.ListAPIView):
         startup_id = self.kwargs["startup_id"]
         if getattr(self, "swagger_fake_view", False):
             return InvestorIntentPrediction.objects.none()
+        get_authorized_startup_or_404(self.request.user, int(startup_id))
         return (
             InvestorIntentPrediction.objects.filter(startup_id=startup_id)
             .select_related("investor")
@@ -634,15 +645,15 @@ class ScoreInvestorIntentView(APIView):
     """
     POST - score a behavioural event sequence for an investor.
     Uses apps.intelligence.ml.sequences.BehavioralSequenceModel.
+
+    SEC-006 / IDOR: caller must be authorized for both the investor
+    profile AND the startup referenced in the request body.
     """
 
     permission_classes = (IsAuthenticated,)
 
     def post(self, request: Request, investor_id: int) -> Response:
-        try:
-            investor = InvestorProfile.objects.get(pk=investor_id)
-        except InvestorProfile.DoesNotExist:
-            return Response({"detail": "Investor not found."}, status=status.HTTP_404_NOT_FOUND)
+        investor = get_authorized_investor_or_404(request.user, investor_id)
 
         startup_id = request.data.get("startup_id")
         events = request.data.get("events", [])
@@ -654,10 +665,7 @@ class ScoreInvestorIntentView(APIView):
 
         if not startup_id:
             raise ValidationError({"startup_id": "required"})
-        try:
-            startup = StartupProfile.objects.get(pk=startup_id)
-        except StartupProfile.DoesNotExist:
-            return Response({"detail": "Startup not found."}, status=status.HTTP_404_NOT_FOUND)
+        startup = get_authorized_startup_or_404(request.user, int(startup_id))
 
         from apps.intelligence.ml.sequences import BehavioralSequenceModel
 

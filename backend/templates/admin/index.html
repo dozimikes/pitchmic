@@ -1,0 +1,151 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'admin/css/dashboard.css' %}">
+{% endblock %}
+
+{% block coltype %}colMS{% endblock %}
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<!-- ── Executive Telemetry & KPI Cards ── -->
+<div class="pitchmic-kpi-grid">
+    <!-- Card 1: Users -->
+    <div class="kpi-card">
+        <div class="kpi-card-header">
+            <span class="kpi-title">Total Users</span>
+            <div class="kpi-icon-wrapper icon-orange">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+        </div>
+        <div class="kpi-value" id="kpi-total-users">--</div>
+        <div class="kpi-footer">
+            <span class="kpi-subtext" id="kpi-users-breakdown">Founders & Investors</span>
+            <span class="kpi-pill pill-green">Active</span>
+        </div>
+    </div>
+
+    <!-- Card 2: Pitches -->
+    <div class="kpi-card">
+        <div class="kpi-card-header">
+            <span class="kpi-title">Pitch Pipeline</span>
+            <div class="kpi-icon-wrapper icon-purple">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+            </div>
+        </div>
+        <div class="kpi-value" id="kpi-total-pitches">--</div>
+        <div class="kpi-footer">
+            <span class="kpi-subtext" id="kpi-pitches-breakdown">Live published decks</span>
+            <span class="kpi-pill pill-blue">Dealflow</span>
+        </div>
+    </div>
+
+    <!-- Card 3: Offers & Term Sheets -->
+    <div class="kpi-card">
+        <div class="kpi-card-header">
+            <span class="kpi-title">Offers & Deals</span>
+            <div class="kpi-icon-wrapper icon-emerald">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m10 15 5-3-5-3v6Z"/></svg>
+            </div>
+        </div>
+        <div class="kpi-value" id="kpi-total-offers">--</div>
+        <div class="kpi-footer">
+            <span class="kpi-subtext" id="kpi-offers-breakdown">Term sheets in negotiation</span>
+            <span class="kpi-pill pill-purple">VC OS</span>
+        </div>
+    </div>
+
+    <!-- Card 4: System Health -->
+    <div class="kpi-card">
+        <div class="kpi-card-header">
+            <span class="kpi-title">Platform Health</span>
+            <div class="kpi-icon-wrapper icon-blue">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+        </div>
+        <div class="kpi-value" id="kpi-system-status">99.9%</div>
+        <div class="kpi-footer">
+            <span class="kpi-subtext" id="kpi-db-latency">DB latency: ~1ms</span>
+            <span class="kpi-pill pill-green">Operational</span>
+        </div>
+    </div>
+</div>
+
+<!-- ── Main App Modules Section ── -->
+<div id="content-main" class="pitchmic-dashboard-main">
+    {% include "admin/app_list.html" with app_list=app_list %}
+</div>
+
+<!-- Dynamic Telemetry Hydration Script -->
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        const res = await fetch('/api/v1/admin/summary/', {
+            headers: { 'Accept': 'application/json' },
+            credentials: 'include'
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.stats) {
+                const s = data.stats;
+                document.getElementById('kpi-total-users').innerText = s.total_users || '0';
+                document.getElementById('kpi-users-breakdown').innerText = 
+                    `${s.startup_users || 0} founders · ${s.investor_users || 0} investors`;
+
+                document.getElementById('kpi-total-pitches').innerText = s.total_pitches || '0';
+                document.getElementById('kpi-pitches-breakdown').innerText = 
+                    `${s.published_pitches || 0} published · ${s.draft_pitches || 0} drafts`;
+
+                document.getElementById('kpi-total-offers').innerText = s.total_offers || '0';
+                document.getElementById('kpi-offers-breakdown').innerText = 
+                    `${s.accepted_offers || 0} accepted term sheets`;
+            }
+            if (data && data.system_health && data.system_health.length > 0) {
+                const db = data.system_health[0];
+                document.getElementById('kpi-db-latency').innerText = `DB: ${db.latency || '1ms'}`;
+            }
+        }
+    } catch (e) {
+        console.warn('Telemetry summary fetch skipped:', e);
+    }
+});
+</script>
+{% endblock %}
+
+{% block sidebar %}
+<div id="content-related" class="pitchmic-dashboard-sidebar">
+    <div class="module modern-timeline-card" id="recent-actions-module">
+        <div class="timeline-header">
+            <h3>Recent Admin Activity</h3>
+            <span class="timeline-badge">Audit Log</span>
+        </div>
+        {% load log %}
+        {% get_admin_log 8 as admin_log for_user user %}
+        {% if not admin_log %}
+        <p class="empty-timeline-text">No recent operational actions registered.</p>
+        {% else %}
+        <ul class="actionlist modern-actionlist">
+            {% for entry in admin_log %}
+            <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %} action-item">
+                <div class="action-meta">
+                    {% if entry.content_type %}
+                        <span class="action-type">{{ entry.content_type.name|capfirst }}</span>
+                    {% endif %}
+                </div>
+                <div class="action-title">
+                    {% if entry.is_deletion %}
+                        <span class="deleted-obj">{{ entry.object_repr }}</span>
+                    {% else %}
+                        <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

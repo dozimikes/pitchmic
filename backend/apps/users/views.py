@@ -3,11 +3,11 @@ from __future__ import annotations
 import os
 import uuid
 
-from django.conf import settings
+from django.conf import settings  # noqa: F401 — used in _save_upload and upload views
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from rest_framework import generics, status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action  # noqa: F401 — used by other ViewSets in this module
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -17,15 +17,23 @@ from rest_framework.response import Response
 from .models import InvestorProfile, StartupProfile, User
 from .serializers import (
     FileUploadSerializer,
+    ForgotPasswordSerializer,
     InvestorProfileSerializer,
     LoginSerializer,
     ResendVerificationRequestSerializer,
+    ResetPasswordSerializer,
     StartupProfileSerializer,
     UserRegistrationSerializer,
     UserSerializer,
     VerifyEmailRequestSerializer,
 )
-from .tasks import send_verification_email, verify_verification_token
+from .tasks import (
+    send_verification_email,
+    send_password_reset_email,
+    verify_verification_token,
+    verify_password_reset_token,
+)
+from .throttles import LoginRateThrottle, PasswordResetRateThrottle
 
 
 class RegisterView(generics.CreateAPIView):
@@ -64,6 +72,10 @@ class RegisterView(generics.CreateAPIView):
 class LoginView(generics.GenericAPIView):
     permission_classes = (AllowAny,)
     serializer_class = LoginSerializer
+    # SEC-003: Enforce per-IP rate limit — 5 attempts/minute.
+    # LoginRateThrottle uses the "login" scope from DEFAULT_THROTTLE_RATES.
+    # A throttled request returns HTTP 429 with a Retry-After header.
+    throttle_classes = [LoginRateThrottle]
 
     def post(self, request, *args, **kwargs) -> Response:
         serializer = self.get_serializer(data=request.data)
@@ -79,8 +91,14 @@ class LoginView(generics.GenericAPIView):
 
 
 class LogoutView(generics.GenericAPIView):
-    """Best-effort logout: attempt to blacklist the refresh token if the
-    SimpleJWT token_blacklist app is installed, then return 200."""
+    """
+    POST /api/auth/logout/
+    Best-effort logout: blacklists the supplied refresh token if valid, then
+    returns 200.  AllowAny is intentional — a user whose access token has
+    already expired still needs to be able to clear their refresh token.
+    The endpoint is not sensitive: all it can do is attempt to blacklist the
+    caller-supplied token (the token is validated before blacklisting).
+    """
 
     permission_classes = (AllowAny,)
 
@@ -89,10 +107,14 @@ class LogoutView(generics.GenericAPIView):
         if refresh_token:
             try:
                 from rest_framework_simplejwt.tokens import RefreshToken
+                from rest_framework_simplejwt.exceptions import TokenError
                 token = RefreshToken(refresh_token)
                 token.blacklist()
-            except Exception:  # noqa: BLE001
-                pass  # blacklist app not installed or token already invalid
+            except TokenError:
+                # Already invalid / expired / blacklisted — treat as success
+                pass
+            except Exception:  # noqa: BLE001 — blacklist app not installed
+                pass
         return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
 
 
@@ -102,13 +124,31 @@ class StartupProfileViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
+        # SEC-003: scope results strictly by role so no user can enumerate
+        # another startup's private profile data.
         if getattr(self, "swagger_fake_view", False):
             return StartupProfile.objects.none()
-        queryset = super().get_queryset()
         user = self.request.user
+        # Startup users: only their own profile
         if user.role == User.ROLE_STARTUP:
-            return queryset
-        return queryset
+            return StartupProfile.objects.filter(user=user).select_related("user").prefetch_related("team_members")
+        # Staff / superuser: full access
+        if user.is_staff or user.is_superuser:
+            return StartupProfile.objects.all().select_related("user").prefetch_related("team_members")
+        # Investors / accelerators: only profiles belonging to startups that
+        # have granted them an active data-room access grant.  This ensures
+        # investors cannot enumerate the full startup database.
+        from apps.dataroom.models import DataRoomAccess
+        try:
+            investor = user.investor_profile
+            accessible_ids = DataRoomAccess.objects.filter(
+                investor=investor, status="active"
+            ).values_list("startup_id", flat=True)
+            return StartupProfile.objects.filter(
+                pk__in=accessible_ids
+            ).select_related("user").prefetch_related("team_members")
+        except Exception:
+            return StartupProfile.objects.none()
 
     def perform_create(self, serializer: StartupProfileSerializer) -> None:
         serializer.save(user=self.request.user)
@@ -127,6 +167,34 @@ class InvestorProfileViewSet(viewsets.ModelViewSet):
     serializer_class = InvestorProfileSerializer
     permission_classes = (IsAuthenticated,)
 
+    def get_queryset(self):
+        # SEC-008: scope results strictly by role so no user can enumerate
+        # the full investor directory.
+        if getattr(self, "swagger_fake_view", False):
+            return InvestorProfile.objects.none()
+        user = self.request.user
+        # Investor users: only their own profile
+        if user.role == User.ROLE_INVESTOR:
+            return InvestorProfile.objects.filter(user=user).select_related("user")
+        # Staff / superuser: full investor list access
+        if user.is_staff or user.is_superuser:
+            return InvestorProfile.objects.all().select_related("user")
+        # Startups: read-only directory of investors who have been matched to them.
+        # They see only profiles linked to MatchScore entries for their startup.
+        if user.role == User.ROLE_STARTUP:
+            try:
+                from apps.matching.models import MatchScore
+                startup = user.startup_profile
+                investor_ids = MatchScore.objects.filter(
+                    startup=startup
+                ).values_list("investor_id", flat=True)
+                return InvestorProfile.objects.filter(
+                    pk__in=investor_ids
+                ).select_related("user")
+            except Exception:
+                return InvestorProfile.objects.none()
+        return InvestorProfile.objects.none()
+
     def perform_create(self, serializer: InvestorProfileSerializer) -> None:
         serializer.save(user=self.request.user)
 
@@ -138,10 +206,10 @@ class InvestorProfileViewSet(viewsets.ModelViewSet):
             return obj
         return super().get_object()
 
-
 # ---------------------------------------------------------------------------
 # OTP / email verification
 # ---------------------------------------------------------------------------
+
 
 class VerifyEmailView(generics.GenericAPIView):
     """
@@ -494,3 +562,87 @@ class AdminSummaryView(generics.GenericAPIView):
             "recent_pitches": recent_pitches,
         }, status=status.HTTP_200_OK)
 
+
+
+# ---------------------------------------------------------------------------
+# Password reset
+# ---------------------------------------------------------------------------
+
+
+class ForgotPasswordView(generics.GenericAPIView):
+    """
+    POST /api/auth/forgot-password/
+    Body: { "email": "<user email>" }
+
+    Queues a password reset email for the supplied address.  Always returns
+    202 regardless of whether the email exists — this prevents user enumeration
+    through timing or response differences.
+
+    Rate limited to 3 requests per minute per IP via PasswordResetRateThrottle.
+    """
+
+    permission_classes = (AllowAny,)
+    serializer_class = ForgotPasswordSerializer
+    throttle_classes = [PasswordResetRateThrottle]
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email: str = serializer.validated_data["email"].strip().lower()
+
+        try:
+            user: User = User.objects.get(email=email)
+            # Only send if account is active — silently skip inactive accounts
+            # but still return 202 to prevent enumeration.
+            if user.is_active:
+                send_password_reset_email.delay(user.pk)
+        except User.DoesNotExist:
+            pass  # always return 202 regardless
+
+        return Response(
+            {"message": "If an account with that email exists, a password reset link has been sent."},
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class ResetPasswordView(generics.GenericAPIView):
+    """
+    POST /api/auth/reset-password/
+    Body: { "token": "<reset token>", "password": "...", "password_confirm": "..." }
+
+    Validates the 1-hour-limited signed token, then sets the new password.
+    Returns 200 on success, 400 on invalid/expired token or mismatched passwords.
+    """
+
+    permission_classes = (AllowAny,)
+    serializer_class = ResetPasswordSerializer
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        token: str = serializer.validated_data["token"]
+        new_password: str = serializer.validated_data["password"]
+
+        user_pk = verify_password_reset_token(token)
+        if user_pk is None:
+            raise ValidationError(
+                {"token": "This password reset link is invalid or has expired. Please request a new one."}
+            )
+
+        try:
+            user: User = User.objects.get(pk=user_pk)
+        except User.DoesNotExist:
+            raise ValidationError({"token": "User not found."})
+
+        if not user.is_active:
+            raise ValidationError({"token": "This account is inactive."})
+
+        user.set_password(new_password)
+        user.save(update_fields=["password", "updated_at"])
+
+        return Response(
+            {"message": "Password reset successfully. You can now sign in with your new password."},
+            status=status.HTTP_200_OK,
+        )

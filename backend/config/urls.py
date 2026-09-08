@@ -9,7 +9,7 @@ from django.views.generic import RedirectView
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 from rest_framework import routers, serializers
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 
 from drf_spectacular.views import (
@@ -23,6 +23,7 @@ from apps.pitches.views import PitchViewSet
 from apps.users.views import (
     AdminSummaryView,
     AvatarUploadView,
+    ForgotPasswordView,
     InvestorProfileViewSet,
     LogoUploadView,
     LoginView,
@@ -33,6 +34,7 @@ from apps.users.views import (
     PitchCoverUploadView,
     RegisterView,
     ResendVerificationView,
+    ResetPasswordView,
     StartupProfileViewSet,
     VerifyEmailView,
 )
@@ -87,9 +89,36 @@ def health_check(request) -> JsonResponse:
     })
 
 
+# SEC-019: Swagger UI and ReDoc are restricted to staff/admin users only.
+# In production, API documentation must not be publicly accessible —
+# it exposes every endpoint path, request schema, and authentication method.
+_staff_swagger = SpectacularSwaggerView.as_view(
+    url_name="schema", permission_classes=[IsAdminUser]
+)
+_staff_redoc = SpectacularRedocView.as_view(
+    url_name="schema", permission_classes=[IsAdminUser]
+)
+_staff_schema = SpectacularAPIView.as_view(permission_classes=[IsAdminUser])
+
+
+admin.site.site_header = "Pitchmic Admin"
+admin.site.site_title = "Pitchmic Admin"
+admin.site.index_title = "Pitchmic Admin"
+
+
+def admin_decoy_view(request):
+    """SEC-020: Conceal real admin URL; return 404 to deceive vulnerability scanners."""
+    from django.http import Http404
+    raise Http404("Page not found")
+
+
 urlpatterns: list = [
-    path("", RedirectView.as_view(url="/api/docs/swagger/", permanent=False)),
-    path("admin/", admin.site.urls),
+    # SEC-019: redirect root to health check
+    path("", RedirectView.as_view(url="/api/v1/health/", permanent=False)),
+    # SEC-020: Standard /admin/ is a decoy returning 404 to protect against scanners
+    path("admin/", admin_decoy_view, name="admin-decoy"),
+    # SEC-020: Real admin portal is mounted at high-entropy secret URL
+    path(settings.DJANGO_ADMIN_URL, admin.site.urls),
     path("api/v1/", include(router.urls)),
     path("api/v1/startups/", include(startups_router.urls)),
     path("api/v1/investors/", include(investors_router.urls)),
@@ -105,6 +134,8 @@ urlpatterns: list = [
     path("api/auth/verify-email/", VerifyEmailView.as_view(), name="verify-email"),
     path("api/v1/auth/verify-email/", VerifyEmailView.as_view(), name="verify-email-v1"),
     path("api/auth/resend-verification/", ResendVerificationView.as_view(), name="resend-verification"),
+    path("api/auth/forgot-password/", ForgotPasswordView.as_view(), name="forgot-password"),
+    path("api/auth/reset-password/", ResetPasswordView.as_view(), name="reset-password"),
     path("api/v1/upload/avatar/", AvatarUploadView.as_view(), name="upload-avatar"),
     path("api/v1/upload/logo/", LogoUploadView.as_view(), name="upload-logo"),
     path("api/v1/upload/pitch-cover/", PitchCoverUploadView.as_view(), name="upload-pitch-cover"),
@@ -123,7 +154,8 @@ urlpatterns: list = [
     path("api/v1/fundability/", include((fundability_urls, "fundability"))),
     path("api/v1/application-intelligence/", include((application_intelligence_urls, "application_intelligence"))),
     path("api/v1/ie/", include("apps.intelligence_engine.urls", namespace="intelligence_engine")),
-    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-    path("api/docs/swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
-    path("api/docs/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    # SEC-019: schema and docs restricted to staff only
+    path("api/schema/", _staff_schema, name="schema"),
+    path("api/docs/swagger/", _staff_swagger, name="swagger-ui"),
+    path("api/docs/redoc/", _staff_redoc, name="redoc"),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -18,11 +18,43 @@ ModelPerformanceTracker   - Tracks deployed model versions, accuracy metrics,
 """
 from __future__ import annotations
 
+import logging
+from typing import TYPE_CHECKING, Any
+
 from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from apps.users.models import InvestorProfile, StartupProfile
+
+if TYPE_CHECKING:
+    from django.db.models import QuerySet
+
+logger = logging.getLogger(__name__)
+
+
+class InstitutionalMemoryEntryManager(models.Manager["InstitutionalMemoryEntry"]):
+    """Custom manager enforcing tenant-scoped access to InstitutionalMemoryEntry."""
+
+    def for_tenant(self, tenant_id: Any) -> "QuerySet[InstitutionalMemoryEntry]":
+        """
+        Return a queryset filtered to the given *tenant_id*.
+
+        Raises ``ValueError`` when *tenant_id* is missing, blank, or clearly
+        invalid so that accidental cross-tenant reads are prevented at the
+        queryset construction stage rather than silently returning all rows.
+        """
+        if tenant_id is None:
+            logger.error("sec.tenant.for_tenant.none")
+            raise ValueError("for_tenant() requires a non-None tenant_id")
+        tenant_str = str(tenant_id).strip()
+        if not tenant_str:
+            logger.error("sec.tenant.for_tenant.blank")
+            raise ValueError("for_tenant() requires a non-blank tenant_id")
+        if len(tenant_str) > 100:
+            logger.error("sec.tenant.for_tenant.toolong", length=len(tenant_str))
+            raise ValueError("for_tenant() tenant_id exceeds 100 characters")
+        return self.filter(tenant_id=tenant_str)
 
 
 class StartupSuccessPrediction(models.Model):
@@ -334,7 +366,13 @@ class StealthFounderSignal(models.Model):
 class InstitutionalMemoryEntry(models.Model):
     """
     Firm-specific digital brain entry capturing deal memos, partner debates, and post-mortems.
+
+    All reads MUST go through ``InstitutionalMemoryEntry.objects.for_tenant(tenant_id)``
+    to prevent cross-tenant data leakage.  Direct ``.objects.all()`` / ``.objects.filter()``
+    without a tenant scope are considered security bugs.
     """
+
+    objects = InstitutionalMemoryEntryManager()
 
     tenant_id = models.CharField(max_length=100, default="default_fund", db_index=True)
     company_name = models.CharField(max_length=200, db_index=True)
@@ -352,6 +390,25 @@ class InstitutionalMemoryEntry(models.Model):
 
     def __str__(self) -> str:
         return f"Brain [{self.tenant_id}]: {self.company_name} ({self.source_type})"
+
+    def assert_tenant(self, tenant_id: Any) -> None:
+        """Raise :class:`ValueError` if this entry does not belong to *tenant_id*."""
+        if tenant_id is None:
+            raise ValueError("assert_tenant() requires a non-None tenant_id")
+        expected = str(tenant_id).strip()
+        if not expected:
+            raise ValueError("assert_tenant() requires a non-blank tenant_id")
+        if self.tenant_id != expected:
+            logger.error(
+                "sec.tenant.mismatch",
+                entry_id=self.pk,
+                entry_tenant=self.tenant_id,
+                expected_tenant=expected,
+            )
+            raise ValueError(
+                f"InstitutionalMemoryEntry pk={self.pk} belongs to tenant "
+                f"'{self.tenant_id}', not '{expected}'"
+            )
 
 
 class EnterpriseTenant(models.Model):

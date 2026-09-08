@@ -1,4 +1,4 @@
-"""
+﻿"""
 apps.intelligence.views
 =======================
 REST endpoints for the intelligence / due-diligence pipeline.
@@ -11,12 +11,13 @@ POST /api/v1/intelligence/feedback/               - Submit prediction feedback
 GET  /api/v1/intelligence/models/                 - Model performance history (staff only)
 """
 from __future__ import annotations
+from dataclasses import asdict
 
 from django.http import HttpResponse
 from rest_framework import generics, status
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -24,55 +25,71 @@ from rest_framework.views import APIView
 from .models import (
     DueDiligenceReport,
     EnterpriseTenant,
-    InstitutionalMemoryEntry,
     ModelPerformanceTracker,
     PitchDeckForensicAnalysis,
     StartupSuccessPrediction,
     StealthFounderSignal,
-    TenantAPIKey,
-    TenantUsageLog,
     VoiceInterviewSession,
 )
 from .serializers import (
     DueDiligenceReportSerializer,
     EnterpriseTenantSerializer,
-    EnterpriseTriageRequestSerializer,
-    InstitutionalMemoryEntrySerializer,
     ModelPerformanceTrackerSerializer,
-    PitchDeckForensicAnalysisSerializer,
     PitchDeckUploadSerializer,
     PredictionFeedbackSerializer,
     StartupSuccessPredictionSerializer,
     StealthFounderSignalSerializer,
-    TenantAPIKeyCreateSerializer,
-    VoiceInterviewSessionSerializer,
     VoiceInterviewTurnSerializer,
+)
+from apps.core.permissions import (
+    get_authorized_startup_or_404,
+    ensure_authorized_for_startup,
+)
+from apps.core.tenant import (
+    get_authorized_tenant_id,
+    log_security_event,
 )
 
 
 class StartupIntelligenceView(APIView):
-    """GET comprehensive intelligence prediction for a startup."""
+    """GET comprehensive intelligence prediction for a startup.
+
+    SEC-006 / IDOR: caller must be authorized for the target startup.
+    Returns HTTP 404 (NotFound) for unauthorized users to prevent ID
+    enumeration.
+    """
 
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request, pk: int) -> Response:
+        startup = get_authorized_startup_or_404(request.user, pk)
         try:
-            prediction = StartupSuccessPrediction.objects.select_related("startup").get(startup_id=pk)
+            prediction = StartupSuccessPrediction.objects.select_related(
+                "startup"
+            ).get(startup_id=startup.pk)
             return Response(StartupSuccessPredictionSerializer(prediction).data)
         except StartupSuccessPrediction.DoesNotExist:
-            # Trigger async computation
             from apps.analytics.tasks import update_predictions_for_startup
             from .tasks import sync_success_prediction
-            update_predictions_for_startup.delay(pk)
-            sync_success_prediction.delay(pk)
+
+            update_predictions_for_startup.delay(startup.pk)
+            sync_success_prediction.delay(startup.pk)
             return Response(
-                {"message": "Intelligence report is being generated. Retry in a few seconds.", "startup_id": pk},
+                {
+                    "message": "Intelligence report is being generated. Retry in a few seconds.",
+                    "startup_id": startup.pk,
+                },
                 status=status.HTTP_202_ACCEPTED,
             )
 
 
 class DueDiligenceCreateView(generics.CreateAPIView):
-    """POST - kick off a new due-diligence pipeline run."""
+    """POST - kick off a new due-diligence pipeline run.
+
+    SEC-006 / IDOR: the startup referenced in ``request.data`` MUST be
+    visible to the caller.  Attackers cannot create DD reports for
+    arbitrary startups they cannot see.
+    """
 
     serializer_class = DueDiligenceReportSerializer
     permission_classes = (IsAuthenticated,)
@@ -80,12 +97,14 @@ class DueDiligenceCreateView(generics.CreateAPIView):
     def create(self, request: Request, *args, **kwargs) -> Response:
         startup_id = request.data.get("startup")
         if not startup_id:
-            return Response({"startup": "This field is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"startup": "This field is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        try:
-            startup = StartupProfile.objects.get(pk=startup_id)
-        except StartupProfile.DoesNotExist:
-            return Response({"detail": "Startup not found."}, status=status.HTTP_404_NOT_FOUND)
+        # Authorize BEFORE touching the database.  Uses NotFound (404) to
+        # avoid leaking whether startup_id exists.
+        startup = get_authorized_startup_or_404(request.user, int(startup_id))
 
         report = DueDiligenceReport.objects.create(
             startup=startup,
@@ -94,6 +113,7 @@ class DueDiligenceCreateView(generics.CreateAPIView):
         )
 
         from .tasks import run_due_diligence_task
+
         run_due_diligence_task.delay(startup.pk, report.pk)
 
         return Response(
@@ -103,17 +123,41 @@ class DueDiligenceCreateView(generics.CreateAPIView):
 
 
 class DueDiligenceDetailView(generics.RetrieveAPIView):
-    """GET - retrieve a specific DD report by ID."""
+    """GET - retrieve a specific DD report by ID.
+    SEC-006: scoped to reports the user requested or reports for their own startup.
+    Staff may see all reports.
+    """
 
     serializer_class = DueDiligenceReportSerializer
     permission_classes = (IsAuthenticated,)
-    queryset = DueDiligenceReport.objects.select_related("startup", "requested_by").all()
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            return DueDiligenceReport.objects.select_related("startup", "requested_by").all()
+        # Startup users: reports for their own startup only
+        if user.role == "startup":
+            try:
+                startup = user.startup_profile
+                return DueDiligenceReport.objects.filter(
+                    startup=startup
+                ).select_related("startup", "requested_by")
+            except Exception:
+                return DueDiligenceReport.objects.none()
+        # Investor/accelerator: only reports they personally requested
+        return DueDiligenceReport.objects.filter(
+            requested_by=user
+        ).select_related("startup", "requested_by")
 
 
 class DueDiligenceDebateView(APIView):
     """
     POST - run or re-run the bull/bear debate for an existing report.
     Returns updated bull_arguments and bear_arguments.
+
+    SEC-006 / IDOR: the caller must be authorized for the report's
+    underlying startup.  Uses NotFound (404) for both missing reports and
+    unauthorized access.
     """
 
     permission_classes = (IsAuthenticated,)
@@ -122,7 +166,13 @@ class DueDiligenceDebateView(APIView):
         try:
             report = DueDiligenceReport.objects.select_related("startup").get(pk=pk)
         except DueDiligenceReport.DoesNotExist:
-            return Response({"detail": "Report not found."}, status=status.HTTP_404_NOT_FOUND)
+            from rest_framework.exceptions import NotFound
+
+            raise NotFound("Report not found.")
+
+        # Ensure the caller has access to the underlying startup.  If they
+        # don't, this raises NotFound (404), preventing IDOR enumeration.
+        ensure_authorized_for_startup(request.user, report.startup)
 
         if report.status not in ("complete", "failed"):
             return Response(
@@ -184,7 +234,6 @@ class PitchDeckForensicsView(APIView):
 
         from apps.intelligence.forensics import PitchDeckForensicsService
         from apps.intelligence.models import PitchDeckForensicAnalysis
-        from apps.users.models import StartupProfile
 
         forensic_srv = PitchDeckForensicsService()
         report = forensic_srv.analyze_deck_content(
@@ -196,9 +245,13 @@ class PitchDeckForensicsView(APIView):
         startup_obj = None
         if startup_id:
             try:
-                startup_obj = StartupProfile.objects.get(pk=startup_id)
-            except StartupProfile.DoesNotExist:
-                pass
+                # SEC-006 / IDOR: only attach the forensic analysis to a
+                # startup the caller is authorized for.
+                startup_obj = get_authorized_startup_or_404(
+                    request.user, int(startup_id)
+                )
+            except Exception:
+                startup_obj = None
 
         saved_analysis = PitchDeckForensicAnalysis.objects.create(
             startup=startup_obj,
@@ -243,7 +296,9 @@ class EnterpriseTriageWebhookView(APIView):
         )
 
         # 2. Query digital brain for historical deal context
-        brain_srv = DigitalBrainService(tenant_id=data.get("tenant_id", "antler_global"))
+        # SEC-002: derive tenant from the authenticated user, not from request payload
+        user_tenant_id = get_authorized_tenant_id(request, staff_bypass=True)
+        brain_srv = DigitalBrainService(tenant_id=user_tenant_id)
         brain_result = brain_srv.query_memory(f"{data['company_name']} {data.get('industry')}")
 
         # 3. Determine instantaneous triage action (Top 5-10% fast-track vs Needs Work)
@@ -262,9 +317,46 @@ class EnterpriseTriageWebhookView(APIView):
             "timestamp": "2026-08-31T14:00:00Z",
         }
 
-        # If callback URL provided, trigger async webhook delivery
+        # SEC-013: Validate callback_url to prevent SSRF.
+        # Only allow HTTPS URLs pointing to externally-routable hosts.
+        # Block localhost, private IP ranges, and Docker-internal hostnames.
         callback_url = data.get("callback_url")
         if callback_url:
+            from urllib.parse import urlparse
+            import ipaddress
+            _parsed = urlparse(callback_url)
+            _scheme = _parsed.scheme.lower()
+            _host = _parsed.hostname or ""
+            _is_ssrf = False
+            if _scheme not in ("https",):
+                _is_ssrf = True
+            else:
+                # Block private/loopback/link-local addresses and internal hostnames
+                _blocked_hosts = {
+                    "localhost", "0.0.0.0",
+                    "redis", "postgres", "chromadb", "backend", "frontend",
+                    "ml-service",
+                }
+                if _host in _blocked_hosts:
+                    _is_ssrf = True
+                else:
+                    try:
+                        _addr = ipaddress.ip_address(_host)
+                        if (
+                            _addr.is_loopback
+                            or _addr.is_private
+                            or _addr.is_link_local
+                            or _addr.is_reserved
+                            or _addr.is_multicast
+                        ):
+                            _is_ssrf = True
+                    except ValueError:
+                        pass  # hostname, not an IP — already checked blocked list
+            if _is_ssrf:
+                return Response(
+                    {"detail": "callback_url must be an HTTPS URL pointing to an external host."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             from .tasks import send_triage_webhook_callback
             send_triage_webhook_callback.delay(callback_url, response_payload)
 
@@ -274,14 +366,18 @@ class EnterpriseTriageWebhookView(APIView):
 class DigitalBrainQueryView(APIView):
     """
     POST - Query the firm's Digital Brain for past memos, sector theses, and reasoning.
+    tenant_id is derived from the authenticated user — never accepted from request body.
     """
 
     permission_classes = (IsAuthenticated,)
 
     def post(self, request: Request) -> Response:
         query_text = request.data.get("query", "")
-        tenant_id = request.data.get("tenant_id", "default_fund")
-        k = int(request.data.get("k", 5))
+        # SEC-002: tenant_id must come from the authenticated user, not request body.
+        # Accepting tenant_id from the client would allow any user to read any
+        # tenant's private institutional memory.
+        tenant_id = get_authorized_tenant_id(request, staff_bypass=True)
+        k = min(int(request.data.get("k", 5)), 20)  # cap retrieval depth
 
         if not query_text:
             return Response({"query": "This field is required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -301,6 +397,7 @@ class DigitalBrainQueryView(APIView):
 class DigitalBrainIngestView(APIView):
     """
     POST - Ingest a deal memo, partner note, or thesis into the firm's Digital Brain.
+    tenant_id is derived from the authenticated user — never accepted from request body.
     """
 
     permission_classes = (IsAuthenticated,)
@@ -312,7 +409,8 @@ class DigitalBrainIngestView(APIView):
         summary = request.data.get("summary")
         tags = request.data.get("tags", [])
         verdict = request.data.get("verdict", "")
-        tenant_id = request.data.get("tenant_id", "default_fund")
+        # SEC-002: tenant_id must come from the authenticated user, not request body.
+        tenant_id = get_authorized_tenant_id(request, staff_bypass=True)
 
         if not company_name or not content_text:
             return Response({"detail": "company_name and content_text are required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -334,21 +432,42 @@ class DigitalBrainIngestView(APIView):
 class StealthSignalsListView(generics.ListAPIView):
     """
     GET - Browse detected stealth founder signals across all data collectors.
+    SEC-007: restricted to staff, investors, and accelerator users.
+    Startup founders must not be able to access competitive intelligence signals.
     """
 
     permission_classes = (IsAuthenticated,)
     queryset = StealthFounderSignal.objects.all()
     serializer_class = StealthFounderSignalSerializer
 
+    def get_queryset(self):
+        user = self.request.user
+        allowed_roles = {"investor", "accelerator", "admin"}
+        if not (user.is_staff or user.is_superuser or user.role in allowed_roles):
+            raise PermissionDenied(
+                "Access to stealth founder signals is restricted to investors, "
+                "accelerators, and staff."
+            )
+        return super().get_queryset()
+
 
 class StealthSignalDiscoveryTriggerView(APIView):
     """
     POST - Trigger proactive discovery sweep across GitHub, domains, patents, and emerging registries.
+    SEC-014: restricted to staff, investors, and accelerator users only.
+    Startup founders cannot trigger intelligence sweeps.
     """
 
     permission_classes = (IsAuthenticated,)
 
     def post(self, request: Request) -> Response:
+        user = request.user
+        allowed_roles = {"investor", "accelerator", "admin"}
+        if not (user.is_staff or user.is_superuser or user.role in allowed_roles):
+            raise PermissionDenied(
+                "Stealth signal discovery is restricted to investors, accelerators, and staff."
+            )
+
         keyword = request.data.get("keyword", "fintech")
         registry_code = request.data.get("registry", "CAC")
 
@@ -397,10 +516,11 @@ class PitchDeckUploadView(APIView):
     """
     POST /api/v1/intelligence/forensics/deck/upload/
     Accepts multipart PDF/PPTX file uploads and performs stage-aware forensic underwriting.
+    Requires authentication to prevent anonymous AI resource consumption.
     """
 
     parser_classes = (MultiPartParser, FormParser)
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request: Request) -> Response:
         serializer = PitchDeckUploadSerializer(data=request.data)
@@ -409,7 +529,6 @@ class PitchDeckUploadView(APIView):
 
         uploaded_file = serializer.validated_data["file"]
         company_name = serializer.validated_data.get("company_name") or uploaded_file.name.split(".")[0]
-        industry = serializer.validated_data.get("industry", "Technology / AI")
         declared_stage = serializer.validated_data.get("declared_funding_stage", "pre_seed")
         sector = serializer.validated_data.get("sector", "fintech")
         startup_id = serializer.validated_data.get("startup_id")
@@ -435,12 +554,13 @@ class PitchDeckUploadView(APIView):
         score_ledger_dict = report.score_ledger.to_dict() if hasattr(report.score_ledger, "to_dict") else report.score_ledger.__dict__
         stage_assessment_dict = report.stage_assessment.to_dict() if hasattr(report.stage_assessment, "to_dict") else report.stage_assessment.__dict__
 
-        # Store in DB if associated with a startup profile
+        # Store in DB if associated with a startup profile — SEC-006 / IDOR:
+        # only store when the caller is authorized for that startup.
         analysis_record_id = None
         if startup_id:
             try:
-                from apps.users.models import StartupProfile
-                startup = StartupProfile.objects.get(pk=startup_id)
+
+                startup = get_authorized_startup_or_404(request.user, int(startup_id))
                 rec = PitchDeckForensicAnalysis.objects.create(
                     startup=startup,
                     company_name=company_name,
@@ -456,7 +576,11 @@ class PitchDeckUploadView(APIView):
                 )
                 analysis_record_id = rec.id
             except Exception:
-                pass
+                # Authorization failures (NotFound) and other errors should
+                # not cause the forensic analysis response to fail — the
+                # report is still returned, but not persisted to an
+                # unauthorized startup.
+                analysis_record_id = None
 
         return Response({
             "status": "success",
@@ -485,21 +609,38 @@ class EnterpriseTenantListView(APIView):
     """
     GET, POST /api/v1/intelligence/tenants/
     Manage enterprise VC tenants and licensing tiers.
+
+    SEC-003 / P0: Restricted to superusers/staff only.  Previously this
+    endpoint used AllowAny, allowing anonymous attackers to create new
+    enterprise tenants with custom billing tiers.
     """
 
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
+
+    def _staff_or_404(self, request: Request) -> None:
+        if not (request.user.is_staff or request.user.is_superuser):
+            # Return 404 rather than 403 to avoid confirming the endpoint
+            # exists to unauthenticated / low-privilege scanners.
+            from rest_framework.exceptions import NotFound
+
+            raise NotFound("Endpoint not found.")
 
     def get(self, request: Request) -> Response:
+        self._staff_or_404(request)
         tenants = EnterpriseTenant.objects.all()
         serializer = EnterpriseTenantSerializer(tenants, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request: Request) -> Response:
+        self._staff_or_404(request)
         serializer = EnterpriseTenantSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
 
         from apps.intelligence.licensing import EnterpriseLicensingService
+
         tenant = EnterpriseLicensingService.create_tenant(
             name=serializer.validated_data["name"],
             slug=serializer.validated_data["slug"],
@@ -507,44 +648,68 @@ class EnterpriseTenantListView(APIView):
             webhook_url=serializer.validated_data.get("webhook_url", ""),
             contact_email=serializer.validated_data.get("contact_email", ""),
         )
-        return Response(EnterpriseTenantSerializer(tenant).data, status=status.HTTP_201_CREATED)
+        return Response(
+            EnterpriseTenantSerializer(tenant).data,
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class TenantAPIKeyProvisionView(APIView):
     """
     POST /api/v1/intelligence/tenants/{tenant_id}/keys/
     Provisions a new B2B API Key (returns secret once).
+
+    SEC-003 / P0: Restricted to superusers/staff only.  Previously this
+    endpoint used AllowAny, allowing anonymous attackers to mint API
+    keys for any tenant.
     """
 
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request: Request, tenant_id: int) -> Response:
+        if not (request.user.is_staff or request.user.is_superuser):
+            from rest_framework.exceptions import NotFound
+
+            raise NotFound("Endpoint not found.")
+
         try:
             tenant = EnterpriseTenant.objects.get(pk=tenant_id)
         except EnterpriseTenant.DoesNotExist:
-            return Response({"detail": "Tenant not found"}, status=status.HTTP_404_NOT_FOUND)
+            from rest_framework.exceptions import NotFound
+
+            raise NotFound("Tenant not found.")
 
         key_name = request.data.get("name", "Production Key")
         from apps.intelligence.licensing import EnterpriseLicensingService
-        api_key_obj, raw_key = EnterpriseLicensingService.generate_api_key(tenant, name=key_name)
 
-        return Response({
-            "status": "success",
-            "tenant_name": tenant.name,
-            "key_name": api_key_obj.name,
-            "key_prefix": api_key_obj.key_prefix,
-            "api_key": raw_key,
-            "warning": "Store this key safely; it will not be displayed again.",
-        }, status=status.HTTP_201_CREATED)
+        api_key_obj, raw_key = EnterpriseLicensingService.generate_api_key(
+            tenant, name=key_name
+        )
+
+        return Response(
+            {
+                "status": "success",
+                "tenant_name": tenant.name,
+                "key_name": api_key_obj.name,
+                "key_prefix": api_key_obj.key_prefix,
+                "api_key": raw_key,
+                "warning": "Store this key safely; it will not be displayed again.",
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class VoiceInterviewStartView(APIView):
     """
     POST /api/v1/intelligence/voice/start/
     Initiates an AI voice screening interview.
+
+    SEC-003 / P0: Requires authentication AND startup-level authorization.
+    Previously this endpoint used AllowAny, allowing anonymous attackers
+    to run unlimited AI interviews against any startup.
     """
 
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request: Request) -> Response:
         startup_id = request.data.get("startup_id")
@@ -552,15 +717,15 @@ class VoiceInterviewStartView(APIView):
         persona = request.data.get("interviewer_persona", "Sam (Venture Partner AI)")
 
         if not startup_id:
-            return Response({"detail": "startup_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "startup_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        from apps.users.models import StartupProfile
-        try:
-            startup = StartupProfile.objects.get(pk=startup_id)
-        except StartupProfile.DoesNotExist:
-            return Response({"detail": "StartupProfile not found"}, status=status.HTTP_404_NOT_FOUND)
+        startup = get_authorized_startup_or_404(request.user, int(startup_id))
 
         from apps.intelligence.voice_interviews import VoiceInterviewService
+
         session = VoiceInterviewService.start_session(
             startup=startup,
             stage=stage,
@@ -568,35 +733,51 @@ class VoiceInterviewStartView(APIView):
         )
         questions = VoiceInterviewService.get_stage_questions(stage)
 
-        return Response({
-            "status": "session_started",
-            "session_id": session.id,
-            "company_name": startup.company_name,
-            "stage": stage,
-            "interviewer_persona": persona,
-            "agenda_questions": questions,
-        }, status=status.HTTP_201_CREATED)
+        return Response(
+            {
+                "status": "session_started",
+                "session_id": session.id,
+                "company_name": startup.company_name,
+                "stage": stage,
+                "interviewer_persona": persona,
+                "agenda_questions": questions,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class VoiceInterviewTurnView(APIView):
     """
     POST /api/v1/intelligence/voice/{session_id}/turn/
     Records an audio turn in the transcript.
+
+    SEC-003 / P0: Requires authentication.  A turn may only be appended
+    by the session owner (the user who called /start/) or by staff.
     """
 
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request: Request, session_id: int) -> Response:
         serializer = VoiceInterviewTurnSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             session = VoiceInterviewSession.objects.get(pk=session_id)
         except VoiceInterviewSession.DoesNotExist:
-            return Response({"detail": "VoiceInterviewSession not found"}, status=status.HTTP_404_NOT_FOUND)
+            from rest_framework.exceptions import NotFound
+
+            raise NotFound("VoiceInterviewSession not found.")
+
+        # SEC-003: the caller must be authorized for the startup that the
+        # session belongs to.  Sessions without startup authorization
+        # cannot be appended to.
+        ensure_authorized_for_startup(request.user, session.startup)
 
         from apps.intelligence.voice_interviews import VoiceInterviewService
+
         session = VoiceInterviewService.add_transcript_turn(
             session=session,
             speaker=serializer.validated_data["speaker"],
@@ -604,10 +785,11 @@ class VoiceInterviewTurnView(APIView):
             timestamp_offset=serializer.validated_data.get("timestamp", 0.0),
         )
 
-        return Response({
-            "status": "turn_recorded",
-            "session_id": session.id,
-            "turn_count": len(session.transcript),
+        return Response(
+            {
+                "status": "turn_recorded",
+                "session_id": session.id,
+                "turn_count": len(session.transcript),
         }, status=status.HTTP_200_OK)
 
 
@@ -617,13 +799,24 @@ class VoiceInterviewDebriefView(APIView):
     Concludes the voice interview and synthesizes a Partner Debrief Scorecard.
     """
 
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request: Request, session_id: int) -> Response:
         try:
             session = VoiceInterviewSession.objects.get(pk=session_id)
         except VoiceInterviewSession.DoesNotExist:
-            return Response({"detail": "VoiceInterviewSession not found"}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound("VoiceInterviewSession not found")
+
+        user_owns = hasattr(request.user, "startup_profile") and request.user.startup_profile == session.startup
+        if not (request.user.is_staff or user_owns):
+            log_security_event(
+                "sec.idor.blocked",
+                session_id=session_id,
+                user_id=request.user.id,
+                startup_id=session.startup_id,
+                view="VoiceInterviewDebriefView",
+            )
+            raise NotFound("VoiceInterviewSession not found")
 
         from apps.intelligence.voice_interviews import VoiceInterviewService
         debrief = VoiceInterviewService.generate_partner_debrief(session)
@@ -642,12 +835,10 @@ class VoiceInterviewDebriefView(APIView):
 # ---------------------------------------------------------------------------
 
 from .core_evidence import (
-    DataClassification,
     EvidenceClaim,
     EvidenceObservation,
     EvidenceProvenanceEngine,
     EvidenceSourceType,
-    VerificationStatus,
 )
 from .graph import InvestmentKnowledgeGraph
 from .ml.outcomes import VentureOutcomePredictor
@@ -659,7 +850,7 @@ class VentureOutcomePredictView(APIView):
     Computes multi-task Unicorn Probability Profile, Bayesian credible intervals,
     survival curves, and statistical anomaly checks.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         company_name = request.data.get("company_name", "Acme AI")
@@ -687,7 +878,6 @@ class VentureOutcomePredictView(APIView):
             moat_score=moat_score,
         )
 
-        from dataclasses import asdict
         return Response(asdict(profile), status=status.HTTP_200_OK)
 
 
@@ -696,7 +886,7 @@ class EvidenceLedgerView(APIView):
     POST /api/v1/intelligence/evidence/audit/
     Generates an immutable, auditable score provenance ledger from claims and observations.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         dimensions = request.data.get("dimensions", {
@@ -736,7 +926,7 @@ class KnowledgeGraphQueryView(APIView):
     POST /api/v1/intelligence/graph/query/
     Performs investment knowledge graph traversal for co-investors and competitor clusters.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         kg = InvestmentKnowledgeGraph()
@@ -770,7 +960,7 @@ class CohortBatchUploadView(APIView):
     GET /api/v1/intelligence/cohorts/
     List active accelerator cohorts.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request: Request) -> Response:
         from apps.intelligence.models import Cohort
@@ -885,7 +1075,7 @@ class FundingEventListView(APIView):
     POST /api/v1/intelligence/funding-events/
     Create a new funding event / demo day.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request: Request) -> Response:
         from apps.intelligence.models import FundingEvent, Cohort
@@ -993,7 +1183,7 @@ class CohortApplyView(APIView):
     POST /api/v1/intelligence/cohorts/<id>/apply/
     Startups apply to an accelerator cohort using an existing pitch.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request: Request, cohort_id: int) -> Response:
         from apps.intelligence.models import Cohort, CohortApplication
@@ -1001,10 +1191,22 @@ class CohortApplyView(APIView):
 
         cohort = Cohort.objects.filter(id=cohort_id).first()
         if not cohort:
-            return Response({"detail": "Cohort not found"}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound("Cohort not found")
 
         pitch_id = request.data.get("pitch_id")
         pitch = Pitch.objects.filter(id=pitch_id).first() if pitch_id else None
+
+        if pitch and getattr(request.user, "role", None) == request.user.ROLE_STARTUP:
+            user_owns_pitch = hasattr(request.user, "startup_profile") and request.user.startup_profile == pitch.startup
+            if not (request.user.is_staff or user_owns_pitch):
+                log_security_event(
+                    "sec.idor.blocked",
+                    pitch_id=pitch_id,
+                    user_id=request.user.id,
+                    startup_id=pitch.startup_id,
+                    view="CohortApplyView",
+                )
+                raise NotFound("Pitch not found")
 
         company_name = pitch.startup.company_name if (pitch and pitch.startup) else request.data.get("company_name", "Applicant Startup")
         sector = request.data.get("sector") or (pitch.startup.industry if pitch and pitch.startup else "FinTech")
@@ -1051,10 +1253,10 @@ class CohortLeaderboardView(APIView):
     GET /api/v1/intelligence/cohorts/<id>/leaderboard/
     Retrieves ranked applications within an accelerator cohort.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, cohort_id: int) -> Response:
-        from apps.intelligence.models import Cohort, CohortApplication
+        from apps.intelligence.models import Cohort
         cohort = Cohort.objects.filter(id=cohort_id).first()
         if not cohort:
             return Response({"detail": "Cohort not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -1093,17 +1295,26 @@ class AcceleratorWebhookView(APIView):
     POST /api/v1/intelligence/antler/webhook/
     Universal webhook adapter mapping any accelerator CRM (Airtable, HubSpot, Typeform, Antler) to PitchMic.
     """
-    permission_classes = [AllowAny]
+    # AllowAny retained because inbound CRM webhooks are not authenticated via Django session
+    permission_classes = [IsAuthenticated]
 
     def post(self, request: Request) -> Response:
         from apps.intelligence.models import Cohort, CohortApplication
-        payload = request.data
-        external_id = payload.get("deal_id") or payload.get("id", "crm_deal_001")
-        company = payload.get("company_name") or payload.get("name", "Incoming Venture")
-        hub = payload.get("location") or payload.get("hub", "Pan-African Hub")
-        sector = payload.get("industry") or payload.get("sector", "FinTech")
-        cohort_name = payload.get("cohort_name", "Primary Accelerator Batch")
-        organization_name = payload.get("organization_name") or payload.get("source_hub", "Accelerator Hub")
+        try:
+            payload = request.data
+            if payload is None:
+                payload = {}
+            external_id = payload.get("deal_id") or payload.get("id", "crm_deal_001")
+            company = payload.get("company_name") or payload.get("name", "Incoming Venture")
+            hub = payload.get("location") or payload.get("hub", "Pan-African Hub")
+            sector = payload.get("industry") or payload.get("sector", "FinTech")
+            cohort_name = payload.get("cohort_name", "Primary Accelerator Batch")
+            organization_name = payload.get("organization_name") or payload.get("source_hub", "Accelerator Hub")
+        except (AttributeError, TypeError, ValueError):
+            return Response(
+                {"detail": "Invalid webhook payload"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         cohort, _ = Cohort.objects.get_or_create(
             name=cohort_name,
@@ -1152,16 +1363,28 @@ class DueDiligenceExportView(APIView):
     GET /api/v1/intelligence/due-diligence/<id>/export/?format=pdf|markdown|json
     Generates LP-ready IC Memos formatted for download.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, pk: int) -> Response:
         from apps.intelligence.models import DueDiligenceReport
         report = DueDiligenceReport.objects.filter(pk=pk).first()
+        if report:
+            try:
+                ensure_authorized_for_startup(request.user, report.startup)
+            except NotFound:
+                log_security_event(
+                    "sec.idor.blocked",
+                    report_id=pk,
+                    user_id=request.user.id,
+                    startup_id=report.startup_id,
+                    view="DueDiligenceExportView",
+                )
+                raise
         export_format = request.query_params.get("format", "markdown").lower()
 
         if not report:
             # Fallback dynamic mock report for demonstration if ID doesn't exist
-            markdown_content = f"""# INVESTMENT COMMITTEE MEMORANDUM (CONFIDENTIAL)
+            markdown_content = """# INVESTMENT COMMITTEE MEMORANDUM (CONFIDENTIAL)
 ## Deal Reference: IC-2026-AF-04
 **Target:** $1.5M Seed • Lead Syndicate
 **Fundability Score:** 88.4 / 100 (Top 5% Pan-African Decile)
@@ -1213,45 +1436,41 @@ class DueDiligenceVoteView(APIView):
     POST /api/v1/intelligence/due-diligence/<id>/vote/
     Records partner consensus voting on an Investment Committee memo.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request: Request, pk: int) -> Response:
         from apps.intelligence.models import DueDiligenceReport, ICMemoVote
         report = DueDiligenceReport.objects.filter(pk=pk).first()
         if not report:
-            # Create a placeholder report if voting on demo
-            from apps.users.models import StartupProfile
-            startup = StartupProfile.objects.first()
-            if startup:
-                report = DueDiligenceReport.objects.create(
-                    startup=startup,
-                    title=f"IC Memo #{pk}",
-                    executive_summary="Consensus investment memorandum",
-                    recommendation="INVEST",
-                    confidence_score=0.88,
-                )
+            raise NotFound("DueDiligenceReport not found")
+
+        try:
+            ensure_authorized_for_startup(request.user, report.startup)
+        except NotFound:
+            log_security_event(
+                "sec.idor.blocked",
+                report_id=pk,
+                user_id=request.user.id,
+                startup_id=report.startup_id,
+                view="DueDiligenceVoteView",
+            )
+            raise
 
         vote_val = request.data.get("vote", "YES")
         conviction = int(request.data.get("conviction_score", 8))
         role = request.data.get("partner_role", "General Partner")
         notes = request.data.get("notes", "Strong conviction on payment rail moats.")
 
-        user = request.user if request.user.is_authenticated else None
-        if not user:
-            from django.contrib.auth import get_user_model
-            user = get_user_model().objects.first()
-
-        if report and user:
-            vote_obj, _ = ICMemoVote.objects.update_or_create(
-                report=report,
-                voter=user,
-                defaults={
-                    "vote": vote_val,
-                    "conviction_score": conviction,
-                    "partner_role": role,
-                    "notes": notes,
-                }
-            )
+        vote_obj, _ = ICMemoVote.objects.update_or_create(
+            report=report,
+            voter=request.user,
+            defaults={
+                "vote": vote_val,
+                "conviction_score": conviction,
+                "partner_role": role,
+                "notes": notes,
+            }
+        )
 
         return Response({
             "status": "vote_recorded",

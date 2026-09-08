@@ -23,6 +23,10 @@ from rest_framework.views import APIView
 from apps.offers.models import Offer
 from apps.pitches.models import Pitch
 from apps.users.models import InvestorProfile, StartupProfile, User
+from apps.core.permissions import (
+    get_authorized_startup_or_404,
+    get_authorized_investor_or_404,
+)
 
 from .models import FundraisingPrediction, InvestorBehaviorAnalysis, UserBehaviorEvent
 from .serializers import (
@@ -36,71 +40,88 @@ class StartupPredictionView(APIView):
     """
     GET  - return cached prediction (triggers async refresh if stale / absent)
     POST - force an immediate async refresh
+
+    SEC-006 / IDOR: caller must be authorized for the target startup.
+    Unauthorized access returns HTTP 404 (NotFound) to prevent object-ID
+    enumeration.
     """
 
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request, pk: int) -> Response:
+        startup = get_authorized_startup_or_404(request.user, pk)
         try:
-            prediction = FundraisingPrediction.objects.select_related("startup").get(startup_id=pk)
+            prediction = FundraisingPrediction.objects.select_related("startup").get(
+                startup_id=startup.pk
+            )
             return Response(FundraisingPredictionSerializer(prediction).data)
         except FundraisingPrediction.DoesNotExist:
-            # Queue a fresh compute and return 202
             from .tasks import update_predictions_for_startup
-            update_predictions_for_startup.delay(pk)
+
+            update_predictions_for_startup.delay(startup.pk)
             return Response(
                 {"message": "Prediction is being computed. Retry in a few seconds."},
                 status=status.HTTP_202_ACCEPTED,
             )
 
     def post(self, request: Request, pk: int) -> Response:
-        try:
-            StartupProfile.objects.get(pk=pk)
-        except StartupProfile.DoesNotExist:
-            return Response({"detail": "Startup not found."}, status=status.HTTP_404_NOT_FOUND)
-
+        startup = get_authorized_startup_or_404(request.user, pk)
         from .tasks import update_predictions_for_startup
-        update_predictions_for_startup.delay(pk)
-        return Response({"message": "Prediction refresh queued.", "startup_id": pk}, status=status.HTTP_202_ACCEPTED)
+
+        update_predictions_for_startup.delay(startup.pk)
+        return Response(
+            {"message": "Prediction refresh queued.", "startup_id": startup.pk},
+            status=status.HTTP_202_ACCEPTED,
+        )
 
 
 class StartupReadinessView(APIView):
-    """Simplified scorecard: investor-facing 'Is this startup ready?' summary."""
+    """Simplified scorecard: investor-facing 'Is this startup ready?' summary.
+
+    SEC-006 / IDOR: caller must be authorized for the target startup.
+    """
 
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request, pk: int) -> Response:
-        try:
-            startup = StartupProfile.objects.prefetch_related("team_members", "pitches").get(pk=pk)
-        except StartupProfile.DoesNotExist:
-            return Response({"detail": "Startup not found."}, status=status.HTTP_404_NOT_FOUND)
+        startup = get_authorized_startup_or_404(request.user, pk)
+        startup = StartupProfile.objects.prefetch_related("team_members", "pitches").get(
+            pk=startup.pk
+        )
 
         from .services import StartupScoringEngine
+
         engine = StartupScoringEngine()
         data = engine.score(startup)
 
-        return Response({
-            "startup_id": pk,
-            "company_name": startup.company_name,
-            "readiness_score": round(data["success_probability"] * 100, 1),
-            "team_score": data["team_score"],
-            "market_score": data["market_score"],
-            "traction_score": data["traction_score"],
-            "financial_score": round(data.get("scalability_score", 0), 1),
-            "risk_level": data["risk_profile"]["overall_risk"],
-            "top_improvements": data["risk_profile"]["mitigations"],
-            "explanation": data["explanation"],
-        })
+        return Response(
+            {
+                "startup_id": startup.pk,
+                "company_name": startup.company_name,
+                "readiness_score": round(data["success_probability"] * 100, 1),
+                "team_score": data["team_score"],
+                "market_score": data["market_score"],
+                "traction_score": data["traction_score"],
+                "financial_score": round(data.get("scalability_score", 0), 1),
+                "risk_level": data["risk_profile"]["overall_risk"],
+                "top_improvements": data["risk_profile"]["mitigations"],
+                "explanation": data["explanation"],
+            }
+        )
 
 
 class InvestorBehaviorView(generics.RetrieveAPIView):
-    """GET /api/v1/analytics/investor-profile/{pk}/"""
+    """GET /api/v1/analytics/investor-profile/{pk}/
+
+    SEC-006 / IDOR: caller must be authorized for the target investor profile.
+    """
 
     serializer_class = InvestorBehaviorAnalysisSerializer
     permission_classes = (IsAuthenticated,)
 
     def get_object(self):
         pk = self.kwargs["pk"]
+        get_authorized_investor_or_404(self.request.user, pk)
         try:
             analysis, _ = InvestorBehaviorAnalysis.objects.get_or_create(
                 investor_id=pk,
@@ -115,6 +136,7 @@ class InvestorBehaviorView(generics.RetrieveAPIView):
             return analysis
         except InvestorProfile.DoesNotExist:
             from rest_framework.exceptions import NotFound
+
             raise NotFound("Investor not found.")
 
 

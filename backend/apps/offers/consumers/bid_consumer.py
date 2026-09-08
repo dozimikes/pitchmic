@@ -3,23 +3,9 @@ apps.offers.consumers.bid_consumer
 ===================================
 WebSocket consumer for real-time bid/offer updates.
 
-Channel group naming:
-  pitch_<pitch_id>   - all connected clients watching a specific pitch
-  investor_<user_id> - per-investor channel for outbound offer status updates
-
-Message shape sent to clients::
-
-    {
-        "type": "offer.update",
-        "offer_id": "<int>",
-        "status": "<OfferStatus value>",
-        "pitch_id": "<int>",
-        "actor": "<user email>",
-        "timestamp": "<ISO-8601>"
-    }
-
-Connect URL pattern (wired in routing.py):
-    ws://<host>/ws/bids/<pitch_id>/
+SEC-031: Added pitch-level authorization in connect().
+Authentication alone is NOT sufficient — the user must have a legitimate
+relationship to the pitch (owner, investor with active offer, or staff).
 """
 from __future__ import annotations
 
@@ -34,6 +20,38 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
+@database_sync_to_async
+def _is_authorized_for_pitch(user, pitch_id: str) -> bool:
+    """
+    Returns True if the user is allowed to receive real-time events for
+    the given pitch.
+
+    Allowed principals:
+    - Staff / superusers (platform oversight)
+    - The startup that owns the pitch
+    - Any investor who has submitted at least one offer on the pitch
+    """
+    if user.is_staff or user.is_superuser:
+        return True
+    try:
+        from apps.pitches.models import Pitch
+        pitch = Pitch.objects.select_related("startup__user").get(pk=pitch_id)
+    except Exception:
+        return False
+
+    # Startup owner
+    if pitch.startup.user_id == user.pk:
+        return True
+
+    # Investor with an offer on this pitch
+    try:
+        from apps.offers.models import Offer
+        investor = user.investor_profile
+        return Offer.objects.filter(pitch=pitch, investor=investor).exists()
+    except Exception:
+        return False
+
+
 class BidConsumer(AsyncWebsocketConsumer):
     """Async WebSocket consumer for live offer updates on a single pitch."""
 
@@ -45,6 +63,19 @@ class BidConsumer(AsyncWebsocketConsumer):
         # Reject anonymous connections
         if not self.user or not self.user.is_authenticated:
             await self.close(code=4001)
+            return
+
+        # SEC-031: Verify the user has a legitimate relationship with this pitch.
+        # Authentication alone (having a valid JWT) does not entitle a user to
+        # subscribe to another startup's real-time offer stream.
+        authorized = await _is_authorized_for_pitch(self.user, self.pitch_id)
+        if not authorized:
+            await self.close(code=4003)
+            logger.warning(
+                "WS unauthorized: user=%s attempted pitch=%s",
+                self.user.email,
+                self.pitch_id,
+            )
             return
 
         # Join pitch-specific group
@@ -68,6 +99,7 @@ class BidConsumer(AsyncWebsocketConsumer):
         """
         Clients may optionally send a ping frame; we echo it back.
         All real updates originate from the server side via group_send.
+        Reject any other client-initiated messages.
         """
         if text_data:
             try:
@@ -76,9 +108,10 @@ class BidConsumer(AsyncWebsocketConsumer):
                 return
             if data.get("type") == "ping":
                 await self.send(text_data=json.dumps({"type": "pong"}))
+            # Ignore all other message types — clients cannot push events
 
     # -----------------------------------------------------------------------
-    # Handlers - called by channel_layer.group_send from Django signal/task
+    # Handlers — called by channel_layer.group_send from Django signal/task
     # -----------------------------------------------------------------------
 
     async def offer_update(self, event: dict[str, Any]) -> None:

@@ -21,7 +21,7 @@ from __future__ import annotations
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.exceptions import NotFound, PermissionDenied
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -238,31 +238,56 @@ class SlideTelemetryView(APIView):
     Records per-slide viewing telemetry.
     GET /api/v1/dataroom/telemetry/<document_id>/
     Retrieves slide engagement heatmap & drop-off analytics for a pitch deck.
+
+    SEC-004: Requires authentication. Startup owners see their own doc analytics;
+    investors see analytics for docs they have active access to.
     """
 
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request: Request) -> Response:
         from apps.dataroom.models import DataRoomDocument, SlideEngagementLog
 
         doc_id = request.data.get("document_id")
-        email = request.data.get("viewer_email", "anonymous@investor.com")
+        # SEC-004 / SEC-012: reject requests with no document_id; never fall
+        # back to .objects.first() which would corrupt a random document's stats.
+        if not doc_id:
+            return Response(
+                {"detail": "document_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            doc = DataRoomDocument.objects.get(pk=doc_id, is_active=True)
+        except DataRoomDocument.DoesNotExist:
+            return Response({"detail": "Document not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Verify the requesting user has access to this document
+        user: User = request.user
+        if user.role == User.ROLE_STARTUP:
+            if doc.startup.user != user:
+                raise PermissionDenied("You can only record telemetry for your own documents.")
+        elif user.role == User.ROLE_INVESTOR:
+            try:
+                investor = user.investor_profile
+                DataRoomAccess.objects.get(startup=doc.startup, investor=investor, status="active")
+            except (InvestorProfile.DoesNotExist, DataRoomAccess.DoesNotExist):
+                raise PermissionDenied("You do not have active access to this document.")
+        elif not (user.is_staff or user.is_superuser):
+            raise PermissionDenied("Access denied.")
+
+        email = request.data.get("viewer_email") or user.email
         slide_num = int(request.data.get("slide_number", 1))
         duration = float(request.data.get("duration_seconds", 5.0))
         completed = bool(request.data.get("completed_deck", False))
 
-        doc = DataRoomDocument.objects.filter(pk=doc_id).first() if doc_id else None
-        if not doc:
-            doc = DataRoomDocument.objects.first()
-
-        if doc:
-            SlideEngagementLog.objects.create(
-                document=doc,
-                viewer_email=email,
-                slide_number=slide_num,
-                duration_seconds=duration,
-                completed_deck=completed,
-            )
+        SlideEngagementLog.objects.create(
+            document=doc,
+            viewer_email=email,
+            slide_number=slide_num,
+            duration_seconds=duration,
+            completed_deck=completed,
+        )
 
         return Response({
             "status": "telemetry_recorded",
@@ -274,24 +299,26 @@ class SlideTelemetryView(APIView):
         from apps.dataroom.models import DataRoomDocument, SlideEngagementLog
         from django.db.models import Avg, Count
 
+        try:
+            doc = DataRoomDocument.objects.select_related("startup").get(pk=pk, is_active=True)
+        except DataRoomDocument.DoesNotExist:
+            return Response({"detail": "Document not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Only the startup owner or staff may see the full heatmap analytics
+        user: User = request.user
+        if user.role == User.ROLE_STARTUP:
+            if doc.startup.user != user:
+                raise PermissionDenied("You can only view analytics for your own documents.")
+        elif not (user.is_staff or user.is_superuser):
+            raise PermissionDenied("Only the document owner or staff may view telemetry analytics.")
+
         logs = SlideEngagementLog.objects.filter(document_id=pk)
         if not logs.exists():
-            # Standard baseline heatmap representation
-            heatmap = [
-                {"slide": 1, "title": "Cover", "avg_seconds": 12.0, "views": 24},
-                {"slide": 2, "title": "Problem", "avg_seconds": 34.0, "views": 24},
-                {"slide": 3, "title": "Solution", "avg_seconds": 41.0, "views": 22},
-                {"slide": 4, "title": "Product Demo", "avg_seconds": 52.0, "views": 20},
-                {"slide": 5, "title": "Traction & MRR", "avg_seconds": 63.0, "views": 19},
-                {"slide": 6, "title": "Unit Economics", "avg_seconds": 58.0, "views": 18},
-                {"slide": 7, "title": "Competitors", "avg_seconds": 29.0, "views": 16},
-                {"slide": 8, "title": "Ask & Cap Table", "avg_seconds": 45.0, "views": 16},
-            ]
             return Response({
                 "document_id": pk,
-                "total_viewers": 24,
-                "completion_rate": "66.7%",
-                "slide_heatmap": heatmap,
+                "total_viewers": 0,
+                "completion_rate": "0%",
+                "slide_heatmap": [],
             })
 
         summary = (

@@ -54,6 +54,40 @@ def verify_verification_token(token: str) -> int | None:
         return None
 
 
+# ---------------------------------------------------------------------------
+# Password reset tokens — separate salt to prevent token reuse across flows
+# ---------------------------------------------------------------------------
+
+# Maximum lifetime: 1 hour (tighter than email verification — password reset
+# is a higher-security operation).
+PASSWORD_RESET_TOKEN_MAX_AGE: int = 60 * 60  # 1 hour
+
+_PASSWORD_RESET_SALT = "pitchmic.password_reset"
+
+
+def make_password_reset_token(user_pk: int) -> str:
+    """
+    Return a time-stamped signed token encoding *user_pk* for use in a
+    password reset URL.  Uses a distinct salt from the email verification
+    token so the two token types cannot be used interchangeably.
+    """
+    signer = signing.TimestampSigner(salt=_PASSWORD_RESET_SALT)
+    return signer.sign(str(user_pk))
+
+
+def verify_password_reset_token(token: str) -> int | None:
+    """
+    Validate a password reset *token* and return the user PK it encodes,
+    or None if invalid or expired (> 1 hour old).
+    """
+    signer = signing.TimestampSigner(salt=_PASSWORD_RESET_SALT)
+    try:
+        user_pk_str = signer.unsign(token, max_age=PASSWORD_RESET_TOKEN_MAX_AGE)
+        return int(user_pk_str)
+    except (signing.SignatureExpired, signing.BadSignature, ValueError):
+        return None
+
+
 @shared_task(
     bind=True,
     autoretry_for=(Exception,),
@@ -103,7 +137,7 @@ def send_verification_email(self, user_id: int) -> None:  # noqa: ANN001
         f"<p>- The PitchMic Team</p>"
     )
 
-    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@pitchmic.com")
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@pitchmic.local")
 
     send_mail(
         subject=subject,
@@ -115,3 +149,66 @@ def send_verification_email(self, user_id: int) -> None:  # noqa: ANN001
     )
 
     logger.info("Verification email sent to user pk=%s (%s)", user.pk, user.email)
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+    ignore_result=True,
+    name="users.send_password_reset_email",
+)
+def send_password_reset_email(self, user_id: int) -> None:  # noqa: ANN001
+    """
+    Generate a password reset token for *user_id* and send an email with
+    a link to the frontend reset-password page.  The link expires in 1 hour.
+
+    Retries up to 3 times with exponential backoff on any exception.
+    """
+    from apps.users.models import User  # local import avoids circular deps
+
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        logger.warning("send_password_reset_email: user pk=%s not found, skipping", user_id)
+        return
+
+    token = make_password_reset_token(user.pk)
+
+    frontend_base = getattr(settings, "FRONTEND_BASE_URL", "http://localhost:3000")
+    reset_url = f"{frontend_base}/reset-password?token={token}"
+
+    subject = "Reset your PitchMic password"
+    plain_body = (
+        f"Hi {user.first_name or user.email},\n\n"
+        f"We received a request to reset the password for your PitchMic account.\n\n"
+        f"Click the link below to choose a new password:\n\n"
+        f"{reset_url}\n\n"
+        f"This link expires in 1 hour.\n\n"
+        f"If you did not request a password reset you can safely ignore this email — "
+        f"your password has not been changed.\n\n"
+        f"- The PitchMic Team"
+    )
+    html_body = (
+        f"<p>Hi {user.first_name or user.email},</p>"
+        f"<p>We received a request to reset the password for your PitchMic account.</p>"
+        f'<p><a href="{reset_url}" style="color:#f97316;font-weight:bold;">Reset your password</a></p>'
+        f"<p>This link expires in <strong>1 hour</strong>.</p>"
+        f"<p>If you did not request a password reset you can safely ignore this email — "
+        f"your password has not been changed.</p>"
+        f"<p>- The PitchMic Team</p>"
+    )
+
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@pitchmic.local")
+
+    send_mail(
+        subject=subject,
+        message=plain_body,
+        html_message=html_body,
+        from_email=from_email,
+        recipient_list=[user.email],
+        fail_silently=False,
+    )
+
+    logger.info("Password reset email sent to user pk=%s (%s)", user.pk, user.email)

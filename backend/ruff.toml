@@ -1,6 +1,5 @@
 target-version = "py312"
-
-[build]
+line-length = 88
 exclude = [
     "**/migrations/*.py",
     "**/node_modules",
@@ -11,7 +10,6 @@ exclude = [
 ]
 
 [lint]
-include = ["*.py"]
 select = [
     "E",
     "F",
@@ -78,7 +76,5 @@ section-order = [
 [format]
 quote-style = "double"
 indent-style = "space"
-indent-width = 4
-line-length = 88
 docstring-code-format = true
 docstring-code-line-length = 88

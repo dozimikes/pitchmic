@@ -1,0 +1,1012 @@
+/* ==========================================================================
+   Pitchmic Modern Django Administration Theme
+   Complete UI/UX design system parity with Pitchmic user dashboard & sign-in
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --pitchmic-orange: #f97316;
+  --pitchmic-orange-hover: #ea580c;
+  --pitchmic-orange-active: #c2410c;
+  --pitchmic-orange-subtle: rgba(249, 115, 22, 0.1);
+  --pitchmic-deep: #4f46e5;
+  --pitchmic-slate-950: #020617;
+  --pitchmic-slate-900: #0f172a;
+  --pitchmic-slate-800: #1e293b;
+  --pitchmic-slate-700: #334155;
+  --pitchmic-slate-600: #475569;
+  --pitchmic-slate-500: #64748b;
+  --pitchmic-slate-400: #94a3b8;
+  --pitchmic-slate-300: #cbd5e1;
+  --pitchmic-slate-200: #e2e8f0;
+  --pitchmic-slate-100: #f1f5f9;
+  --pitchmic-slate-50: #f8fafc;
+  --pitchmic-radius-sm: 6px;
+  --pitchmic-radius-md: 10px;
+  --pitchmic-radius-lg: 14px;
+  --pitchmic-radius-xl: 18px;
+  --pitchmic-shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --pitchmic-shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --pitchmic-shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.07), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
+  --pitchmic-shadow-orange: 0 4px 14px 0 rgba(249, 115, 22, 0.28);
+  --sidebar-width: 300px;
+}
+
+/* Global Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  background-color: var(--pitchmic-slate-50) !important;
+  color: var(--pitchmic-slate-900) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Master Layout */
+#pitchmic-admin-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --------------------------------------------------------------------------
+   1. Fixed Top Header Bar (#pitchmic-top-header)
+   -------------------------------------------------------------------------- */
+#pitchmic-top-header {
+  background: var(--pitchmic-slate-900);
+  color: #ffffff;
+  height: 64px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--pitchmic-slate-800);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-hamburger-btn {
+  display: none;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+}
+
+@media (max-width: 960px) {
+  .header-hamburger-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #ffffff;
+}
+
+.pitchmic-admin-logo {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+}
+
+.brand-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+
+.env-badge {
+  font-size: 0.675rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background: rgba(249, 115, 22, 0.15);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-shortcut-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: var(--pitchmic-radius-sm);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: all 0.2s ease;
+}
+
+.nav-shortcut-btn:hover {
+  background: var(--pitchmic-orange);
+  color: #ffffff;
+  border-color: var(--pitchmic-orange);
+}
+
+@media (max-width: 600px) {
+  .nav-shortcut-btn span {
+    display: none;
+  }
+}
+
+.user-profile-menu {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-avatar-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px 3px 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.avatar-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--pitchmic-orange), #ea580c);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-info-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.user-name {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #ffffff;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-role-tag {
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.header-tool-btn, .logout-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  padding: 6px 10px;
+  border-radius: var(--pitchmic-radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.header-tool-btn:hover, .logout-btn:hover {
+  background: rgba(239, 68, 68, 0.9);
+  color: #ffffff;
+  border-color: #ef4444;
+}
+
+/* --------------------------------------------------------------------------
+   2. Fixed & Independently Scrollable Left Sidebar
+   -------------------------------------------------------------------------- */
+#pitchmic-body-container {
+  margin-top: 64px;
+  display: flex;
+  width: 100%;
+  min-height: calc(100vh - 64px);
+  position: relative;
+}
+
+#pitchmic-sidebar {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #ffffff;
+  border-right: 1px solid var(--pitchmic-slate-200);
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+  transition: transform 0.25s ease;
+}
+
+#pitchmic-sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+
+#pitchmic-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#pitchmic-sidebar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+#pitchmic-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Mobile Drawer View */
+@media (max-width: 960px) {
+  #pitchmic-sidebar {
+    transform: translateX(-100%);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  }
+  #pitchmic-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 64px 0 0 0;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 850;
+  }
+  .sidebar-backdrop.active {
+    display: block;
+  }
+}
+
+/* Superuser Role Switcher in Sidebar */
+.sidebar-role-switcher {
+  padding: 12px;
+  border-bottom: 1px solid var(--pitchmic-slate-100);
+  background: var(--pitchmic-slate-50);
+  flex-shrink: 0;
+}
+
+.role-switcher-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--pitchmic-slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.current-role-badge {
+  background: var(--pitchmic-slate-200);
+  color: var(--pitchmic-slate-700);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.role-switcher-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  background: #e2e8f0;
+  padding: 3px;
+  border-radius: 8px;
+}
+
+.role-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 2px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--pitchmic-slate-600);
+  transition: all 0.15s ease;
+  gap: 2px;
+}
+
+.role-btn:hover {
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--pitchmic-slate-900);
+}
+
+.role-btn.active {
+  background: var(--pitchmic-slate-900);
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.role-btn.active svg {
+  color: #34d399;
+}
+
+/* Sidebar Instant Filter / Search Box */
+.sidebar-search-box {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--pitchmic-slate-100);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.search-box-icon {
+  position: absolute;
+  left: 22px;
+  color: var(--pitchmic-slate-400);
+  pointer-events: none;
+}
+
+.sidebar-search-box input {
+  width: 100% !important;
+  height: 34px !important;
+  padding: 4px 10px 4px 30px !important;
+  border: 1px solid var(--pitchmic-slate-200) !important;
+  border-radius: 8px !important;
+  font-size: 0.775rem !important;
+  background: var(--pitchmic-slate-50) !important;
+  color: var(--pitchmic-slate-900) !important;
+  transition: all 0.15s ease !important;
+}
+
+.sidebar-search-box input:focus {
+  background: #ffffff !important;
+  border-color: var(--pitchmic-orange) !important;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2) !important;
+}
+
+/* Sidebar Navigation Items */
+.sidebar-nav {
+  padding: 10px 10px 36px 10px;
+  flex: 1;
+}
+
+.nav-section-group {
+  margin-bottom: 12px;
+}
+
+.nav-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 4px 10px;
+}
+
+.section-title-link {
+  font-size: 0.675rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pitchmic-slate-500);
+  text-decoration: none;
+}
+
+.section-title-link:hover {
+  color: var(--pitchmic-orange);
+}
+
+.section-count-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: var(--pitchmic-slate-100);
+  color: var(--pitchmic-slate-600);
+  margin-left: auto;
+  margin-right: 6px;
+}
+
+.section-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--pitchmic-slate-400);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+.section-toggle-btn:hover {
+  color: var(--pitchmic-slate-700);
+  background: var(--pitchmic-slate-100);
+}
+
+.nav-section-group.collapsed ul.nav-list {
+  display: none;
+}
+
+.nav-section-group.collapsed .section-toggle-btn svg {
+  transform: rotate(-90deg);
+}
+
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar-model-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 8px;
+  padding-right: 6px;
+  transition: background 0.15s ease;
+  margin-bottom: 2px;
+}
+
+.sidebar-model-item:hover {
+  background: var(--pitchmic-slate-100);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--pitchmic-slate-700);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-item:hover {
+  color: var(--pitchmic-slate-900);
+}
+
+.nav-item.active {
+  background: var(--pitchmic-slate-900);
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.nav-item.active .model-name {
+  color: #ffffff !important;
+}
+
+.nav-item.active svg {
+  color: var(--pitchmic-orange) !important;
+}
+
+.model-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Quick Add Button (+ Add) */
+.add-quick-btn {
+  font-size: 0.675rem;
+  font-weight: 700;
+  color: var(--pitchmic-orange);
+  background: var(--pitchmic-orange-subtle);
+  border-radius: 4px;
+  padding: 2px 6px;
+  text-decoration: none;
+  opacity: 0.75;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.sidebar-model-item:hover .add-quick-btn {
+  opacity: 1;
+}
+
+.add-quick-btn:hover {
+  background: var(--pitchmic-orange);
+  color: #ffffff;
+}
+
+/* Pills */
+.nav-pill {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.pill-live {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.pill-vc {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.pill-active {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.pill-sec {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* --------------------------------------------------------------------------
+   3. Main Dashboard Content (Independent Scroll)
+   -------------------------------------------------------------------------- */
+#pitchmic-main-content {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  min-width: 0;
+  min-height: calc(100vh - 64px);
+  background: var(--pitchmic-slate-50);
+}
+
+@media (max-width: 960px) {
+  #pitchmic-main-content {
+    margin-left: 0;
+  }
+}
+
+.breadcrumbs-bar {
+  background: #ffffff;
+  border-bottom: 1px solid var(--pitchmic-slate-200);
+  padding: 12px 32px;
+}
+
+.breadcrumbs {
+  font-size: 0.825rem;
+  font-weight: 500;
+  color: var(--pitchmic-slate-500);
+}
+
+.breadcrumbs a {
+  color: var(--pitchmic-slate-700);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.breadcrumbs a:hover {
+  color: var(--pitchmic-orange);
+}
+
+.breadcrumbs .sep {
+  margin: 0 8px;
+  color: var(--pitchmic-slate-300);
+}
+
+.breadcrumbs .active-crumb {
+  color: var(--pitchmic-slate-900);
+  font-weight: 600;
+}
+
+.content-body {
+  padding: 28px 32px;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.page-main-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--pitchmic-slate-900);
+  margin-bottom: 24px;
+}
+
+/* --------------------------------------------------------------------------
+   4. Executive KPI Telemetry Grid
+   -------------------------------------------------------------------------- */
+.pitchmic-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+@media (min-width: 640px) {
+  .pitchmic-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1150px) {
+  .pitchmic-kpi-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.kpi-card {
+  background: #ffffff;
+  border: 1px solid var(--pitchmic-slate-200);
+  border-radius: var(--pitchmic-radius-lg);
+  padding: 18px 20px;
+  box-shadow: var(--pitchmic-shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.kpi-card:hover {
+  box-shadow: var(--pitchmic-shadow-md);
+  border-color: #cbd5e1;
+}
+
+.kpi-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.kpi-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--pitchmic-slate-500);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kpi-icon-wrapper {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-orange {
+  background: rgba(249, 115, 22, 0.12);
+  color: var(--pitchmic-orange);
+}
+
+.icon-purple {
+  background: rgba(139, 92, 246, 0.12);
+  color: #7c3aed;
+}
+
+.icon-emerald {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.icon-blue {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+
+.kpi-value {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--pitchmic-slate-900);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.kpi-footer {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kpi-subtext {
+  font-size: 0.775rem;
+  color: var(--pitchmic-slate-500);
+}
+
+.kpi-pill {
+  font-size: 0.675rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+}
+
+.pill-green {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.pill-blue {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.pill-purple {
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+/* --------------------------------------------------------------------------
+   5. Modules, App Tables, & Dashboard Sections
+   -------------------------------------------------------------------------- */
+.pitchmic-dashboard-main {
+  width: 100%;
+}
+
+.module {
+  background: #ffffff !important;
+  border: 1px solid var(--pitchmic-slate-200) !important;
+  border-radius: var(--pitchmic-radius-lg) !important;
+  box-shadow: var(--pitchmic-shadow-sm) !important;
+  margin-bottom: 24px !important;
+  overflow: hidden !important;
+}
+
+.module h2, .module caption {
+  background: #ffffff !important;
+  color: var(--pitchmic-slate-900) !important;
+  font-size: 0.975rem !important;
+  font-weight: 700 !important;
+  padding: 14px 20px !important;
+  border-bottom: 1px solid var(--pitchmic-slate-200) !important;
+  letter-spacing: -0.01em !important;
+}
+
+.module table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+
+.module th, .module td {
+  padding: 12px 20px !important;
+  font-size: 0.85rem !important;
+  border-bottom: 1px solid var(--pitchmic-slate-100) !important;
+}
+
+.module th a {
+  font-weight: 600 !important;
+  color: var(--pitchmic-slate-800) !important;
+  text-decoration: none !important;
+}
+
+.module th a:hover {
+  color: var(--pitchmic-orange) !important;
+}
+
+.module tr:hover th, .module tr:hover td {
+  background: #fafaf9 !important;
+}
+
+/* Timeline Activity Card */
+.modern-timeline-card {
+  background: #ffffff;
+  border: 1px solid var(--pitchmic-slate-200);
+  border-radius: var(--pitchmic-radius-lg);
+  padding: 20px;
+}
+
+.timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.timeline-header h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--pitchmic-slate-900);
+  margin: 0;
+}
+
+.timeline-badge {
+  font-size: 0.675rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 9999px;
+}
+
+.modern-actionlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.action-item {
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.action-meta {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--pitchmic-slate-400);
+}
+
+.action-title a {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--pitchmic-slate-800);
+  text-decoration: none;
+}
+
+.action-title a:hover {
+  color: var(--pitchmic-orange);
+}
+
+/* --------------------------------------------------------------------------
+   6. Forms, Inputs, Buttons, & Change Lists
+   -------------------------------------------------------------------------- */
+.button, input[type=submit], input[type=button], .submit-row input, a.button {
+  background: var(--pitchmic-orange) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
+  padding: 9px 18px !important;
+  border-radius: var(--pitchmic-radius-md) !important;
+  border: none !important;
+  box-shadow: var(--pitchmic-shadow-orange) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  text-transform: none !important;
+}
+
+.button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover {
+  background: var(--pitchmic-orange-hover) !important;
+  transform: translateY(-1px) !important;
+}
+
+.button.default, input[type=submit].default {
+  background: var(--pitchmic-orange) !important;
+}
+
+.button.deletelink, a.deletelink {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25) !important;
+}
+
+input[type="text"], input[type="password"], input[type="email"], input[type="url"],
+input[type="number"], select, textarea {
+  border: 1px solid var(--pitchmic-slate-200) !important;
+  border-radius: var(--pitchmic-radius-md) !important;
+  padding: 8px 12px !important;
+  font-size: 0.875rem !important;
+  background: #ffffff !important;
+  color: var(--pitchmic-slate-900) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus,
+input[type="url"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+  border-color: var(--pitchmic-orange) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2) !important;
+}
+
+#changelist {
+  background: #ffffff !important;
+  border: 1px solid var(--pitchmic-slate-200) !important;
+  border-radius: var(--pitchmic-radius-lg) !important;
+  box-shadow: var(--pitchmic-shadow-sm) !important;
+  overflow: hidden !important;
+}
+
+#changelist table thead th {
+  background: #f8fafc !important;
+  color: var(--pitchmic-slate-600) !important;
+  font-size: 0.725rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid var(--pitchmic-slate-200) !important;
+}
+
+#changelist table tbody tr:hover {
+  background: #f8fafc !important;
+}
+
+#changelist-filter {
+  background: #ffffff !important;
+  border-left: 1px solid var(--pitchmic-slate-200) !important;
+}
+
+#changelist-filter h2 {
+  background: #f8fafc !important;
+  color: var(--pitchmic-slate-900) !important;
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid var(--pitchmic-slate-200) !important;
+}
+
+ul.messagelist {
+  margin: 0 0 20px 0 !important;
+  padding: 0 !important;
+}
+
+ul.messagelist li {
+  padding: 12px 16px !important;
+  border-radius: var(--pitchmic-radius-md) !important;
+  font-size: 0.85rem !important;
+  font-weight: 500 !important;
+  margin-bottom: 10px !important;
+  list-style: none !important;
+  border: 1px solid transparent !important;
+}
+
+ul.messagelist li.success {
+  background: #f0fdf4 !important;
+  color: #166534 !important;
+  border-color: #bbf7d0 !important;
+}
+
+ul.messagelist li.warning {
+  background: #fffbeb !important;
+  color: #92400e !important;
+  border-color: #fde68a !important;
+}
+
+ul.messagelist li.error {
+  background: #fef2f2 !important;
+  color: #991b1b !important;
+  border-color: #fecaca !important;
+}

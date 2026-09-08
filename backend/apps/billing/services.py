@@ -15,6 +15,34 @@ from .models import BillingPlan, PaymentTransaction
 
 PAYSTACK_API_URL = "https://api.paystack.co"
 
+# ---------------------------------------------------------------------------
+# SEC-009: Server-side authoritative plan pricing.
+# Amounts are in USD dollars (Decimal). The client-supplied amount is ignored;
+# only these server-side values are used for Paystack initialization.
+# ---------------------------------------------------------------------------
+_YEARLY_DISCOUNT = 1 - 0.05   # 5% off for yearly billing
+
+# Monthly amounts in USD dollars
+_PLAN_MONTHLY_USD: dict[str, "Decimal"] = {
+    "free":         Decimal("0.00"),
+    "founder-pro":  Decimal("9.00"),
+    "raise-pass":   Decimal("25.00"),
+}
+
+
+def get_authoritative_plan_amount(plan_slug: str, billing_cycle: str) -> Decimal:
+    """
+    Return the server-side authoritative charge amount (USD, 2 dp) for the
+    given plan and billing cycle.  Raises ValueError for unknown plan slugs.
+    """
+    monthly = _PLAN_MONTHLY_USD.get(plan_slug)
+    if monthly is None:
+        raise ValueError(f"Unknown plan slug: {plan_slug!r}")
+    if billing_cycle == "yearly":
+        annual = monthly * 12 * Decimal(str(_YEARLY_DISCOUNT))
+        return annual.quantize(Decimal("0.01"))
+    return monthly
+
 
 def _normalize_paystack_amount(amount: Decimal | str | int | float) -> int:
     amount_decimal = Decimal(str(amount))
@@ -108,9 +136,18 @@ def initialize_paystack_transaction(
 
 
 def verify_paystack_signature(payload: str, signature: str) -> bool:
-    secret = (settings.PAYSTACK_SECRET_KEY or "").encode("utf-8")
-    if not secret:
+    secret_str = settings.PAYSTACK_SECRET_KEY or ""
+    # SEC-022: reject the default test-key placeholder so a misconfigured
+    # environment cannot have its webhooks trivially forged by anyone who
+    # has read the .env.example file.
+    _placeholder_keys = {
+        "sk_test_your_secret_key_here",
+        "test_paystack_secret_key_local_dev",
+        "",
+    }
+    if secret_str in _placeholder_keys:
         return False
+    secret = secret_str.encode("utf-8")
     expected = hmac.new(secret, payload.encode("utf-8"), hashlib.sha512).hexdigest()
     return hmac.compare_digest(expected, signature or "")
 
@@ -189,6 +226,24 @@ def verify_paystack_reference(reference: str) -> dict[str, Any]:
     billing_cycle = metadata.get("billing_cycle") or "monthly"
     if plan_slug not in {choice[0] for choice in BillingPlan.choices}:
         plan_slug = user.subscription_plan
+
+    # SEC-009: Verify that the amount Paystack actually charged matches the
+    # server-side authoritative price for this plan before granting entitlement.
+    try:
+        expected_amount_usd = get_authoritative_plan_amount(plan_slug, billing_cycle)
+        actual_amount_usd = Decimal(str(data.get("amount", 0))) / Decimal("100")
+        # Allow a tolerance of $0.01 for rounding; anything lower is a manipulation attempt.
+        if expected_amount_usd > Decimal("0") and actual_amount_usd < (expected_amount_usd - Decimal("0.01")):
+            return {
+                "status": False,
+                "message": (
+                    f"Payment amount mismatch: expected {expected_amount_usd} USD "
+                    f"for plan '{plan_slug}' ({billing_cycle}), got {actual_amount_usd} USD."
+                ),
+                "data": payload,
+            }
+    except ValueError:
+        pass  # unknown plan slug — let downstream validation handle it
 
     user.activate_subscription(
         plan_slug,

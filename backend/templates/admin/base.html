@@ -1,0 +1,662 @@
+{% load i18n static %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:"en-us" }}" dir="{{ LANGUAGE_BIDI|yesno:'rtl,ltr,auto' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+    <link rel="icon" type="image/png" href="{% static 'favicon.png' %}">
+    <link rel="shortcut icon" href="{% static 'favicon.ico' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'admin/css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pitchmic-admin.css' %}">
+    {% block extrastyle %}{% endblock %}
+    {% block extrahead %}{% endblock %}
+</head>
+<body class="{% if is_popup %}popup {% endif %}{% block bodyclass %}{% endblock %}" data-admin-utc-offset="{% now "Z" %}">
+    <div id="pitchmic-admin-layout">
+
+        {% if not is_popup %}
+        <!-- ── Fixed Top Header Bar ── -->
+        <header id="pitchmic-top-header">
+            <div class="header-left">
+                <!-- Mobile Sidebar Hamburger Toggle -->
+                <button type="button" id="sidebar-toggle-btn" class="header-hamburger-btn" aria-label="Toggle navigation menu">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+
+                <a href="{% url 'admin:index' %}" class="brand-link">
+                    <img src="{% static 'logo.png' %}" alt="Pitchmic" class="pitchmic-admin-logo">
+                    <span class="brand-title">Pitchmic Admin</span>
+                </a>
+                <span class="env-badge">Ops Console</span>
+            </div>
+
+            <div class="header-right">
+                <!-- Direct API Documentation Link (SEC-019: Staff Only) -->
+                <a href="/api/docs/swagger/" target="_blank" rel="noopener noreferrer" class="nav-shortcut-btn" title="Open Swagger API Schema">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+                        <path d="M6 6h10"/>
+                        <path d="M6 10h10"/>
+                    </svg>
+                    <span>API Docs</span>
+                </a>
+
+                <!-- User Platform Link -->
+                <a href="http://localhost:3000" target="_blank" rel="noopener noreferrer" class="nav-shortcut-btn" title="Open Pitchmic User Platform">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                        <polyline points="15 3 21 3 21 9"/>
+                        <line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                    <span>View User App</span>
+                </a>
+
+                {% if has_permission %}
+                <div class="user-profile-menu">
+                    <div class="user-avatar-pill">
+                        <div class="avatar-circle">
+                            {% if user.first_name %}{{ user.first_name|first|upper }}{% elif user.email %}{{ user.email|first|upper }}{% else %}A{% endif %}
+                        </div>
+                        <div class="user-info-text">
+                            <span class="user-name">{% firstof user.get_full_name user.first_name user.email %}</span>
+                            <span class="user-role-tag">Staff Admin</span>
+                        </div>
+                    </div>
+
+                    {% if user.is_active and user.has_usable_password %}
+                    <a href="{% url 'admin:password_change' %}" class="header-tool-btn" title="Change Password">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 2l-2 2m-1-1l-2 2m-1-1l-2 2m-1-1l-2 2M3 13a4 4 0 1 0 8 0 4 4 0 0 0-8 0z"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+
+                    <form id="logout-form" method="post" action="{% url 'admin:logout' %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="logout-btn" title="Sign out">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                <polyline points="16 17 21 12 16 7"/>
+                                <line x1="21" y1="12" x2="9" y2="12"/>
+                            </svg>
+                            <span>Sign out</span>
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </header>
+        {% endif %}
+
+        <div id="pitchmic-body-container">
+            {% if not is_popup %}
+            <!-- Mobile Backdrop Overlay -->
+            <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
+            <!-- ── Fixed & Independently Scrollable Left Sidebar ── -->
+            <aside id="pitchmic-sidebar">
+                <!-- Role Switcher Quick-Hop -->
+                <div class="sidebar-role-switcher">
+                    <div class="role-switcher-header">
+                        <span>Platform Quick-Hop</span>
+                        <span class="current-role-badge">ADMIN</span>
+                    </div>
+                    <div class="role-switcher-grid">
+                        <a href="{% url 'admin:index' %}" class="role-btn active" title="Admin Operations">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            </svg>
+                            <span>Admin</span>
+                        </a>
+                        <a href="http://localhost:3000/accelerator" target="_blank" class="role-btn" title="Accelerator OS">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                                <polyline points="2 17 12 22 22 17"/>
+                                <polyline points="2 12 12 17 22 12"/>
+                            </svg>
+                            <span>Accel</span>
+                        </a>
+                        <a href="http://localhost:3000/discover" target="_blank" class="role-btn" title="Investor OS">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect width="20" height="14" x="2" y="7" rx="2" ry="2"/>
+                                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                            </svg>
+                            <span>Investor</span>
+                        </a>
+                        <a href="http://localhost:3000/startup" target="_blank" class="role-btn" title="Startup OS">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
+                                <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+                            </svg>
+                            <span>Founder</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Instant Model Search / Filter -->
+                <div class="sidebar-search-box">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-box-icon">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="text" id="sidebar-filter-input" placeholder="Quick find model... (e.g. pitch, firm)" autocomplete="off">
+                </div>
+
+                <!-- Navigation Tree for All Admin Models -->
+                <nav class="sidebar-nav">
+                    
+                    <!-- Dashboard Home -->
+                    <div class="nav-section-group">
+                        <ul class="nav-list">
+                            <li class="sidebar-model-item">
+                                <a href="{% url 'admin:index' %}" class="nav-item">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                                    <span class="model-name">Overview & Telemetry</span>
+                                    <span class="nav-pill pill-live">Live</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 1. Users & Authentication (7 models) -->
+                    <div class="nav-section-group" data-section="users">
+                        <div class="nav-section-header">
+                            <a href="/admin/users/" class="section-title-link">Users & Auth</a>
+                            <span class="section-count-badge">7</span>
+                            <button type="button" class="section-toggle-btn" aria-label="Toggle section">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                        </div>
+                        <ul class="nav-list">
+                            <li class="sidebar-model-item">
+                                <a href="/admin/users/user/" class="nav-item"><span class="model-name">Users</span></a>
+                                <a href="/admin/users/user/add/" class="add-quick-btn" title="Add User">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/users/startupprofile/" class="nav-item"><span class="model-name">Startup profiles</span></a>
+                                <a href="/admin/users/startupprofile/add/" class="add-quick-btn" title="Add Startup profile">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/users/investorprofile/" class="nav-item"><span class="model-name">Investor profiles</span></a>
+                                <a href="/admin/users/investorprofile/add/" class="add-quick-btn" title="Add Investor profile">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/users/teammember/" class="nav-item"><span class="model-name">Team members</span></a>
+                                <a href="/admin/users/teammember/add/" class="add-quick-btn" title="Add Team member">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/auth/group/" class="nav-item"><span class="model-name">Groups</span></a>
+                                <a href="/admin/auth/group/add/" class="add-quick-btn" title="Add Group">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/token_blacklist/blacklistedtoken/" class="nav-item"><span class="model-name">Blacklisted tokens</span></a>
+                                <a href="/admin/token_blacklist/blacklistedtoken/add/" class="add-quick-btn" title="Add Blacklisted token">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/token_blacklist/outstandingtoken/" class="nav-item"><span class="model-name">Outstanding tokens</span></a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 2. Pitches & Dealmaking (4 models) -->
+                    <div class="nav-section-group" data-section="pitches">
+                        <div class="nav-section-header">
+                            <a href="/admin/pitches/" class="section-title-link">Pitches & Offers</a>
+                            <span class="section-count-badge">4</span>
+                            <button type="button" class="section-toggle-btn" aria-label="Toggle section">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                        </div>
+                        <ul class="nav-list">
+                            <li class="sidebar-model-item">
+                                <a href="/admin/pitches/pitch/" class="nav-item"><span class="model-name">Pitches</span></a>
+                                <a href="/admin/pitches/pitch/add/" class="add-quick-btn" title="Add Pitch">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/pitches/pitchattachment/" class="nav-item"><span class="model-name">Pitch attachments</span></a>
+                                <a href="/admin/pitches/pitchattachment/add/" class="add-quick-btn" title="Add Attachment">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/pitches/pitchlike/" class="nav-item"><span class="model-name">Pitch likes</span></a>
+                                <a href="/admin/pitches/pitchlike/add/" class="add-quick-btn" title="Add Pitch like">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/offers/offer/" class="nav-item"><span class="model-name">Offers</span></a>
+                                <a href="/admin/offers/offer/add/" class="add-quick-btn" title="Add Offer">+ Add</a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 3. Investors Ecosystem (15 models) -->
+                    <div class="nav-section-group" data-section="investors">
+                        <div class="nav-section-header">
+                            <a href="/admin/investors/" class="section-title-link">Investors & VC</a>
+                            <span class="section-count-badge">15</span>
+                            <button type="button" class="section-toggle-btn" aria-label="Toggle section">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                        </div>
+                        <ul class="nav-list">
+                            <li class="sidebar-model-item">
+                                <a href="/admin/investors/investmentfirm/" class="nav-item"><span class="model-name">Investment firms</span></a>
+                                <a href="/admin/investors/investmentfirm/add/" class="add-quick-btn" title="Add Firm">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/investors/investmentfund/" class="nav-item"><span class="model-name">Investment funds</span></a>
+                                <a href="/admin/investors/investmentfund/add/" class="add-quick-btn" title="Add Fund">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/investors/firmmember/" class="nav-item"><span class="model-name">Firm members</span></a>
+                                <a href="/admin/investors/firmmember/add/" class="add-quick-btn" title="Add Member">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/investors/investmentmandate/" class="nav-item"><span class="model-name">Investment mandates</span></a>
+                                <a href="/admin/investors/investmentmandate/add/" class="add-quick-btn" title="Add Mandate">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/investors/investmentcase/" class="nav-item"><span class="model-name">Investment cases</span></a>
+                                <a href="/admin/investors/investmentcase/add/" class="add-quick-btn" title="Add Case">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/investors/investmentmemo/" class="nav-item"><span class="model-name">Investment memos</span></a>
+                                <a href="/admin/investors/investmentmemo/add/" class="add-quick-btn" title="Add Memo">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/investors/icdebatesession/" class="nav-item"><span class="model-name">IC debate sessions</span></a>
+                                <a href="/admin/investors/icdebatesession/add/" class="add-quick-btn" title="Add IC Debate">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/investors/icpartnervote/" class="nav-item"><span class="model-name">IC partner votes</span></a>
+                                <a href="/admin/investors/icpartnervote/add/" class="add-quick-btn" title="Add IC Vote">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/investors/portfoliocompany/" class="nav-item"><span class="model-name">Portfolio companies</span></a>
+                                <a href="/admin/investors/portfoliocompany/add/" class="add-quick-btn" title="Add Portfolio">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/investors/portfolioalert/" class="nav-item"><span class="model-name">Portfolio alerts</span></a>
+                                <a href="/admin/investors/portfolioalert/add/" class="add-quick-btn" title="Add Alert">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/investors/termsheetrevision/" class="nav-item"><span class="model-name">Term sheet revisions</span></a>
+                                <a href="/admin/investors/termsheetrevision/add/" class="add-quick-btn" title="Add Revision">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/investors/dealfinancialmodel/" class="nav-item"><span class="model-name">Deal financial models</span></a>
+                                <a href="/admin/investors/dealfinancialmodel/add/" class="add-quick-btn" title="Add Financial Model">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/investors/dealclaim/" class="nav-item"><span class="model-name">Deal claims</span></a>
+                                <a href="/admin/investors/dealclaim/add/" class="add-quick-btn" title="Add Claim">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/investors/dealevidence/" class="nav-item"><span class="model-name">Deal evidences</span></a>
+                                <a href="/admin/investors/dealevidence/add/" class="add-quick-btn" title="Add Evidence">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/investors/outcomecalibrationrecord/" class="nav-item"><span class="model-name">Outcome calibration records</span></a>
+                                <a href="/admin/investors/outcomecalibrationrecord/add/" class="add-quick-btn" title="Add Record">+ Add</a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 4. Accelerator Cohorts (19 models) -->
+                    <div class="nav-section-group" data-section="accelerator">
+                        <div class="nav-section-header">
+                            <a href="/admin/accelerator/" class="section-title-link">Accelerator Cohorts</a>
+                            <span class="section-count-badge">19</span>
+                            <button type="button" class="section-toggle-btn" aria-label="Toggle section">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                        </div>
+                        <ul class="nav-list">
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/acceleratorprogram/" class="nav-item"><span class="model-name">Accelerator programs</span></a>
+                                <a href="/admin/accelerator/acceleratorprogram/add/" class="add-quick-btn" title="Add Program">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/programmembership/" class="nav-item"><span class="model-name">Program memberships</span></a>
+                                <a href="/admin/accelerator/programmembership/add/" class="add-quick-btn" title="Add Membership">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/acceleratorapplication/" class="nav-item"><span class="model-name">Accelerator applications</span></a>
+                                <a href="/admin/accelerator/acceleratorapplication/add/" class="add-quick-btn" title="Add Application">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/startupapplicationprofile/" class="nav-item"><span class="model-name">Startup application profiles</span></a>
+                                <a href="/admin/accelerator/startupapplicationprofile/add/" class="add-quick-btn" title="Add Profile">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/founderapplicationprofile/" class="nav-item"><span class="model-name">Founder application profiles</span></a>
+                                <a href="/admin/accelerator/founderapplicationprofile/add/" class="add-quick-btn" title="Add Profile">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/applicationquestion/" class="nav-item"><span class="model-name">Application questions</span></a>
+                                <a href="/admin/accelerator/applicationquestion/add/" class="add-quick-btn" title="Add Question">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/questionresponse/" class="nav-item"><span class="model-name">Question responses</span></a>
+                                <a href="/admin/accelerator/questionresponse/add/" class="add-quick-btn" title="Add Response">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/applicationdocument/" class="nav-item"><span class="model-name">Application documents</span></a>
+                                <a href="/admin/accelerator/applicationdocument/add/" class="add-quick-btn" title="Add Document">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/applicationassessment/" class="nav-item"><span class="model-name">Application assessments</span></a>
+                                <a href="/admin/accelerator/applicationassessment/add/" class="add-quick-btn" title="Add Assessment">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/applicationclaim/" class="nav-item"><span class="model-name">Application claims</span></a>
+                                <a href="/admin/accelerator/applicationclaim/add/" class="add-quick-btn" title="Add Claim">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/claimevidence/" class="nav-item"><span class="model-name">Claim evidences</span></a>
+                                <a href="/admin/accelerator/claimevidence/add/" class="add-quick-btn" title="Add Evidence">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/evidencerequest/" class="nav-item"><span class="model-name">Evidence requests</span></a>
+                                <a href="/admin/accelerator/evidencerequest/add/" class="add-quick-btn" title="Add Request">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/reviewerassessment/" class="nav-item"><span class="model-name">Reviewer assessments</span></a>
+                                <a href="/admin/accelerator/reviewerassessment/add/" class="add-quick-btn" title="Add Review">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/reviewerdisagreement/" class="nav-item"><span class="model-name">Reviewer disagreements</span></a>
+                                <a href="/admin/accelerator/reviewerdisagreement/add/" class="add-quick-btn" title="Add Disagreement">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/committeedecision/" class="nav-item"><span class="model-name">Committee decisions</span></a>
+                                <a href="/admin/accelerator/committeedecision/add/" class="add-quick-btn" title="Add Decision">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/interviewsession/" class="nav-item"><span class="model-name">Interview sessions</span></a>
+                                <a href="/admin/accelerator/interviewsession/add/" class="add-quick-btn" title="Add Session">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/continuousassessment/" class="nav-item"><span class="model-name">Continuous assessments</span></a>
+                                <a href="/admin/accelerator/continuousassessment/add/" class="add-quick-btn" title="Add Assessment">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/startupmilestone/" class="nav-item"><span class="model-name">Startup milestones</span></a>
+                                <a href="/admin/accelerator/startupmilestone/add/" class="add-quick-btn" title="Add Milestone">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/accelerator/milestonetemplate/" class="nav-item"><span class="model-name">Milestone templates</span></a>
+                                <a href="/admin/accelerator/milestonetemplate/add/" class="add-quick-btn" title="Add Template">+ Add</a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 5. Pitchmic Intelligence Engine (11 models) -->
+                    <div class="nav-section-group" data-section="intelligence">
+                        <div class="nav-section-header">
+                            <a href="/admin/intelligence_engine/" class="section-title-link">Intelligence Engine</a>
+                            <span class="section-count-badge">11</span>
+                            <button type="button" class="section-toggle-btn" aria-label="Toggle section">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                        </div>
+                        <ul class="nav-list">
+                            <li class="sidebar-model-item">
+                                <a href="/admin/intelligence_engine/organization/" class="nav-item"><span class="model-name">Organizations</span></a>
+                                <a href="/admin/intelligence_engine/organization/add/" class="add-quick-btn" title="Add Organization">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/intelligence_engine/fundinground/" class="nav-item"><span class="model-name">Funding rounds</span></a>
+                                <a href="/admin/intelligence_engine/fundinground/add/" class="add-quick-btn" title="Add Round">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/intelligence_engine/opportunitylifecycle/" class="nav-item"><span class="model-name">Opportunity Lifecycles</span></a>
+                                <a href="/admin/intelligence_engine/opportunitylifecycle/add/" class="add-quick-btn" title="Add Opportunity">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/intelligence_engine/sourceregistry/" class="nav-item"><span class="model-name">Source Registry</span></a>
+                                <a href="/admin/intelligence_engine/sourceregistry/add/" class="add-quick-btn" title="Add Registry">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/intelligence_engine/sourcedocument/" class="nav-item"><span class="model-name">Source documents</span></a>
+                                <a href="/admin/intelligence_engine/sourcedocument/add/" class="add-quick-btn" title="Add Document">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/intelligence_engine/sourcesnapshot/" class="nav-item"><span class="model-name">Source snapshots</span></a>
+                                <a href="/admin/intelligence_engine/sourcesnapshot/add/" class="add-quick-btn" title="Add Snapshot">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/intelligence_engine/rawfact/" class="nav-item"><span class="model-name">Raw facts</span></a>
+                                <a href="/admin/intelligence_engine/rawfact/add/" class="add-quick-btn" title="Add Raw Fact">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/intelligence_engine/factevidence/" class="nav-item"><span class="model-name">Fact evidences</span></a>
+                                <a href="/admin/intelligence_engine/factevidence/add/" class="add-quick-btn" title="Add Fact Evidence">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/intelligence_engine/conflictrecord/" class="nav-item"><span class="model-name">Conflict records</span></a>
+                                <a href="/admin/intelligence_engine/conflictrecord/add/" class="add-quick-btn" title="Add Conflict Record">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/intelligence_engine/changeevent/" class="nav-item"><span class="model-name">Change events</span></a>
+                                <a href="/admin/intelligence_engine/changeevent/add/" class="add-quick-btn" title="Add Event">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/intelligence_engine/readinessblocker/" class="nav-item"><span class="model-name">Readiness blockers</span></a>
+                                <a href="/admin/intelligence_engine/readinessblocker/add/" class="add-quick-btn" title="Add Blocker">+ Add</a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 6. Newsfeed & Notifications (4 models) -->
+                    <div class="nav-section-group" data-section="comms">
+                        <div class="nav-section-header">
+                            <a href="/admin/notifications/" class="section-title-link">Comms & Newsfeed</a>
+                            <span class="section-count-badge">4</span>
+                            <button type="button" class="section-toggle-btn" aria-label="Toggle section">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                        </div>
+                        <ul class="nav-list">
+                            <li class="sidebar-model-item">
+                                <a href="/admin/newsfeed/activity/" class="nav-item"><span class="model-name">Activities</span></a>
+                                <a href="/admin/newsfeed/activity/add/" class="add-quick-btn" title="Add Activity">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/notifications/notification/" class="nav-item"><span class="model-name">Notifications</span></a>
+                                <a href="/admin/notifications/notification/add/" class="add-quick-btn" title="Add Notification">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/notifications/inappnotification/" class="nav-item"><span class="model-name">In-app notifications</span></a>
+                                <a href="/admin/notifications/inappnotification/add/" class="add-quick-btn" title="Add In-App Notification">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/notifications/emailnotification/" class="nav-item"><span class="model-name">Email notifications</span></a>
+                                <a href="/admin/notifications/emailnotification/add/" class="add-quick-btn" title="Add Email Notification">+ Add</a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 7. Periodic Tasks / Celery Beat (5 models) -->
+                    <div class="nav-section-group" data-section="celery">
+                        <div class="nav-section-header">
+                            <a href="/admin/django_celery_beat/" class="section-title-link">Periodic Tasks</a>
+                            <span class="section-count-badge">5</span>
+                            <button type="button" class="section-toggle-btn" aria-label="Toggle section">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                        </div>
+                        <ul class="nav-list">
+                            <li class="sidebar-model-item">
+                                <a href="/admin/django_celery_beat/periodictask/" class="nav-item"><span class="model-name">Periodic tasks</span></a>
+                                <a href="/admin/django_celery_beat/periodictask/add/" class="add-quick-btn" title="Add Periodic Task">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/django_celery_beat/crontabschedule/" class="nav-item"><span class="model-name">Crontabs</span></a>
+                                <a href="/admin/django_celery_beat/crontabschedule/add/" class="add-quick-btn" title="Add Crontab">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/django_celery_beat/intervalschedule/" class="nav-item"><span class="model-name">Intervals</span></a>
+                                <a href="/admin/django_celery_beat/intervalschedule/add/" class="add-quick-btn" title="Add Interval">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/django_celery_beat/clockedschedule/" class="nav-item"><span class="model-name">Clocked</span></a>
+                                <a href="/admin/django_celery_beat/clockedschedule/add/" class="add-quick-btn" title="Add Clocked Schedule">+ Add</a>
+                            </li>
+                            <li class="sidebar-model-item">
+                                <a href="/admin/django_celery_beat/solarschedule/" class="nav-item"><span class="model-name">Solar events</span></a>
+                                <a href="/admin/django_celery_beat/solarschedule/add/" class="add-quick-btn" title="Add Solar Event">+ Add</a>
+                            </li>
+                        </ul>
+                    </div>
+
+                </nav>
+            </aside>
+            {% endif %}
+
+            <!-- ── Main Content Canvas ── -->
+            <main id="pitchmic-main-content">
+                {% if not is_popup %}
+                {% block nav-breadcrumbs %}
+                <nav class="breadcrumbs-bar" aria-label="Breadcrumbs">
+                    {% block breadcrumbs %}
+                    <div class="breadcrumbs">
+                        <a href="{% url 'admin:index' %}">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -1px; margin-right: 4px;">
+                                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                <polyline points="9 22 9 12 15 12 15 22"/>
+                            </svg>
+                            Home
+                        </a>
+                        {% if title %} <span class="sep">/</span> <span class="active-crumb">{{ title }}</span>{% endif %}
+                    </div>
+                    {% endblock %}
+                </nav>
+                {% endblock %}
+                {% endif %}
+
+                <div class="content-body">
+                    {% block messages %}
+                    {% if messages %}
+                    <ul class="messagelist">
+                        {% for message in messages %}
+                        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>
+                            {{ message|capfirst }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    {% endblock messages %}
+
+                    <div id="content" class="{% block coltype %}colM{% endblock %}">
+                        {% block pretitle %}{% endblock %}
+                        {% block content_title %}{% if title %}<h1 class="page-main-title">{{ title }}</h1>{% endif %}{% endblock %}
+                        {% block content_subtitle %}{% if subtitle %}<h2 class="page-sub-title">{{ subtitle }}</h2>{% endif %}{% endblock %}
+                        
+                        {% block content %}
+                            {% block object-tools %}{% endblock %}
+                            {{ content }}
+                        {% endblock %}
+                        
+                        {% block sidebar %}{% endblock %}
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Interactive Sidebar Script (Search, Accordion Toggles, Mobile Drawer) -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterInput = document.getElementById('sidebar-filter-input');
+        const modelItems = document.querySelectorAll('.sidebar-model-item');
+        const sectionGroups = document.querySelectorAll('.nav-section-group');
+        const toggleBtn = document.getElementById('sidebar-toggle-btn');
+        const sidebar = document.getElementById('pitchmic-sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+
+        // 1. Mobile Hamburger Drawer Toggle
+        if (toggleBtn && sidebar && backdrop) {
+            toggleBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('mobile-open');
+                backdrop.classList.toggle('active');
+            });
+            backdrop.addEventListener('click', function() {
+                sidebar.classList.remove('mobile-open');
+                backdrop.classList.remove('active');
+            });
+        }
+
+        // 2. Accordion Collapse / Expand per Section
+        document.querySelectorAll('.section-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const group = this.closest('.nav-section-group');
+                group.classList.toggle('collapsed');
+            });
+        });
+
+        // 3. Instant Search Filter
+        if (filterInput) {
+            filterInput.addEventListener('input', function() {
+                const query = this.value.toLowerCase().trim();
+                
+                modelItems.forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    if (!query || text.includes(query)) {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+
+                // Auto-expand and toggle empty section groups
+                sectionGroups.forEach(group => {
+                    if (query) {
+                        group.classList.remove('collapsed');
+                    }
+                    const visibleItems = group.querySelectorAll('.sidebar-model-item[style*="display: flex"], .sidebar-model-item:not([style*="display: none"])');
+                    if (query && visibleItems.length === 0) {
+                        group.style.display = 'none';
+                    } else {
+                        group.style.display = 'block';
+                    }
+                });
+            });
+
+            // ESC key clears search
+            filterInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    this.value = '';
+                    this.dispatchEvent(new Event('input'));
+                    this.blur();
+                }
+            });
+        }
+
+        // 4. Active Link Highlighting
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('.sidebar-nav a.nav-item');
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href && href !== '#' && currentPath.startsWith(href) && href !== '/admin/') {
+                link.classList.add('active');
+                // Ensure parent section is expanded
+                const parentGroup = link.closest('.nav-section-group');
+                if (parentGroup) parentGroup.classList.remove('collapsed');
+            } else if (href === '/admin/' && currentPath === '/admin/') {
+                link.classList.add('active');
+            }
+        });
+    });
+    </script>
+</body>
+</html>

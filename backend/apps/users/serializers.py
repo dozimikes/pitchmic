@@ -117,6 +117,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     investor_name = serializers.CharField(required=False, allow_blank=True, write_only=True)
     company = serializers.CharField(required=False, allow_blank=True, write_only=True)
 
+    # Accelerator-specific (optional)
+    organization_name = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    program_name = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    cohort_size = serializers.CharField(required=False, allow_blank=True, write_only=True)
+
     tokens = serializers.SerializerMethodField()
     user = serializers.SerializerMethodField()
 
@@ -141,6 +146,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             # investor extras
             "investor_name",
             "company",
+            # accelerator extras
+            "organization_name",
+            "program_name",
+            "cohort_size",
             # read-only response
             "tokens",
             "user",
@@ -164,6 +173,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         "pitchVideoUrl": "pitch_video_url",
         "targetMarket": "target_market",
         "investorName": "investor_name",
+        "organizationName": "organization_name",
+        "programName": "program_name",
+        "cohortSize": "cohort_size",
+        "programFocus": "niche",
     }
 
     def to_internal_value(self, data):
@@ -222,6 +235,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         target_market: str = validated_data.pop("target_market", "") or ""
         investor_name: str = validated_data.pop("investor_name", "") or ""
         company: str = validated_data.pop("company", "") or ""
+        organization_name: str = validated_data.pop("organization_name", "") or ""
+        program_name: str = validated_data.pop("program_name", "") or ""
+        cohort_size: str = validated_data.pop("cohort_size", "") or ""
 
         password: str = validated_data.pop("password")
         user: User = User(**validated_data)
@@ -272,12 +288,43 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
                 phone=phone,
             )
 
+        elif user.role == User.ROLE_ACCELERATOR:
+            org = organization_name or f"{user.first_name} {user.last_name}".strip() or "Accelerator Hub"
+            prog = program_name or f"{org} Cohort"
+            import re
+            slug_base = re.sub(r"[^a-zA-Z0-9]+", "-", f"{org}-{prog}").strip("-").lower()[:90] or "accelerator-cohort"
+            from apps.accelerator.models import AcceleratorProgram
+            if not AcceleratorProgram.objects.filter(slug=slug_base).exists():
+                try:
+                    c_size = int(cohort_size) if cohort_size.isdigit() else 20
+                except (ValueError, TypeError):
+                    c_size = 20
+                AcceleratorProgram.objects.create(
+                    name=prog,
+                    organization_name=org,
+                    slug=slug_base,
+                    sector_focus=niche or "Multi-sector & Tech",
+                    target_cohort_size=c_size,
+                )
+
         return user
 
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
-    password = serializers.CharField(write_only=True, required=True)
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        # Mirror the frontend SignInSchema floor so short passwords are
+        # rejected at the serializer layer before hitting authenticate().
+        min_length=8,
+        max_length=128,
+        error_messages={
+            'min_length': 'Password must be at least 8 characters.',
+            'max_length': 'Password must be at most 128 characters.',
+        },
+    )
+    remember_me = serializers.BooleanField(required=False, default=False)
 
     def validate(self, attrs: dict) -> dict:
         email: str = attrs.get("email", "")
@@ -391,3 +438,26 @@ class ResendVerificationRequestSerializer(serializers.Serializer):
 
 class FileUploadSerializer(serializers.Serializer):
     file = serializers.FileField(required=True)
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    token = serializers.CharField(required=True)
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        min_length=8,
+        max_length=128,
+        validators=[validate_password],
+    )
+    password_confirm = serializers.CharField(write_only=True, required=True)
+
+    def validate(self, attrs: dict) -> dict:
+        if attrs["password"] != attrs["password_confirm"]:
+            raise serializers.ValidationError(
+                {"password_confirm": "Passwords do not match."}
+            )
+        return attrs

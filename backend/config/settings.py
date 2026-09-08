@@ -11,7 +11,11 @@ BASE_DIR: Path = Path(__file__).resolve().parent.parent
 env = environ.Env(
     DEBUG=(bool, False),
     SECRET_KEY=(str, "insecure-dev-key-change-in-production"),
-    ALLOWED_HOSTS=(list, ["*"]),
+    # SEC-017: Default to a restrictive host list instead of ["*"].
+    # A wildcard ALLOWED_HOSTS defeats AllowedHostsOriginValidator for
+    # WebSockets and allows host-header injection. In production this must be
+    # set explicitly via the ALLOWED_HOSTS environment variable.
+    ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
     CORS_ALLOWED_ORIGINS=(list, ["http://localhost:3000", "http://127.0.0.1:3000"]),
     # Defaults to SQLite so `python manage.py check` works without Postgres
     DATABASE_URL=(str, "sqlite:///./db.sqlite3"),
@@ -20,6 +24,14 @@ env = environ.Env(
     CELERY_RESULT_BACKEND=(str, "redis://localhost:6379/2"),
     PAYSTACK_SECRET_KEY=(str, "test_paystack_secret_key_local_dev"),
     PAYSTACK_PUBLIC_KEY=(str, "pk_test_local_dev_public_key"),
+    # PRODUCTION: comma-separated hostnames exempt from SSRF blocklist.
+    SSRF_ALLOWLIST_HOSTNAMES=(list, []),
+    # PRODUCTION: ML service internal API key.
+    ML_API_KEY=(str, "pitchmic_ml_dev_key_replace_in_production"),
+    # PRODUCTION: ChromaDB auth token.
+    CHROMA_AUTH_TOKEN=(str, "pitchmic-chroma-secret"),
+    # SEC-020: Obfuscated unique admin portal URL to defeat bot scanners
+    DJANGO_ADMIN_URL=(str, "pitchmic-control-portal-hq-8492/"),
 )
 
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
@@ -29,6 +41,79 @@ DEBUG: bool = env("DEBUG")
 ALLOWED_HOSTS: list[str] = env("ALLOWED_HOSTS")
 PAYSTACK_SECRET_KEY: str = env("PAYSTACK_SECRET_KEY")
 PAYSTACK_PUBLIC_KEY: str = env("PAYSTACK_PUBLIC_KEY")
+SSRF_ALLOWLIST_HOSTNAMES: list[str] = env("SSRF_ALLOWLIST_HOSTNAMES")
+ML_API_KEY: str = env("ML_API_KEY")
+CHROMA_AUTH_TOKEN: str = env("CHROMA_AUTH_TOKEN")
+DJANGO_ADMIN_URL: str = env("DJANGO_ADMIN_URL").strip("/") + "/"
+
+# ---------------------------------------------------------------------------
+# SEC-010 / SEC-017: Production fail-fast guards.
+# If any of these checks fail in a non-DEBUG environment the process refuses
+# to start rather than silently running with insecure defaults.
+# ---------------------------------------------------------------------------
+_INSECURE_SECRET_PREFIXES = (
+    "insecure-dev-key",
+    "CHANGE_ME",
+    "django-insecure",
+    "dev-",
+    "test-",
+    "pitchmic_ml_dev_key",
+    "pitchmic-chroma-secret",
+)
+_INSECURE_PAYSTACK_VALUES = (
+    "sk_test_your_secret_key_here",
+    "test_paystack_secret_key_local_dev",
+    "",
+)
+_INSECURE_ML_PREFIXES = (
+    "pitchmic_ml_dev_key",
+    "CHANGE_ME",
+)
+_INSECURE_CHROMA_PREFIXES = (
+    "pitchmic-chroma-secret",
+    "CHANGE_ME",
+)
+
+_IS_CI = os.environ.get("CI", "").lower() in ("1", "true", "yes")
+
+if not DEBUG and not _IS_CI:
+    # Reject known-weak SECRET_KEYs in production
+    if any(SECRET_KEY.startswith(p) for p in _INSECURE_SECRET_PREFIXES):
+        raise RuntimeError(
+            "FATAL: SECRET_KEY appears to be a development placeholder. "
+            "Set a strong random key via the SECRET_KEY environment variable "
+            "(python -c \"import secrets; print(secrets.token_hex(64))\")."
+        )
+    # Reject wildcard ALLOWED_HOSTS in production
+    if "*" in ALLOWED_HOSTS:
+        raise RuntimeError(
+            "FATAL: ALLOWED_HOSTS contains '*'. "
+            "Set explicit hostnames via the ALLOWED_HOSTS environment variable."
+        )
+    # Reject placeholder Paystack keys in production
+    if PAYSTACK_SECRET_KEY in _INSECURE_PAYSTACK_VALUES:
+        raise RuntimeError(
+            "FATAL: PAYSTACK_SECRET_KEY appears to be a test/placeholder value. "
+            "Set your live Paystack secret key via the PAYSTACK_SECRET_KEY environment variable."
+        )
+    # Reject placeholder ML service API keys in production
+    if any(ML_API_KEY.startswith(p) for p in _INSECURE_ML_PREFIXES):
+        raise RuntimeError(
+            "FATAL: ML_API_KEY appears to be a development placeholder. "
+            "Generate a strong key: openssl rand -hex 32"
+        )
+    # Reject placeholder ChromaDB auth tokens in production
+    if any(CHROMA_AUTH_TOKEN.startswith(p) for p in _INSECURE_CHROMA_PREFIXES):
+        raise RuntimeError(
+            "FATAL: CHROMA_AUTH_TOKEN appears to be a development placeholder. "
+            "Generate a strong token: openssl rand -hex 32"
+        )
+    # Minimum JWT signing key strength in production (>= 32 bytes base64 equiv)
+    if len(SECRET_KEY) < 64:
+        raise RuntimeError(
+            "FATAL: SECRET_KEY must be at least 64 hex characters in production. "
+            "Generate: python -c \"import secrets; print(secrets.token_hex(64))\""
+        )
 
 INSTALLED_APPS: list[str] = [
     "daphne",
@@ -105,9 +190,13 @@ ASGI_APPLICATION: str = "config.asgi.application"
 
 CHANNEL_LAYERS: dict = {
     "default": {
-        # Use in-memory channel layer when Redis isn't available (e.g. local
-        # `manage.py check` without Redis running).  Override to RedisChannelLayer
-        # in production via REDIS_URL env var.
+        # SEC-024: InMemoryChannelLayer is used ONLY when Redis is unavailable
+        # and DEBUG=True (i.e. local development without Docker).
+        # In production REDIS_URL will be e.g. "redis://redis:6379/0" which
+        # does NOT start with "redis://localhost", so RedisChannelLayer is
+        # always used.  InMemoryChannelLayer is single-process and does not
+        # work with multiple Uvicorn workers or Celery; never use it in
+        # any environment with more than one process.
         "BACKEND": "channels.layers.InMemoryChannelLayer"
         if env("REDIS_URL", default="").startswith("redis://localhost") and DEBUG
         else "channels_redis.core.RedisChannelLayer",
@@ -170,7 +259,12 @@ DEFAULT_AUTO_FIELD: str = "django.db.models.BigAutoField"
 
 CORS_ALLOWED_ORIGINS: list[str] = env("CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_CREDENTIALS: bool = True
-CORS_ALLOW_ALL_ORIGINS: bool = DEBUG
+# SEC-010: Never open CORS to all origins in any environment.
+# CORS_ALLOW_ALL_ORIGINS was previously set to DEBUG, which meant any
+# development machine with DEBUG=True would accept cross-origin requests from
+# any domain.  This is now unconditionally False; permitted origins are
+# controlled exclusively through CORS_ALLOWED_ORIGINS.
+CORS_ALLOW_ALL_ORIGINS: bool = False
 
 REST_FRAMEWORK: dict = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -189,6 +283,22 @@ REST_FRAMEWORK: dict = {
     "PAGE_SIZE": 20,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "rest_framework.views.exception_handler",
+    # SEC-003: rate-limiting defaults.
+    # LoginRateThrottle (applied explicitly on LoginView) overrides these for
+    # the authentication endpoint — 5 attempts per minute per IP.
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "120/minute",
+        "user": "600/minute",
+        # Custom login throttle scope — 5 attempts per minute per IP.
+        # Applied by apps.users.throttles.LoginRateThrottle on LoginView.
+        "login": "5/minute",
+        # Stricter scope for password-reset requests.
+        "password_reset": "3/minute",
+    },
 }
 
 SIMPLE_JWT: dict = {
@@ -241,11 +351,15 @@ CELERY_TIMEZONE: str = TIME_ZONE
 CELERY_TASK_TRACK_STARTED: bool = True
 CELERY_TASK_TIME_LIMIT: int = 30 * 60
 
-# ── Intelligence Engine Celery Beat schedule ──────────────────────────────────
+# SEC-023: CELERY_BEAT_SCHEDULE was previously defined twice in this file.
+# The second definition silently overwrote the first, causing all intelligence-
+# engine scheduled tasks to never run.  The two dicts are merged here into a
+# single authoritative schedule.
 from celery.schedules import crontab  # noqa: E402
 
 CELERY_BEAT_SCHEDULE: dict = {
-    # Crawl all due sources every 30 minutes (T1 hourly sources crawled 2x/hr)
+    # ── Intelligence Engine tasks ─────────────────────────────────────────────
+    # Crawl all due sources every 30 minutes
     "ie_crawl_due_sources": {
         "task": "intelligence_engine.crawl_due_sources",
         "schedule": crontab(minute="*/30"),
@@ -271,12 +385,38 @@ CELERY_BEAT_SCHEDULE: dict = {
         "task": "matching.sync_ecosystem_opportunities",
         "schedule": crontab(minute="0", hour="*/6"),
     },
+    # ── ML / analytics tasks ─────────────────────────────────────────────────
+    # Nightly match-score refresh (2 AM UTC)
+    "update-all-match-scores-nightly": {
+        "task": "matching.update_all_match_scores",
+        "schedule": crontab(hour=2, minute=0),
+        "options": {"queue": "ml"},
+    },
+    # Nightly prediction refresh (3 AM UTC) — offset by 30 min to avoid
+    # contention with ie_recompute_investor_theses
+    "update-all-predictions-nightly": {
+        "task": "analytics.update_all_predictions",
+        "schedule": crontab(hour=3, minute=30),
+        "options": {"queue": "ml"},
+    },
+    # Weekly investor behavior analysis (Sunday 4 AM UTC)
+    "update-investor-behavior-weekly": {
+        "task": "analytics.update_investor_behavior_all",
+        "schedule": crontab(hour=4, minute=0, day_of_week="sunday"),
+        "options": {"queue": "default"},
+    },
+    # Daily campaign send batches (9 AM UTC)
+    "send-campaign-batches-daily": {
+        "task": "marketing.send_all_active_campaigns",
+        "schedule": crontab(hour=9, minute=0),
+        "options": {"queue": "default"},
+    },
 }
 
 DEFAULT_FILE_STORAGE: str = "django.core.files.storage.FileSystemStorage"
 
 FRONTEND_BASE_URL: str = env("FRONTEND_BASE_URL", default="http://localhost:3000")
-DEFAULT_FROM_EMAIL: str = env("DEFAULT_FROM_EMAIL", default="noreply@pitchmic.com")
+DEFAULT_FROM_EMAIL: str = env("DEFAULT_FROM_EMAIL", default="noreply@pitchmic.local")
 
 LOGS_DIR: Path = BASE_DIR / "logs"
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
@@ -290,6 +430,23 @@ if not DEBUG:
     CSRF_COOKIE_SECURE: bool = True
     SECURE_BROWSER_XSS_FILTER: bool = True
     SECURE_CONTENT_TYPE_NOSNIFF: bool = True
+
+# SEC-026: Content Security Policy — applied in both dev and prod.
+# Caddy / nginx should also set this header at the edge, but Django sets it
+# as a defence-in-depth layer for any path that Caddy doesn't cover (e.g.
+# Django admin, API error pages).
+# Adjust the script-src and connect-src entries when new CDN/provider domains
+# are added to the stack.
+SECURE_CONTENT_TYPE_NOSNIFF: bool = True   # always on
+CSP_DEFAULT_SRC: tuple[str, ...] = ("'self'",)
+CSP_SCRIPT_SRC: tuple[str, ...] = ("'self'",)
+CSP_STYLE_SRC: tuple[str, ...] = ("'self'", "'unsafe-inline'")   # Tailwind/inline styles
+CSP_IMG_SRC: tuple[str, ...] = ("'self'", "data:", "blob:", "https:")
+CSP_FONT_SRC: tuple[str, ...] = ("'self'", "data:")
+CSP_CONNECT_SRC: tuple[str, ...] = ("'self'",)
+CSP_FRAME_ANCESTORS: tuple[str, ...] = ("'none'",)   # no embedding in iframes
+CSP_BASE_URI: tuple[str, ...] = ("'self'",)
+CSP_FORM_ACTION: tuple[str, ...] = ("'self'",)
 
 LOGGING: dict = {
     "version": 1,
@@ -404,38 +561,6 @@ GOOGLE_GEMINI_API_KEY: str = AI_PROVIDERS["gemini"]["api_key"]
 # Example:
 #   AI_CAPABILITY_OVERRIDES = {"deck.claim_extraction": False}
 AI_CAPABILITY_OVERRIDES: dict[str, bool] = {}
-
-# ======================================================================
-# Celery Beat periodic task schedule
-# ======================================================================
-from celery.schedules import crontab  # noqa: E402
-
-CELERY_BEAT_SCHEDULE: dict = {
-    #  Nightly match-score refresh (2 AM UTC) 
-    "update-all-match-scores-nightly": {
-        "task": "matching.update_all_match_scores",
-        "schedule": crontab(hour=2, minute=0),
-        "options": {"queue": "ml"},
-    },
-    #  Nightly prediction refresh (3 AM UTC) 
-    "update-all-predictions-nightly": {
-        "task": "analytics.update_all_predictions",
-        "schedule": crontab(hour=3, minute=0),
-        "options": {"queue": "ml"},
-    },
-    #  Weekly investor behavior analysis (Sunday 4 AM UTC) 
-    "update-investor-behavior-weekly": {
-        "task": "analytics.update_investor_behavior_all",
-        "schedule": crontab(hour=4, minute=0, day_of_week="sunday"),
-        "options": {"queue": "default"},
-    },
-    #  Daily campaign send batches (9 AM UTC) 
-    "send-campaign-batches-daily": {
-        "task": "marketing.send_all_active_campaigns",
-        "schedule": crontab(hour=9, minute=0),
-        "options": {"queue": "default"},
-    },
-}
 
 # Named Celery queues
 CELERY_TASK_ROUTES: dict = {

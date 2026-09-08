@@ -1,0 +1,23 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:"Pitchmic Admin" }}{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+    <link rel="icon" type="image/png" href="{% static 'favicon.png' %}">
+    <link rel="shortcut icon" href="{% static 'favicon.ico' %}">
+    <link rel="stylesheet" href="{% static 'css/pitchmic-admin.css' %}">
+{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+    <a href="{% url 'admin:index' %}">
+        <img src="{% static 'logo.png' %}" alt="Pitchmic Logo" class="pitchmic-admin-logo">
+        <span>{{ site_header|default:"Pitchmic Admin" }}</span>
+    </a>
+</div>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

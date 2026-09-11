@@ -55,7 +55,7 @@ class FounderProfileViewSet(ModelViewSet):
 
 
 # ---------------------------------------------------------------------------
-# Product Profile (OneToOne — upsert via PUT/PATCH)
+# Product Profile (OneToOne - upsert via PUT/PATCH)
 # ---------------------------------------------------------------------------
 
 class ProductProfileView(APIView):
@@ -203,7 +203,7 @@ class TractionMetricViewSet(ModelViewSet):
         serializer.save(startup=startup)
 
     def partial_update(self, request, *args, **kwargs):
-        """PATCH /startups/traction/{id}/ — update an existing metric."""
+        """PATCH /startups/traction/{id}/ - update an existing metric."""
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)

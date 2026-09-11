@@ -1,0 +1,93 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}
+    {{ block.super }}
+    {{ media }}
+    <script src="{% static 'admin/js/cancel.js' %}" async></script>
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} delete-confirmation{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumbs-bar" aria-label="Breadcrumbs">
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -1px; margin-right: 4px;">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      {% translate 'Home' %}
+    </a>
+    <span class="sep" aria-hidden="true">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </span>
+    <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+    <span class="sep" aria-hidden="true">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </span>
+    <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+    <span class="sep" aria-hidden="true">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </span>
+    <a href="{% url opts|admin_urlname:'change' object.pk|admin_urlquote %}">{{ object|truncatewords:"18" }}</a>
+    <span class="sep" aria-hidden="true">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </span>
+    <span class="active-crumb">{% translate 'Delete' %}</span>
+  </div>
+</nav>
+{% endblock %}
+
+{% block content_title %}
+<div class="pm-page-hero pm-page-hero--danger">
+  <div class="pm-page-hero__left">
+    <div class="pm-page-hero__icon-wrap pm-page-hero__icon-wrap--danger">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+      </svg>
+    </div>
+    <div class="pm-page-hero__text">
+      <h1 class="pm-page-hero__title">Delete {{ opts.verbose_name|capfirst }}</h1>
+      <p class="pm-page-hero__subtitle">This action cannot be undone. Please confirm below.</p>
+    </div>
+  </div>
+  <div class="pm-page-hero__actions">
+    <a href="{% url opts|admin_urlname:'changelist' %}" class="pm-hero-back-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to list
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if perms_lacking %}
+  {% block delete_forbidden %}
+    <p>{% blocktranslate with escaped_object=object %}Deleting the {{ object_name }} '{{ escaped_object }}' would result in deleting related objects, but your account doesn't have permission to delete the following types of objects:{% endblocktranslate %}</p>
+    <ul id="deleted-objects">{{ perms_lacking|unordered_list }}</ul>
+  {% endblock %}
+{% elif protected %}
+  {% block delete_protected %}
+    <p>{% blocktranslate with escaped_object=object %}Deleting the {{ object_name }} '{{ escaped_object }}' would require deleting the following protected related objects:{% endblocktranslate %}</p>
+    <ul id="deleted-objects">{{ protected|unordered_list }}</ul>
+  {% endblock %}
+{% else %}
+  {% block delete_confirm %}
+    <p>{% blocktranslate with escaped_object=object %}Are you sure you want to delete the {{ object_name }} "{{ escaped_object }}"? All of the following related items will be deleted:{% endblocktranslate %}</p>
+    {% include "admin/includes/object_delete_summary.html" %}
+    <h2>{% translate "Objects" %}</h2>
+    <ul id="deleted-objects">{{ deleted_objects|unordered_list }}</ul>
+    <form method="post">{% csrf_token %}
+    <div>
+    <input type="hidden" name="post" value="yes">
+    {% if is_popup %}<input type="hidden" name="{{ is_popup_var }}" value="1">{% endif %}
+    {% if to_field %}<input type="hidden" name="{{ to_field_var }}" value="{{ to_field }}">{% endif %}
+    <input type="submit" value="{% translate 'Yes, I\'m sure' %}">
+    <a href="#" class="button cancel-link">{% translate "No, take me back" %}</a>
+    </div>
+    </form>
+  {% endblock %}
+{% endif %}
+{% endblock content %}

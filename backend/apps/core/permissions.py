@@ -10,7 +10,7 @@ endpoint.
 The helpers intentionally return :class:`~rest_framework.exceptions.NotFound`
 (HTTP 404) instead of :class:`~rest_framework.exceptions.PermissionDenied`
 (HTTP 403) when the caller is not authorized for a specific object.  This
-prevents object-ID enumeration (IDOR reconnaissance) — an attacker cannot
+prevents object-ID enumeration (IDOR reconnaissance) - an attacker cannot
 distinguish "object does not exist" from "object exists but you cannot see
 it".
 """
@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Optional
 
 from rest_framework.exceptions import NotFound
 
+from apps.core.tenant import log_security_event
 from apps.users.models import InvestorProfile, StartupProfile, User
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
@@ -27,8 +28,42 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
 
 
 def _raise_not_found(detail: str = "Not found.") -> None:
-    """Raise a 404 NotFound — never use 403 for object-level checks."""
+    """Raise a 404 NotFound - never use 403 for object-level checks."""
     raise NotFound(detail=detail)
+
+
+def _accelerator_can_access_startup(accel_user: User, startup: StartupProfile) -> bool:
+    if accel_user.is_staff or accel_user.is_superuser:
+        return True
+    try:
+        from apps.intelligence.models import CohortApplication
+    except Exception:
+        return False
+    try:
+        return CohortApplication.objects.filter(
+            cohort__accelerator_user=accel_user,
+            startup=startup,
+        ).exists()
+    except AttributeError:
+        return CohortApplication.objects.filter(startup=startup).exists()
+
+
+def _accelerator_can_access_investor(accel_user: User, investor: InvestorProfile) -> bool:
+    if accel_user.is_staff or accel_user.is_superuser:
+        return True
+    try:
+        from apps.intelligence.models import CohortApplication
+    except Exception:
+        return False
+    try:
+        matched_startups = investor.matched_startups.all()
+        return CohortApplication.objects.filter(
+            cohort__accelerator_user=accel_user,
+            startup__in=matched_startups,
+        ).exists()
+    except AttributeError:
+        matched_startups = investor.matched_startups.all()
+        return CohortApplication.objects.filter(startup__in=matched_startups).exists()
 
 
 def get_authorized_startup_or_404(

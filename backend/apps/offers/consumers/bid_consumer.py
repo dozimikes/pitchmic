@@ -4,7 +4,7 @@ apps.offers.consumers.bid_consumer
 WebSocket consumer for real-time bid/offer updates.
 
 SEC-031: Added pitch-level authorization in connect().
-Authentication alone is NOT sufficient — the user must have a legitimate
+Authentication alone is NOT sufficient - the user must have a legitimate
 relationship to the pitch (owner, investor with active offer, or staff).
 """
 from __future__ import annotations
@@ -108,10 +108,10 @@ class BidConsumer(AsyncWebsocketConsumer):
                 return
             if data.get("type") == "ping":
                 await self.send(text_data=json.dumps({"type": "pong"}))
-            # Ignore all other message types — clients cannot push events
+            # Ignore all other message types - clients cannot push events
 
     # -----------------------------------------------------------------------
-    # Handlers — called by channel_layer.group_send from Django signal/task
+    # Handlers - called by channel_layer.group_send from Django signal/task
     # -----------------------------------------------------------------------
 
     async def offer_update(self, event: dict[str, Any]) -> None:

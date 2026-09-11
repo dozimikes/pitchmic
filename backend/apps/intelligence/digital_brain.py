@@ -141,7 +141,7 @@ class DigitalBrainService:
         content_hash = hashlib.sha256(content_text.encode("utf-8")).hexdigest()[:12]
         now_iso = datetime.now(timezone.utc).isoformat()
 
-        # Persist to database — tenant_id is explicitly set AND the entry is
+        # Persist to database - tenant_id is explicitly set AND the entry is
         # double-checked with assert_tenant() after creation.
         db_entry = InstitutionalMemoryEntry.objects.create(
             tenant_id=self.tenant_id,

@@ -1,0 +1,25 @@
+{% extends "admin/change_form.html" %}
+{% load i18n static %}
+
+{% block form_top %}
+  <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; color: #1e40af; font-size: 0.875rem;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    <span>
+      {% if not is_popup %}
+        {% translate 'First, enter a username, email, and password. Then, you will be able to edit additional user profile options, permissions, and roles.' %}
+      {% else %}
+        {% translate 'Enter a username and password for the new user account.' %}
+      {% endif %}
+    </span>
+  </div>
+{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'admin/css/unusable_password_field.css' %}">
+{% endblock %}
+
+{% block admin_change_form_document_ready %}
+  {{ block.super }}
+  <script src="{% static 'admin/js/unusable_password_field.js' %}" defer></script>
+{% endblock %}

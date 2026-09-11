@@ -574,11 +574,11 @@ class PortfolioCompany(models.Model):
 class PortfolioAlert(models.Model):
     """Automated operational triggers across runway, growth, and follow-on thresholds."""
     ALERT_TYPE_CHOICES = [
-        ("RUNWAY_RISK", _("🔴 Runway Risk Alert")),
-        ("GROWTH_SLOWDOWN", _("🟠 Growth Deceleration")),
-        ("FOLLOW_ON_TRIGGER", _("🟢 Follow-On Threshold Met")),
-        ("SERIES_A_READY", _("🚀 Series A Readiness")),
-        ("KEY_HIRE", _("👤 Leadership Expansion")),
+        ("RUNWAY_RISK", _("Runway Risk Alert")),
+        ("GROWTH_SLOWDOWN", _("Growth Deceleration")),
+        ("FOLLOW_ON_TRIGGER", _("Follow-On Threshold Met")),
+        ("SERIES_A_READY", _("Series A Readiness")),
+        ("KEY_HIRE", _("Leadership Expansion")),
     ]
 
     SEVERITY_CHOICES = [

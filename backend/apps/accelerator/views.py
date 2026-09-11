@@ -190,8 +190,8 @@ class AcceleratorProgramViewSet(viewsets.ModelViewSet):
         })
 
         # ── Scoring ────────────────────────────────────────────────────────────
-        # failed counts as 0 (hard disqualifier — same as not satisfied, but distinct)
-        # requires_evidence counts as 0.5 (same as uncertain — pending validation)
+        # failed counts as 0 (hard disqualifier - same as not satisfied, but distinct)
+        # requires_evidence counts as 0.5 (same as uncertain - pending validation)
         satisfied_count = sum(1 for r in requirements if r["status"] == "satisfied")
         uncertain_count = sum(1 for r in requirements if r["status"] == "uncertain")
         failed_count = sum(1 for r in requirements if r["status"] == "failed")
@@ -625,15 +625,15 @@ class AcceleratorApplicationViewSet(viewsets.ModelViewSet):
         # ── Keyword-matched response branches ─────────────────────────────────
         if "why" in query and ("interview" in query or "recommend" in query):
             answer = (
-                f"Rule-based analysis — Interview recommendation drivers for {company}:\n\n"
-                f"1. Founder Signal: {founder.full_name or 'Founder'} — technical capability "
+                f"Rule-based analysis - Interview recommendation drivers for {company}:\n\n"
+                f"1. Founder Signal: {founder.full_name or 'Founder'} - technical capability "
                 f"score {founder.technical_capability_score}/10, "
                 f"full-time: {'yes' if founder.full_time_status else 'no'}.\n"
                 f"2. Program Fit: {app.program_fit_score:.0f}% alignment with "
                 f"{app.program.name} ({app.program.sector_focus}).\n"
                 f"3. Commercial Traction: {startup.loi_count or 0} declared LOIs, "
                 f"{startup.pilot_count or 0} active pilots. {claims_summary}\n"
-                f"4. Product Stage: '{startup.product_stage}' — "
+                f"4. Product Stage: '{startup.product_stage}' - "
                 f"{'live product confirmed' if startup.has_live_product else 'not yet in production'}.\n"
                 f"5. Screening Tier: {app.automated_screening_tier} "
                 f"(fit {app.program_fit_score:.0f}% / strength {app.startup_strength_score:.0f}% "
@@ -657,7 +657,7 @@ class AcceleratorApplicationViewSet(viewsets.ModelViewSet):
             answer = (
                 f"Rule-based risk summary for {company}:\n\n"
                 f"{risks_text}{stage_note}\n\n"
-                f"Evidence confidence: {app.evidence_confidence_score:.0f}% — "
+                f"Evidence confidence: {app.evidence_confidence_score:.0f}% - "
                 f"{'evidence gaps may increase scrutiny' if app.evidence_confidence_score < 60 else 'evidence levels within acceptable range'}."
             )
 
@@ -679,7 +679,7 @@ class AcceleratorApplicationViewSet(viewsets.ModelViewSet):
                 f"  • Declared: {startup.declared_stage.upper()}\n"
                 f"  • Engine-inferred: {app.inferred_stage.upper()} "
                 f"(confidence: {getattr(app, 'stage_confidence', 0.91) * 100:.0f}%)\n"
-                f"  • Conflict: {'YES — divergence flagged' if app.stage_conflict_detected else 'No conflict detected'}\n"
+                f"  • Conflict: {'YES - divergence flagged' if app.stage_conflict_detected else 'No conflict detected'}\n"
             )
             try:
                 assessment = app.assessment
@@ -690,7 +690,7 @@ class AcceleratorApplicationViewSet(viewsets.ModelViewSet):
 
         else:
             answer = (
-                f"Forensic summary for {company} (rule-based — not AI-generated):\n\n"
+                f"Forensic summary for {company} (rule-based - not AI-generated):\n\n"
                 f"  • Program Fit: {app.program_fit_score:.0f}%\n"
                 f"  • Startup Strength: {app.startup_strength_score:.0f}%\n"
                 f"  • Evidence Confidence: {app.evidence_confidence_score:.0f}%\n"
@@ -708,7 +708,7 @@ class AcceleratorApplicationViewSet(viewsets.ModelViewSet):
             "query": request.data.get("query"),
             "company_name": company,
             "answer": answer,
-            # Explicit capability disclosure — frontend uses this to label the source correctly
+            # Explicit capability disclosure - frontend uses this to label the source correctly
             "response_type": "rule_based",
             "is_ai_generated": False,
             "generated_at": timezone.now().isoformat(),

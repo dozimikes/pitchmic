@@ -27,7 +27,7 @@ from .serializers import (
 
 
 # ---------------------------------------------------------------------------
-# Stage expectations — static lookup table, no DB needed
+# Stage expectations - static lookup table, no DB needed
 # ---------------------------------------------------------------------------
 
 STAGE_EVIDENCE_EXPECTATIONS = [
@@ -124,8 +124,8 @@ class StageExpectationsView(APIView):
 
 class ApplicationStrategyView(APIView):
     """
-    GET  /strategy/<int:program_id>/  — retrieve saved strategy
-    PUT  /strategy/<int:program_id>/  — upsert saved strategy
+    GET  /strategy/<int:program_id>/  - retrieve saved strategy
+    PUT  /strategy/<int:program_id>/  - upsert saved strategy
     """
     permission_classes = [permissions.IsAuthenticated]
 

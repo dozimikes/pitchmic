@@ -243,7 +243,7 @@ def verify_paystack_reference(reference: str) -> dict[str, Any]:
                 "data": payload,
             }
     except ValueError:
-        pass  # unknown plan slug — let downstream validation handle it
+        pass  # unknown plan slug - let downstream validation handle it
 
     user.activate_subscription(
         plan_slug,

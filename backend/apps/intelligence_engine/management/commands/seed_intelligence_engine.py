@@ -71,7 +71,7 @@ class Command(BaseCommand):
             if result["total_errors"] > 0:
                 self.stdout.write(self.style.WARNING(
                     f"\n  {result['total_errors']} sources had errors (see logs for details)."
-                    f"\n  Errors are expected for sources that block scrapers — "
+                    f"\n  Errors are expected for sources that block scrapers - "
                     f"the system degrades gracefully."
                 ))
         else:

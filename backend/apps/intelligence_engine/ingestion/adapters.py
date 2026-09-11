@@ -1,7 +1,7 @@
 """
 apps.intelligence_engine.ingestion.adapters
 ============================================
-Fetch adapters — one per source strategy.
+Fetch adapters - one per source strategy.
 
 Priority dispatch order (use the cheapest reliable source first):
   API  >  RSS  >  SITEMAP  >  STATIC_HTML  >  BROWSER  >  PDF  >  MANUAL
@@ -9,7 +9,7 @@ Priority dispatch order (use the cheapest reliable source first):
 Each adapter returns an AdapterResult which the CrawlEngine persists as
 SourceSnapshot + SourceDocument records.
 
-Adapters never write to the DB directly — they only fetch and parse.
+Adapters never write to the DB directly - they only fetch and parse.
 All persistence happens in crawl_engine.py.
 """
 from __future__ import annotations
@@ -211,7 +211,7 @@ class BaseAdapter:
                 response_headers=dict(resp.headers),
             )
         except Exception as exc:
-            logger.debug("[adapter] requests failed %s: %s — fallback urllib", url, exc)
+            logger.debug("[adapter] requests failed %s: %s - fallback urllib", url, exc)
             return cls._urllib_get(url, headers)
 
     @classmethod
@@ -536,7 +536,7 @@ class SitemapAdapter(BaseAdapter):
 
         if not relevant_urls:
             # Fall back to static HTML
-            logger.debug("[sitemap] no sitemap found for %s — falling back to static", base)
+            logger.debug("[sitemap] no sitemap found for %s - falling back to static", base)
             return StaticHTMLAdapter.fetch(source)
 
         pages: List[AdapterResult] = []
@@ -721,7 +721,7 @@ STRATEGY_ADAPTER_MAP: Dict[str, type] = {
     "sitemap": SitemapAdapter,
     "static":  StaticHTMLAdapter,
     "pdf":     PDFAdapter,
-    # "browser": BrowserAdapter,   # Playwright — not default; add when needed
+    # "browser": BrowserAdapter,   # Playwright - not default; add when needed
     "manual":  StaticHTMLAdapter,  # user-submitted: treat as static
 }
 

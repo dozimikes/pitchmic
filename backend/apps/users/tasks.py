@@ -55,10 +55,10 @@ def verify_verification_token(token: str) -> int | None:
 
 
 # ---------------------------------------------------------------------------
-# Password reset tokens — separate salt to prevent token reuse across flows
+# Password reset tokens - separate salt to prevent token reuse across flows
 # ---------------------------------------------------------------------------
 
-# Maximum lifetime: 1 hour (tighter than email verification — password reset
+# Maximum lifetime: 1 hour (tighter than email verification - password reset
 # is a higher-security operation).
 PASSWORD_RESET_TOKEN_MAX_AGE: int = 60 * 60  # 1 hour
 
@@ -186,7 +186,7 @@ def send_password_reset_email(self, user_id: int) -> None:  # noqa: ANN001
         f"Click the link below to choose a new password:\n\n"
         f"{reset_url}\n\n"
         f"This link expires in 1 hour.\n\n"
-        f"If you did not request a password reset you can safely ignore this email — "
+        f"If you did not request a password reset you can safely ignore this email - "
         f"your password has not been changed.\n\n"
         f"- The PitchMic Team"
     )
@@ -195,7 +195,7 @@ def send_password_reset_email(self, user_id: int) -> None:  # noqa: ANN001
         f"<p>We received a request to reset the password for your PitchMic account.</p>"
         f'<p><a href="{reset_url}" style="color:#f97316;font-weight:bold;">Reset your password</a></p>'
         f"<p>This link expires in <strong>1 hour</strong>.</p>"
-        f"<p>If you did not request a password reset you can safely ignore this email — "
+        f"<p>If you did not request a password reset you can safely ignore this email - "
         f"your password has not been changed.</p>"
         f"<p>- The PitchMic Team</p>"
     )

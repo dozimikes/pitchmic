@@ -5,14 +5,14 @@ Continuous Funding Opportunity Intelligence & Ingestion Engine.
 
 Two complementary discovery paths
 -----------------------------------
-Path A — Registered-source refresh  (known programs, 65+ sources)
+Path A - Registered-source refresh  (known programs, 65+ sources)
     _get_or_create_tier1_sources() builds the catalogue on first run.
     SourceFetcher.fetch_and_parse() performs live HTTP fetches.
     _fetch_opportunities_from_source() merges signals onto baselines OR
     creates new FundingOpportunity records dynamically from scraped data
     when no pre-written baseline exists (dynamic creation path).
 
-Path B — Aggregator discovery  (find programs we don't know about yet)
+Path B - Aggregator discovery  (find programs we don't know about yet)
     OpportunityDiscoveryEngine.discover_new_sources() scrapes curated
     aggregator pages (F6S, VC4A, Startupblink, Africa The Big Deal, etc.),
     extracts programme URLs, creates FundingSource records for any URLs not
@@ -66,7 +66,7 @@ LIVE_VERIFICATION_THRESHOLD = 0.40
 DYNAMIC_CREATE_THRESHOLD    = 0.55
 FETCH_FAILED_THRESHOLD      = 0.01
 DEGRADATION_FACTOR          = 0.72
-MIN_DYNAMIC_DESC_LEN        = 100   # chars — filters boilerplate noise
+MIN_DYNAMIC_DESC_LEN        = 100   # chars - filters boilerplate noise
 DISCOVERY_PAGE_LIMIT        = 8     # aggregator pages per discovery run
 
 
@@ -203,7 +203,7 @@ class IngestionResult:
 
 
 # ---------------------------------------------------------------------------
-# Path B — Aggregator discovery engine
+# Path B - Aggregator discovery engine
 # ---------------------------------------------------------------------------
 
 class OpportunityDiscoveryEngine:
@@ -220,7 +220,7 @@ class OpportunityDiscoveryEngine:
       1. A FundingSource record is created.
       2. The source is immediately fetched and parsed.
       3. If signal confidence >= DYNAMIC_CREATE_THRESHOLD, a FundingOpportunity
-         is created directly from scraped data — no pre-written baseline needed.
+         is created directly from scraped data - no pre-written baseline needed.
     """
 
     AGGREGATOR_PAGES: List[Dict[str, Any]] = [
@@ -289,7 +289,7 @@ class OpportunityDiscoveryEngine:
                 logger.warning("[discovery] aggregator %s failed: %s", agg["url"], exc)
 
         logger.info(
-            "[discovery] done — discovered=%d sources=%d opps=%d skipped=%d",
+            "[discovery] done - discovered=%d sources=%d opps=%d skipped=%d",
             discovered, created_sources, created_opportunities, skipped,
         )
         return {
@@ -305,7 +305,7 @@ class OpportunityDiscoveryEngine:
 
     @classmethod
     def _raw_fetch(cls, url: str, timeout: int = 15) -> str:
-        """Minimal plain-text GET — decompresses gzip transparently."""
+        """Minimal plain-text GET - decompresses gzip transparently."""
         import urllib.request
         try:
             req = urllib.request.Request(url, headers={
@@ -481,7 +481,7 @@ class OpportunityDiscoveryEngine:
 
 
 # ---------------------------------------------------------------------------
-# Path A — Opportunity Ingestion Engine (registered sources)
+# Path A - Opportunity Ingestion Engine (registered sources)
 # ---------------------------------------------------------------------------
 
 class OpportunityIngestionEngine:
@@ -521,7 +521,7 @@ class OpportunityIngestionEngine:
                     logger.error("[sync] %s: %s", source.name, exc, exc_info=True)
                     errors.append({"source": source.name, "error": str(exc)})
 
-            # Path B — discover programmes not yet in registry
+            # Path B - discover programmes not yet in registry
             try:
                 disc = OpportunityDiscoveryEngine.discover_new_sources()
                 opportunities_created += disc.get("created_opportunities", 0)
@@ -555,7 +555,7 @@ class OpportunityIngestionEngine:
             ).to_dict()
 
     # -----------------------------------------------------------------------
-    # Source registry — 65+ real programmes
+    # Source registry - 65+ real programmes
     # -----------------------------------------------------------------------
 
     @classmethod
@@ -576,7 +576,7 @@ class OpportunityIngestionEngine:
     def _get_default_sources_config(cls) -> List[Dict[str, Any]]:
         """
         65+ real accelerators, VC funds, grant programmes and corporate
-        innovation programmes open to founders — Africa, MENA, Global with
+        innovation programmes open to founders - Africa, MENA, Global with
         Africa mandate, sector-specific, and non-dilutive grants.
         Every URL was verified at time of writing (September 2026).
         """
@@ -967,7 +967,7 @@ class OpportunityIngestionEngine:
         page_changed = SourceFetcher.page_has_changed(source, new_hash)
         if not page_changed and new_hash:
             updated = cls._touch_verified_freshness_for_source(source)
-            logger.info("[ingestion] %s page unchanged — touched %d records", source.name, updated)
+            logger.info("[ingestion] %s page unchanged - touched %d records", source.name, updated)
             source.last_checked_at = timezone.now()
             source.save(update_fields=["last_checked_at"])
             return 0, updated
@@ -1035,7 +1035,7 @@ class OpportunityIngestionEngine:
                 return [opp_data]
 
         logger.info(
-            "[ingestion] No baseline and insufficient signals (%.2f) for %s — skipped",
+            "[ingestion] No baseline and insufficient signals (%.2f) for %s - skipped",
             signals.overall_confidence, source.organization,
         )
         return []
@@ -1171,7 +1171,7 @@ class OpportunityIngestionEngine:
     def _get_verified_baseline(cls, org: str) -> List[Dict[str, Any]]:
         """
         Curated, verified authoritative minimums for 15 prominent programmes.
-        application_deadline is always None here — it MUST come from live
+        application_deadline is always None here - it MUST come from live
         signals so we never display a stale date.
 
         For the other 50+ sources in the registry the dynamic creation path
@@ -1274,7 +1274,7 @@ class OpportunityIngestionEngine:
                     "startups receive hands-on technical support from Google engineers."
                 ),
                 "key_benefits": [
-                    "Equity-free programme — 0% equity taken",
+                    "Equity-free programme - 0% equity taken",
                     "Up to $350,000 in Google Cloud and Firebase credits",
                     "1-on-1 pairing with Google AI and Cloud technical experts",
                     "Global investor introductions and Demo Day",
@@ -1341,18 +1341,18 @@ class OpportunityIngestionEngine:
                 "cohort_start_date": None, "is_rolling": False, "source_confidence": 0.60,
                 "description": (
                     "Y Combinator is the world's top startup accelerator. African founders are "
-                    "actively encouraged to apply — YC has funded 100+ African-founded startups "
+                    "actively encouraged to apply - YC has funded 100+ African-founded startups "
                     "across Nigeria, Kenya, Egypt, South Africa and beyond."
                 ),
                 "key_benefits": [
                     "$500,000 investment for 7% equity (MFN SAFE)",
-                    "3-month intensive programme — remote or Silicon Valley",
+                    "3-month intensive programme - remote or Silicon Valley",
                     "Access to YC's $100B+ portfolio investor network",
                     "Demo Day with 1,000+ top-tier institutional investors",
                     "Lifetime access to YC alumni network (5,000+ companies)",
                 ],
                 "eligibility_criteria": [
-                    "Open to founders from any country — no geographic restriction",
+                    "Open to founders from any country - no geographic restriction",
                     "Pre-seed or seed stage preferred (pre-revenue also accepted)",
                     "At least one full-time technical or domain-expert founder",
                 ],
@@ -1365,7 +1365,7 @@ class OpportunityIngestionEngine:
 
             "Techstars": [{
                 "slug": "techstars-accelerator-africa-2026",
-                "title": "Techstars Accelerator — Africa Track",
+                "title": "Techstars Accelerator - Africa Track",
                 "opportunity_type": _T.ACCELERATOR,
                 "status": _S.UPCOMING,
                 "target_stage": "seed",
@@ -1409,7 +1409,7 @@ class OpportunityIngestionEngine:
                 "target_sectors": ["automation", "ai_ml", "fintech", "workforce", "b2b_saas"],
                 "funding_amount_min_usd":  Decimal("500000.00"),
                 "funding_amount_max_usd":  Decimal("3000000.00"),
-                "equity_percentage_taken": "Standard SAFE or equity — market terms",
+                "equity_percentage_taken": "Standard SAFE or equity - market terms",
                 "application_open_date": None, "application_deadline": None,
                 "cohort_start_date": None, "is_rolling": True, "source_confidence": 0.60,
                 "description": (
@@ -1445,7 +1445,7 @@ class OpportunityIngestionEngine:
                 "target_sectors": ["healthtech", "cleantech", "fintech", "agritech", "edtech", "b2b_saas"],
                 "funding_amount_min_usd":  Decimal("0.00"),
                 "funding_amount_max_usd":  Decimal("100000.00"),
-                "equity_percentage_taken": "Equity-free (0%) — cash awards for top companies",
+                "equity_percentage_taken": "Equity-free (0%) - cash awards for top companies",
                 "application_open_date": None, "application_deadline": None,
                 "cohort_start_date": None, "is_rolling": False, "source_confidence": 0.60,
                 "description": (
@@ -1461,7 +1461,7 @@ class OpportunityIngestionEngine:
                 ],
                 "eligibility_criteria": [
                     "Early-stage startup with a scalable solution",
-                    "Open to any sector — high-impact focus preferred",
+                    "Open to any sector - high-impact focus preferred",
                     "Incorporated or operating entity in Africa",
                 ],
                 "evidence_requirements": [
@@ -1481,7 +1481,7 @@ class OpportunityIngestionEngine:
                 "target_sectors": ["fintech", "healthtech", "agritech", "edtech", "logistics", "climate"],
                 "funding_amount_min_usd":  Decimal("200000.00"),
                 "funding_amount_max_usd":  Decimal("1500000.00"),
-                "equity_percentage_taken": "SAFE or equity — market rate terms",
+                "equity_percentage_taken": "SAFE or equity - market rate terms",
                 "application_open_date": None, "application_deadline": None,
                 "cohort_start_date": None, "is_rolling": True, "source_confidence": 0.60,
                 "description": (
@@ -1517,7 +1517,7 @@ class OpportunityIngestionEngine:
                 "target_sectors": ["all"],
                 "funding_amount_min_usd":  Decimal("1000.00"),
                 "funding_amount_max_usd":  Decimal("350000.00"),
-                "equity_percentage_taken": "Equity-free — Azure credits, tools, and expert support",
+                "equity_percentage_taken": "Equity-free - Azure credits, tools, and expert support",
                 "application_open_date": None, "application_deadline": None,
                 "cohort_start_date": None, "is_rolling": True, "source_confidence": 0.60,
                 "description": (
@@ -1529,7 +1529,7 @@ class OpportunityIngestionEngine:
                     "Up to $350,000 in Microsoft Azure cloud credits",
                     "Free GitHub Enterprise and developer tooling",
                     "OpenAI API credits and Azure AI model access",
-                    "Equity-free — no dilution",
+                    "Equity-free - no dilution",
                     "Microsoft technical mentor and go-to-market support",
                 ],
                 "eligibility_criteria": [
@@ -1581,7 +1581,7 @@ class OpportunityIngestionEngine:
 
             "Launch Africa": [{
                 "slug": "launch-africa-ventures-2026",
-                "title": "Launch Africa Ventures — Pre-Seed Fund",
+                "title": "Launch Africa Ventures - Pre-Seed Fund",
                 "opportunity_type": _T.PRE_SEED_FUND,
                 "status": _S.ROLLING,
                 "target_stage": "pre_seed",
@@ -1625,7 +1625,7 @@ class OpportunityIngestionEngine:
                 "target_sectors": ["fintech", "cleantech", "healthtech", "agritech", "climate", "b2b_saas"],
                 "funding_amount_min_usd":  Decimal("100000.00"),
                 "funding_amount_max_usd":  Decimal("2000000.00"),
-                "equity_percentage_taken": "Standard equity — market rate terms",
+                "equity_percentage_taken": "Standard equity - market rate terms",
                 "application_open_date": None, "application_deadline": None,
                 "cohort_start_date": None, "is_rolling": True, "source_confidence": 0.60,
                 "description": (
@@ -1697,7 +1697,7 @@ class OpportunityIngestionEngine:
                 "target_sectors": ["fintech", "b2b_saas", "logistics", "healthtech", "climate", "ai_ml"],
                 "funding_amount_min_usd":  Decimal("100000.00"),
                 "funding_amount_max_usd":  Decimal("1000000.00"),
-                "equity_percentage_taken": "Equity or SAFE — standard market terms",
+                "equity_percentage_taken": "Equity or SAFE - standard market terms",
                 "application_open_date": None, "application_deadline": None,
                 "cohort_start_date": None, "is_rolling": True, "source_confidence": 0.60,
                 "description": (
@@ -1734,7 +1734,7 @@ class OpportunityIngestionEngine:
                 "target_sectors": ["all"],
                 "funding_amount_min_usd":  Decimal("5000.00"),
                 "funding_amount_max_usd":  Decimal("5000.00"),
-                "equity_percentage_taken": "Non-refundable grant — equity-free",
+                "equity_percentage_taken": "Non-refundable grant - equity-free",
                 "application_open_date": None, "application_deadline": None,
                 "cohort_start_date": None, "is_rolling": False, "source_confidence": 0.60,
                 "description": (
@@ -1751,7 +1751,7 @@ class OpportunityIngestionEngine:
                     "Networking with 20,000+ alumni across 54 African countries",
                 ],
                 "eligibility_criteria": [
-                    "African entrepreneur — nationals of any of 54 African countries",
+                    "African entrepreneur - nationals of any of 54 African countries",
                     "Early-stage business (0-3 years old)",
                     "Scalable, for-profit, high-impact business idea",
                     "Applicant must be 18+ years old",
@@ -1780,7 +1780,7 @@ class OpportunityIngestionEngine:
                     "Microtraction is one of West Africa's most active pre-seed investors, backing "
                     "Africa's most remarkable teams with technical founders at the earliest stages. "
                     "Operating Fund II ($15M, IFC-backed), Microtraction invests in tech and "
-                    "tech-enabled businesses across Sub-Saharan Africa — particularly in Nigeria."
+                    "tech-enabled businesses across Sub-Saharan Africa - particularly in Nigeria."
                 ),
                 "key_benefits": [
                     "$25K–$100K first pre-seed check",
@@ -1791,7 +1791,7 @@ class OpportunityIngestionEngine:
                 ],
                 "eligibility_criteria": [
                     "At least one technical co-founder on the team",
-                    "Early-stage company — pre-revenue to early MRR acceptable",
+                    "Early-stage company - pre-revenue to early MRR acceptable",
                     "Building in a large, technology-addressable African market",
                     "Full-time committed founding team",
                 ],
@@ -1804,7 +1804,7 @@ class OpportunityIngestionEngine:
 
             "Ajim Capital": [{
                 "slug": "ajim-capital-fund-ii-2026",
-                "title": "Ajim Capital Fund II — Pre-Seed & Seed",
+                "title": "Ajim Capital Fund II - Pre-Seed & Seed",
                 "opportunity_type": _T.PRE_SEED_FUND,
                 "status": _S.ROLLING,
                 "target_stage": "pre_seed",
@@ -1812,18 +1812,18 @@ class OpportunityIngestionEngine:
                 "target_sectors": ["fintech", "logistics", "vertical_saas", "ai_ml", "commerce", "infrastructure"],
                 "funding_amount_min_usd":  Decimal("250000.00"),
                 "funding_amount_max_usd":  Decimal("500000.00"),
-                "equity_percentage_taken": "Standard SAFE — market terms",
+                "equity_percentage_taken": "Standard SAFE - market terms",
                 "application_open_date": None, "application_deadline": None,
                 "cohort_start_date": None, "is_rolling": True, "source_confidence": 0.60,
                 "description": (
                     "Ajim Capital, founded by Eunice Ajim, invests $250K–$500K at pre-seed and "
-                    "seed in technology companies building Africa's core infrastructure — fintech, "
+                    "seed in technology companies building Africa's core infrastructure - fintech, "
                     "logistics, vertical SaaS, AI, and commerce. Fund II is actively deploying "
                     "and leads rounds with founder-aligned terms."
                 ),
                 "key_benefits": [
                     "$250K–$500K first institutional check",
-                    "Fund II actively deploying — fast decision process",
+                    "Fund II actively deploying - fast decision process",
                     "Founder-aligned terms with no onerous control provisions",
                     "Strong cross-border network in Nigeria, East and Francophone Africa",
                     "Portfolio operator network for go-to-market and hiring support",
@@ -1843,7 +1843,7 @@ class OpportunityIngestionEngine:
 
             "Ventures Platform": [{
                 "slug": "ventures-platform-fund-ii-2026",
-                "title": "Ventures Platform Fund II — Pre-Seed to Series A",
+                "title": "Ventures Platform Fund II - Pre-Seed to Series A",
                 "opportunity_type": _T.SEED_FUND,
                 "status": _S.ROLLING,
                 "target_stage": "pre_seed",
@@ -1851,7 +1851,7 @@ class OpportunityIngestionEngine:
                 "target_sectors": ["fintech", "healthtech", "b2b_saas", "agritech", "ai_ml", "education"],
                 "funding_amount_min_usd":  Decimal("100000.00"),
                 "funding_amount_max_usd":  Decimal("2000000.00"),
-                "equity_percentage_taken": "Standard equity — market rate terms",
+                "equity_percentage_taken": "Standard equity - market rate terms",
                 "application_open_date": None, "application_deadline": None,
                 "cohort_start_date": None, "is_rolling": True, "source_confidence": 0.60,
                 "description": (
@@ -1893,7 +1893,7 @@ class OpportunityIngestionEngine:
                                    "fintech", "commodities", "mining", "border_management"],
                 "funding_amount_min_usd":  Decimal("0.00"),
                 "funding_amount_max_usd":  Decimal("200000.00"),
-                "equity_percentage_taken": "Terms vary — non-dilutive support + optional investment",
+                "equity_percentage_taken": "Terms vary - non-dilutive support + optional investment",
                 "application_open_date": None, "application_deadline": None,
                 "cohort_start_date": None, "is_rolling": False, "source_confidence": 0.60,
                 "description": (
@@ -1933,14 +1933,14 @@ class OpportunityIngestionEngine:
                 "target_sectors": ["all"],
                 "funding_amount_min_usd":  Decimal("0.00"),
                 "funding_amount_max_usd":  Decimal("500000.00"),
-                "equity_percentage_taken": "Optional investment — Future Africa may invest $250K–$500K post-programme",
+                "equity_percentage_taken": "Optional investment - Future Africa may invest $250K–$500K post-programme",
                 "application_open_date": None, "application_deadline": None,
                 "cohort_start_date": None, "is_rolling": False, "source_confidence": 0.60,
                 "description": (
                     "Accelerate Africa is an early-stage founder programme backed by Future Africa "
                     "that equips pre-seed founders with tools, networks, and structured support. "
                     "At programme completion, Future Africa offers an optional investment of "
-                    "$250K–$500K following standard due diligence — making it one of the few "
+                    "$250K–$500K following standard due diligence - making it one of the few "
                     "programmes that directly converts to institutional capital."
                 ),
                 "key_benefits": [
@@ -1963,7 +1963,7 @@ class OpportunityIngestionEngine:
 
             "timbuktoo / UNDP": [{
                 "slug": "timbuktoo-fintech-hub-lagos-2026",
-                "title": "timbuktoo Fintech Hub — Lagos Accelerator",
+                "title": "timbuktoo Fintech Hub - Lagos Accelerator",
                 "opportunity_type": _T.ACCELERATOR,
                 "status": _S.UPCOMING,
                 "target_stage": "pre_seed",
@@ -1971,7 +1971,7 @@ class OpportunityIngestionEngine:
                 "target_sectors": ["fintech", "payments", "financial_inclusion", "digital_finance"],
                 "funding_amount_min_usd":  Decimal("0.00"),
                 "funding_amount_max_usd":  Decimal("100000.00"),
-                "equity_percentage_taken": "Equity-free — UNDP grant support + optional investment",
+                "equity_percentage_taken": "Equity-free - UNDP grant support + optional investment",
                 "application_open_date": None, "application_deadline": None,
                 "cohort_start_date": None, "is_rolling": False, "source_confidence": 0.60,
                 "description": (
@@ -2010,7 +2010,7 @@ class OpportunityIngestionEngine:
                 "target_sectors": ["cleantech", "climate", "circular_economy", "clean_energy", "water"],
                 "funding_amount_min_usd":  Decimal("0.00"),
                 "funding_amount_max_usd":  Decimal("100000.00"),
-                "equity_percentage_taken": "Equity-free — UNDP grant and venture-building support",
+                "equity_percentage_taken": "Equity-free - UNDP grant and venture-building support",
                 "application_open_date": None, "application_deadline": None,
                 "cohort_start_date": None, "is_rolling": False, "source_confidence": 0.60,
                 "description": (
@@ -2057,9 +2057,9 @@ class OpportunityIngestionEngine:
                     "and access to Google's global partner and investor network."
                 ),
                 "key_benefits": [
-                    "Equity-free — 0% dilution",
+                    "Equity-free - 0% dilution",
                     "Up to $350,000 in Google Cloud and AI credits",
-                    "15 startups selected per cohort — exclusive cohort experience",
+                    "15 startups selected per cohort - exclusive cohort experience",
                     "1-on-1 pairing with Google AI and Cloud engineers",
                     "Global Demo Day and investor introductions",
                 ],
@@ -2220,7 +2220,7 @@ class OpportunityIngestionEngine:
                         funding_amount_max_usd=opp.funding_amount_max_usd,
                         changed_fields=["status"],
                         raw_content_snippet=(
-                            "Application deadline passed — automatically retired to CLOSED."
+                            "Application deadline passed - automatically retired to CLOSED."
                         ),
                     )
                     opp.status = FundingOpportunity.Status.CLOSED
@@ -2462,7 +2462,7 @@ class OpportunityMatchingEngine:
         if dims.get("stage_fit", 0) < 75:
             gaps.append(
                 f"Stage mismatch: programme targets "
-                f"{opp.target_stage.replace('_', ' ')} — align your funding round narrative"
+                f"{opp.target_stage.replace('_', ' ')} - align your funding round narrative"
             )
         if not gaps:
             gaps.append("Upload customer testimonials to improve institutional diligence score")

@@ -81,7 +81,7 @@ def crawl_single_source(self, source_id: str) -> Dict[str, Any]:
     name="intelligence_engine.seed_source_registry",
 )
 def seed_source_registry(self) -> Dict[str, Any]:
-    """Seed default SourceRegistry entries. Idempotent — safe to run multiple times."""
+    """Seed default SourceRegistry entries. Idempotent - safe to run multiple times."""
     from apps.intelligence_engine.ingestion.source_registry import SourceRegistryService
     created = SourceRegistryService().seed_default_sources()
     return {"sources_created": created}

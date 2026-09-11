@@ -180,7 +180,7 @@ def compute_and_cache_embedding(self, entity_type: str, entity_id: int) -> bool:
 )
 def sync_ecosystem_opportunities(self) -> dict:
     """
-    Periodic ingestion task — fetches live funding opportunity data from all
+    Periodic ingestion task - fetches live funding opportunity data from all
     Tier-1 sources, runs multi-strategy signal extraction, and upserts the DB
     with full change detection and provenance.
 
@@ -191,14 +191,14 @@ def sync_ecosystem_opportunities(self) -> dict:
         }
 
     On failure, auto-retries up to 2 times with exponential backoff.
-    The task never raises — errors are captured in the result dict.
+    The task never raises - errors are captured in the result dict.
     """
     from apps.matching.opportunity_service import OpportunityIngestionEngine
 
     logger.info("sync_ecosystem_opportunities: starting live ingestion cycle")
     result = OpportunityIngestionEngine.sync_ecosystem_sources()
     logger.info(
-        "sync_ecosystem_opportunities: complete — status=%s created=%d updated=%d errors=%d",
+        "sync_ecosystem_opportunities: complete - status=%s created=%d updated=%d errors=%d",
         result.get("status"),
         result.get("opportunities_created", 0),
         result.get("opportunities_updated", 0),

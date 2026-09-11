@@ -1,7 +1,7 @@
 """
 apps.intelligence_engine.intelligence.funding_path
 ===================================================
-FundingPathEngine — builds a startup-specific multi-step financing pathway.
+FundingPathEngine - builds a startup-specific multi-step financing pathway.
 
 Instead of showing a flat list of 500 opportunities, Pitchmic builds:
 
@@ -362,7 +362,7 @@ class FundingPathEngine:
 
         deadline = opp.application_deadline
         if not deadline:
-            # No deadline known — assume it's upcoming within horizon
+            # No deadline known - assume it's upcoming within horizon
             return 60.0, int(horizon_months * 0.5)
 
         days_left = (deadline - today).days
@@ -372,7 +372,7 @@ class FundingPathEngine:
         months_left = max(1, days_left // 30)
 
         if days_left <= 21:
-            return 95.0, months_left     # closing soon — high urgency
+            return 95.0, months_left     # closing soon - high urgency
         if days_left <= 60:
             return 85.0, months_left
         if days_left <= 120:
@@ -440,7 +440,7 @@ class FundingPathEngine:
         if opp.is_rolling:
             parts.append("rolling applications")
         elif months_away <= 2:
-            parts.append("deadline approaching — apply now")
+            parts.append("deadline approaching - apply now")
         elif months_away <= 6:
             parts.append(f"deadline in ~{months_away} months")
 
@@ -448,6 +448,6 @@ class FundingPathEngine:
         if freshness == "verified_fresh":
             parts.append("live-verified data")
         elif freshness == "stale":
-            parts.append("data may be stale — verify deadline")
+            parts.append("data may be stale - verify deadline")
 
         return "; ".join(parts) if parts else "Matched on overall profile"

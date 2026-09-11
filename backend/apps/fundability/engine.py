@@ -1,7 +1,7 @@
 """
 apps.fundability.engine
 ========================
-Fundability Engine — the central intelligence layer for Pitchmic.
+Fundability Engine - the central intelligence layer for Pitchmic.
 
 Architecture principle: Evidence before inference.
   - The startup is the source of truth.
@@ -59,7 +59,7 @@ STAGE_THRESHOLDS = {
             "solution": True,
             "market": True,
             "team": True,
-            "traction": False,   # Not required — pilot/waitlist is a bonus
+            "traction": False,   # Not required - pilot/waitlist is a bonus
             "business_model": True,
             "defensibility": False,
             "fundraising": True,
@@ -295,7 +295,7 @@ def _has_substantive_founder_data(startup: StartupProfile) -> tuple[bool, list[s
 def _collect_signals(startup: StartupProfile) -> EvidenceSignals:
     """
     Collect all available evidence signals from the startup's profile and
-    related domain objects. No inference or scoring here — only fact gathering.
+    related domain objects. No inference or scoring here - only fact gathering.
     """
     from apps.startups.models import (
         StartupEvidence,
@@ -329,7 +329,7 @@ def _collect_signals(startup: StartupProfile) -> EvidenceSignals:
     sig.has_market_evidence = bool(startup.sam and startup.sam > 0)
 
     # ---- Product maturity ---------------------------------------------------
-    # Infer from profile fields — richer signals come from sub-profiles
+    # Infer from profile fields - richer signals come from sub-profiles
     revenue = float(startup.current_revenue or 0)
     customers = startup.customer_count or 0
     mau = startup.monthly_active_users or 0
@@ -558,7 +558,7 @@ def _score_dimensions(
 ) -> dict[str, dict]:
     """
     Score each of the 8 fundability dimensions based on collected signals.
-    Scores are conditioned on the inferred stage — a pre-revenue startup is
+    Scores are conditioned on the inferred stage - a pre-revenue startup is
     not penalised for lacking ARR if it is at the pre-seed stage.
 
     Returns: dict of {dimension_key: {score, evidence_state, confidence_pct,
@@ -723,7 +723,7 @@ def _score_dimensions(
     traction_miss: list[str] = []
     stage_concern = "acceptable"
 
-    # Pre-seed/idea: traction absence is NOT penalised — only validate if present
+    # Pre-seed/idea: traction absence is NOT penalised - only validate if present
     is_early_stage = inferred_stage in ["idea", "pre_seed"]
 
     if sig.has_revenue and sig.mrr_usd >= 10_000:
@@ -772,7 +772,7 @@ def _score_dimensions(
         traction_miss.append("Analytics export or verified traction evidence")
 
     if is_early_stage and not traction_pos:
-        traction_pos.append("Pre-revenue stage — traction evidence not required yet")
+        traction_pos.append("Pre-revenue stage - traction evidence not required yet")
 
     traction_score = min(100.0, max(15.0, traction_score))
     results["traction"] = {
@@ -896,7 +896,7 @@ def _score_dimensions(
         fr_score += 8.0
         fr_pos.append(f"{sig.runway_months:.0f} months runway")
         if sig.runway_months < 6:
-            fr_miss.append("Critical: Less than 6 months runway — fundraise urgently or reduce burn")
+            fr_miss.append("Critical: Less than 6 months runway - fundraise urgently or reduce burn")
     if sig.has_previous_funding:
         fr_score += 10.0
         fr_pos.append(f"${sig.previous_funding_usd:,.0f} raised previously")
@@ -1430,7 +1430,7 @@ _STAGE_BIAS: dict[str, list[str]] = {
 def _load_programs() -> list[dict]:
     """
     Load active AcceleratorProgram records from the database.
-    Returns an empty list when no programs are configured — callers must
+    Returns an empty list when no programs are configured - callers must
     handle the empty-list case gracefully.
     """
     try:

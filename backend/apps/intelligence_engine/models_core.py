@@ -5,17 +5,17 @@ Core provenance, evidence, and change-detection models.
 
 Design principle: every fact stored in Pitchmic is traceable to a specific
 URL, page snapshot, text snippet, extraction method, and timestamp.
-Nothing is stored as a bare value — every value carries its evidence chain.
+Nothing is stored as a bare value - every value carries its evidence chain.
 
 Model hierarchy:
-  SourceRegistry          — What to watch and how (replaces hard-coded configs)
-      └── SourceSnapshot  — Immutable HTTP response stored each crawl cycle
-          └── SourceDocument — Parsed, cleaned document derived from a snapshot
-              └── RawFact    — A single extracted claim with full provenance
-                  └── FactEvidence  — The exact text / coordinates that produced it
-                      └── FactVersion   — Temporal history when the fact changes
-  ChangeEvent             — Diff log whenever any stored value changes
-  ConflictRecord          — Multi-source disagreement requiring resolution
+  SourceRegistry          - What to watch and how (replaces hard-coded configs)
+      └── SourceSnapshot  - Immutable HTTP response stored each crawl cycle
+          └── SourceDocument - Parsed, cleaned document derived from a snapshot
+              └── RawFact    - A single extracted claim with full provenance
+                  └── FactEvidence  - The exact text / coordinates that produced it
+                      └── FactVersion   - Temporal history when the fact changes
+  ChangeEvent             - Diff log whenever any stored value changes
+  ConflictRecord          - Multi-source disagreement requiring resolution
 """
 from __future__ import annotations
 
@@ -31,15 +31,15 @@ from django.utils.translation import gettext_lazy as _
 
 class SourceRegistry(models.Model):
     """
-    Registry of every monitored source.  Configures WHERE to look and HOW —
+    Registry of every monitored source.  Configures WHERE to look and HOW -
     never WHAT the answer is.  The actual data comes from fetching.
     """
 
     class Tier(models.TextChoices):
-        TIER_1_OFFICIAL    = "T1", _("Tier 1 — Official Source (0.95–0.99)")
-        TIER_2_STRUCTURED  = "T2", _("Tier 2 — Structured API / Database (0.80–0.94)")
-        TIER_3_SECONDARY   = "T3", _("Tier 3 — Secondary / News Source (0.55–0.79)")
-        TIER_4_SOCIAL      = "T4", _("Tier 4 — Social Signal (0.20–0.54)")
+        TIER_1_OFFICIAL    = "T1", _("Tier 1 - Official Source (0.95–0.99)")
+        TIER_2_STRUCTURED  = "T2", _("Tier 2 - Structured API / Database (0.80–0.94)")
+        TIER_3_SECONDARY   = "T3", _("Tier 3 - Secondary / News Source (0.55–0.79)")
+        TIER_4_SOCIAL      = "T4", _("Tier 4 - Social Signal (0.20–0.54)")
 
     class FetchStrategy(models.TextChoices):
         API      = "api",      _("Direct API")
@@ -57,7 +57,7 @@ class SourceRegistry(models.Model):
         SIX_HOUR = "6h",       _("Every 6 Hours")
         DAILY    = "24h",      _("Daily")
         WEEKLY   = "7d",       _("Weekly")
-        DORMANT  = "dormant",  _("Dormant — manual only")
+        DORMANT  = "dormant",  _("Dormant - manual only")
 
     id              = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name            = models.CharField(max_length=255)
@@ -155,7 +155,7 @@ class SourceRegistry(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# SourceSnapshot — immutable HTTP response record
+# SourceSnapshot - immutable HTTP response record
 # ---------------------------------------------------------------------------
 
 class SourceSnapshot(models.Model):
@@ -209,7 +209,7 @@ class SourceSnapshot(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# SourceDocument — parsed, normalized document derived from a snapshot
+# SourceDocument - parsed, normalized document derived from a snapshot
 # ---------------------------------------------------------------------------
 
 class SourceDocument(models.Model):
@@ -258,7 +258,7 @@ class SourceDocument(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# RawFact — a single extracted claim with full provenance
+# RawFact - a single extracted claim with full provenance
 # ---------------------------------------------------------------------------
 
 class RawFact(models.Model):
@@ -298,11 +298,11 @@ class RawFact(models.Model):
         GENERAL              = "general",       _("General Fact")
 
     class VerificationStatus(models.TextChoices):
-        EXTRACTED   = "extracted",   _("Extracted — not yet validated")
-        VERIFIED    = "verified",    _("Verified — corroborated")
-        CONTRADICTED = "contradicted", _("Contradicted — conflict detected")
-        STALE       = "stale",       _("Stale — superseded by newer fact")
-        REJECTED    = "rejected",    _("Rejected — failed validation")
+        EXTRACTED   = "extracted",   _("Extracted - not yet validated")
+        VERIFIED    = "verified",    _("Verified - corroborated")
+        CONTRADICTED = "contradicted", _("Contradicted - conflict detected")
+        STALE       = "stale",       _("Stale - superseded by newer fact")
+        REJECTED    = "rejected",    _("Rejected - failed validation")
 
     id                  = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     document            = models.ForeignKey(SourceDocument, on_delete=models.CASCADE,
@@ -354,7 +354,7 @@ class RawFact(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# FactEvidence — the exact text / coordinates that produced a RawFact
+# FactEvidence - the exact text / coordinates that produced a RawFact
 # ---------------------------------------------------------------------------
 
 class FactEvidence(models.Model):
@@ -363,7 +363,7 @@ class FactEvidence(models.Model):
     Stores the exact page text that produced the fact, its location in the
     document, and what method extracted it.
 
-    This is the "show your work" layer — every fact must be traceable to
+    This is the "show your work" layer - every fact must be traceable to
     a specific passage in a specific document from a specific URL.
     """
 
@@ -390,7 +390,7 @@ class FactEvidence(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# FactVersion — temporal history of a fact as it changes over time
+# FactVersion - temporal history of a fact as it changes over time
 # ---------------------------------------------------------------------------
 
 class FactVersion(models.Model):
@@ -422,7 +422,7 @@ class FactVersion(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# ChangeEvent — diff log for any stored value change
+# ChangeEvent - diff log for any stored value change
 # ---------------------------------------------------------------------------
 
 class ChangeEvent(models.Model):
@@ -433,10 +433,10 @@ class ChangeEvent(models.Model):
     """
 
     class Severity(models.TextChoices):
-        CRITICAL = "critical", _("Critical — deadline or status change")
-        HIGH     = "high",     _("High — funding amount change")
-        MEDIUM   = "medium",   _("Medium — description or criteria change")
-        LOW      = "low",      _("Low — minor metadata change")
+        CRITICAL = "critical", _("Critical - deadline or status change")
+        HIGH     = "high",     _("High - funding amount change")
+        MEDIUM   = "medium",   _("Medium - description or criteria change")
+        LOW      = "low",      _("Low - minor metadata change")
 
     id              = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     entity_type     = models.CharField(max_length=64, db_index=True,
@@ -466,15 +466,15 @@ class ChangeEvent(models.Model):
 
     @property
     def old_value_display(self) -> str:
-        return str(self.old_value)[:80] if self.old_value else "—"
+        return str(self.old_value)[:80] if self.old_value else "-"
 
     @property
     def new_value_display(self) -> str:
-        return str(self.new_value)[:80] if self.new_value else "—"
+        return str(self.new_value)[:80] if self.new_value else "-"
 
 
 # ---------------------------------------------------------------------------
-# ConflictRecord — multi-source disagreement
+# ConflictRecord - multi-source disagreement
 # ---------------------------------------------------------------------------
 
 class ConflictRecord(models.Model):
@@ -492,10 +492,10 @@ class ConflictRecord(models.Model):
     """
 
     class ResolutionStatus(models.TextChoices):
-        OPEN        = "open",        _("Open — unresolved")
+        OPEN        = "open",        _("Open - unresolved")
         AUTO        = "auto",        _("Auto-resolved by trust hierarchy")
         MANUAL      = "manual",      _("Manually resolved")
-        DISMISSED   = "dismissed",   _("Dismissed — conflict considered irrelevant")
+        DISMISSED   = "dismissed",   _("Dismissed - conflict considered irrelevant")
 
     id                  = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     field_name          = models.CharField(max_length=128, db_index=True)

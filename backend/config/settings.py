@@ -148,7 +148,7 @@ INSTALLED_APPS: list[str] = [
     "apps.dataroom",
     "apps.marketing",
     "apps.accelerator",
-    # Intelligence Engine — real-time funding intelligence pipeline
+    # Intelligence Engine - real-time funding intelligence pipeline
     "apps.intelligence_engine",
     # Fundability Engine
     "apps.fundability",
@@ -180,6 +180,9 @@ TEMPLATES: list[dict] = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                # Injects FRONTEND_BASE_URL and SITE_ENV into every template
+                # (including Django admin) so we never hardcode localhost URLs.
+                "config.context_processors.admin_globals",
             ],
         },
     },
@@ -285,7 +288,7 @@ REST_FRAMEWORK: dict = {
     "EXCEPTION_HANDLER": "rest_framework.views.exception_handler",
     # SEC-003: rate-limiting defaults.
     # LoginRateThrottle (applied explicitly on LoginView) overrides these for
-    # the authentication endpoint — 5 attempts per minute per IP.
+    # the authentication endpoint - 5 attempts per minute per IP.
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
@@ -293,7 +296,7 @@ REST_FRAMEWORK: dict = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": "120/minute",
         "user": "600/minute",
-        # Custom login throttle scope — 5 attempts per minute per IP.
+        # Custom login throttle scope - 5 attempts per minute per IP.
         # Applied by apps.users.throttles.LoginRateThrottle on LoginView.
         "login": "5/minute",
         # Stricter scope for password-reset requests.
@@ -392,7 +395,7 @@ CELERY_BEAT_SCHEDULE: dict = {
         "schedule": crontab(hour=2, minute=0),
         "options": {"queue": "ml"},
     },
-    # Nightly prediction refresh (3 AM UTC) — offset by 30 min to avoid
+    # Nightly prediction refresh (3 AM UTC) - offset by 30 min to avoid
     # contention with ie_recompute_investor_theses
     "update-all-predictions-nightly": {
         "task": "analytics.update_all_predictions",
@@ -418,6 +421,18 @@ DEFAULT_FILE_STORAGE: str = "django.core.files.storage.FileSystemStorage"
 FRONTEND_BASE_URL: str = env("FRONTEND_BASE_URL", default="http://localhost:3000")
 DEFAULT_FROM_EMAIL: str = env("DEFAULT_FROM_EMAIL", default="noreply@pitchmic.local")
 
+# ---------------------------------------------------------------------------
+# Admin context: environment indicator badge (DEV / STAGING / PROD)
+# Derive from DEBUG and an optional explicit SITE_ENV env var.
+# ---------------------------------------------------------------------------
+_site_env_explicit: str = env("SITE_ENV", default="")
+if _site_env_explicit:
+    SITE_ENV: str = _site_env_explicit.upper()
+elif DEBUG:
+    SITE_ENV = "DEV"
+else:
+    SITE_ENV = "PROD"
+
 LOGS_DIR: Path = BASE_DIR / "logs"
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -431,7 +446,7 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER: bool = True
     SECURE_CONTENT_TYPE_NOSNIFF: bool = True
 
-# SEC-026: Content Security Policy — applied in both dev and prod.
+# SEC-026: Content Security Policy - applied in both dev and prod.
 # Caddy / nginx should also set this header at the edge, but Django sets it
 # as a defence-in-depth layer for any path that Caddy doesn't cover (e.g.
 # Django admin, API error pages).
@@ -440,9 +455,9 @@ if not DEBUG:
 SECURE_CONTENT_TYPE_NOSNIFF: bool = True   # always on
 CSP_DEFAULT_SRC: tuple[str, ...] = ("'self'",)
 CSP_SCRIPT_SRC: tuple[str, ...] = ("'self'",)
-CSP_STYLE_SRC: tuple[str, ...] = ("'self'", "'unsafe-inline'")   # Tailwind/inline styles
+CSP_STYLE_SRC: tuple[str, ...] = ("'self'", "'unsafe-inline'", "https://fonts.googleapis.com")  # Google Fonts + inline styles
 CSP_IMG_SRC: tuple[str, ...] = ("'self'", "data:", "blob:", "https:")
-CSP_FONT_SRC: tuple[str, ...] = ("'self'", "data:")
+CSP_FONT_SRC: tuple[str, ...] = ("'self'", "data:", "https://fonts.gstatic.com")  # Google Fonts
 CSP_CONNECT_SRC: tuple[str, ...] = ("'self'",)
 CSP_FRAME_ANCESTORS: tuple[str, ...] = ("'none'",)   # no embedding in iframes
 CSP_BASE_URI: tuple[str, ...] = ("'self'",)

@@ -22,6 +22,7 @@ from apps.offers.views import OfferViewSet
 from apps.pitches.views import PitchViewSet
 from apps.users.views import (
     AdminSummaryView,
+    AdminTransactionsView,
     AvatarUploadView,
     ForgotPasswordView,
     InvestorProfileViewSet,
@@ -90,7 +91,7 @@ def health_check(request) -> JsonResponse:
 
 
 # SEC-019: Swagger UI and ReDoc are restricted to staff/admin users only.
-# In production, API documentation must not be publicly accessible —
+# In production, API documentation must not be publicly accessible -
 # it exposes every endpoint path, request schema, and authentication method.
 _staff_swagger = SpectacularSwaggerView.as_view(
     url_name="schema", permission_classes=[IsAdminUser]
@@ -130,9 +131,7 @@ urlpatterns: list = [
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
     path("api/auth/token/verify/", TokenVerifyView.as_view(), name="token-verify"),
     path("api/auth/logout/", LogoutView.as_view(), name="auth-logout"),
-    path("api/v1/auth/logout/", LogoutView.as_view(), name="auth-logout-v1"),
     path("api/auth/verify-email/", VerifyEmailView.as_view(), name="verify-email"),
-    path("api/v1/auth/verify-email/", VerifyEmailView.as_view(), name="verify-email-v1"),
     path("api/auth/resend-verification/", ResendVerificationView.as_view(), name="resend-verification"),
     path("api/auth/forgot-password/", ForgotPasswordView.as_view(), name="forgot-password"),
     path("api/auth/reset-password/", ResetPasswordView.as_view(), name="reset-password"),
@@ -143,6 +142,7 @@ urlpatterns: list = [
     path("api/v1/me/startup-profile/", MeStartupProfileView.as_view(), name="me-startup-profile"),
     path("api/v1/me/investor-profile/", MeInvestorProfileView.as_view(), name="me-investor-profile"),
     path("api/v1/admin/summary/", AdminSummaryView.as_view(), name="admin-summary"),
+    path("api/v1/admin/transactions/", AdminTransactionsView.as_view(), name="admin-transactions"),
     path("api/v1/matching/", include((matching_urls, "matching"))),
     path("api/v1/analytics/", include((analytics_urls, "analytics"))),
     path("api/v1/intelligence/", include((intelligence_urls, "intelligence"))),

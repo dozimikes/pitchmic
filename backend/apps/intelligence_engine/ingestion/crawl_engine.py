@@ -1,7 +1,7 @@
 """
 apps.intelligence_engine.ingestion.crawl_engine
 ================================================
-CrawlEngine — orchestrates the full ingestion pipeline for a single source:
+CrawlEngine - orchestrates the full ingestion pipeline for a single source:
 
   1. Dispatch adapter (via SourceRegistryService)
   2. Persist raw AdapterResult as SourceSnapshot + SourceDocument
@@ -89,7 +89,7 @@ class CrawlEngine:
         self.run_extraction = run_extraction
 
     def run(self, source: SourceRegistry) -> CrawlResult:
-        """Full pipeline for one source. Never raises — all errors are captured."""
+        """Full pipeline for one source. Never raises - all errors are captured."""
         result = CrawlResult(source.name)
         t0 = timezone.now()
 
@@ -100,7 +100,7 @@ class CrawlEngine:
 
             if not adapter_result.ok:
                 result.errors.append(
-                    f"fetch_failed: HTTP {adapter_result.http_status} — {adapter_result.fetch_error}"
+                    f"fetch_failed: HTTP {adapter_result.http_status} - {adapter_result.fetch_error}"
                 )
                 result.duration_ms = int((timezone.now() - t0).total_seconds() * 1000)
                 return result
@@ -114,7 +114,7 @@ class CrawlEngine:
             result.content_changed = content_changed
 
             if not content_changed:
-                logger.info("[crawl] %s — page unchanged, skipping extraction", source.name)
+                logger.info("[crawl] %s - page unchanged, skipping extraction", source.name)
                 self._touch_opportunities(source)
                 result.duration_ms = int((timezone.now() - t0).total_seconds() * 1000)
                 return result
@@ -245,7 +245,7 @@ class CrawlEngine:
 
 
 # ---------------------------------------------------------------------------
-# FetchDispatcher — runs CrawlEngine across multiple sources
+# FetchDispatcher - runs CrawlEngine across multiple sources
 # ---------------------------------------------------------------------------
 
 class FetchDispatcher:

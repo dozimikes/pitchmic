@@ -209,12 +209,12 @@ class ProgramReadinessSerializer(serializers.ModelSerializer):
 
 
 # ---------------------------------------------------------------------------
-# Fundability Assessment (full — nested)
+# Fundability Assessment (full - nested)
 # ---------------------------------------------------------------------------
 
 class FundabilityAssessmentSerializer(serializers.ModelSerializer):
     """
-    Full assessment response — includes nested dimensions, gaps,
+    Full assessment response - includes nested dimensions, gaps,
     actions, and program readiness.
     Used for GET /fundability/assessments/{id}/
     """
@@ -291,7 +291,7 @@ class FundabilityAssessmentSerializer(serializers.ModelSerializer):
 
 class FundabilityAssessmentSummarySerializer(serializers.ModelSerializer):
     """
-    Lightweight summary — used for dashboard widgets and list views.
+    Lightweight summary - used for dashboard widgets and list views.
     No nested detail; just the numbers needed for the command center.
     """
     conviction_display = serializers.CharField(source="get_conviction_display", read_only=True)
@@ -301,7 +301,7 @@ class FundabilityAssessmentSummarySerializer(serializers.ModelSerializer):
     next_best_action = serializers.SerializerMethodField()
     top_program_readiness = serializers.SerializerMethodField()
     # Total number of assessments ever run for this startup (powers the
-    # "Assessments run" stat on the dashboard — previously missing, causing '—')
+    # "Assessments run" stat on the dashboard - previously missing, causing '-')
     assessment_count = serializers.SerializerMethodField()
 
     class Meta:

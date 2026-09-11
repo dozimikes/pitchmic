@@ -1,151 +1,742 @@
 {% extends "admin/base_site.html" %}
-{% load i18n static %}
+{% load i18n static log %}
 
 {% block extrastyle %}
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'admin/css/dashboard.css' %}">
 {% endblock %}
 
-{% block coltype %}colMS{% endblock %}
+{% block coltype %}colM{% endblock %}
 {% block bodyclass %}{{ block.super }} dashboard{% endblock %}
 {% block breadcrumbs %}{% endblock %}
 
-{% block content %}
-<!-- ── Executive Telemetry & KPI Cards ── -->
-<div class="pitchmic-kpi-grid">
+{% block content_title %}
+<!-- ── Executive Operations Banner & Hero ── -->
+<div class="pitchmic-dashboard-hero" style="margin-bottom: 24px;">
+    <div class="hero-text-content">
+        <div class="hero-title-row" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <h1 class="hero-title" style="font-size: 1.625rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.03em;">Pitchmic Control HQ</h1>
+                <span class="hero-status-pill" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; border-radius: 9999px; font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;">
+                    <span class="kpi-pulse-dot dot-emerald" style="width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                    <span>Telemetry Live</span>
+                </span>
+            </div>
+        </div>
+        <p class="hero-subtitle" style="font-size: 0.875rem; color: #64748b; margin: 4px 0 0 0; font-weight: 500;">Executive venture dealflow pipeline, platform operations, and real-time financial telemetry.</p>
+    </div>
+</div>
+
+<!-- ── Executive Telemetry & Top KPI Cards ── -->
+<div class="pitchmic-kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 32px; width: 100%;">
     <!-- Card 1: Users -->
-    <div class="kpi-card">
-        <div class="kpi-card-header">
-            <span class="kpi-title">Total Users</span>
-            <div class="kpi-icon-wrapper icon-orange">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <a href="{% url 'admin:users_user_changelist' %}" class="pitchmic-kpi-card interactive" title="Manage Platform Users" style="text-decoration: none; color: inherit;">
+        <div class="kpi-card-top">
+            <span class="kpi-card-label">Total Users</span>
+            <div class="kpi-icon-badge kpi-badge-orange">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </div>
         </div>
-        <div class="kpi-value" id="kpi-total-users">--</div>
-        <div class="kpi-footer">
-            <span class="kpi-subtext" id="kpi-users-breakdown">Founders & Investors</span>
-            <span class="kpi-pill pill-green">Active</span>
+        <div class="kpi-card-middle">
+            <div class="kpi-value" id="kpi-total-users"><span class="kpi-skeleton-num"></span></div>
+            <span id="kpi-badge-users" class="kpi-status-pill pill-emerald"><span class="kpi-pulse-dot dot-emerald"></span> Active</span>
+        </div>
+        <div class="kpi-card-bottom">
+            <span class="kpi-context-text" id="kpi-users-breakdown"><span class="kpi-skeleton-text"></span></span>
+            <span class="kpi-drilldown-hint"><span>Manage</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg></span>
+        </div>
+    </a>
+
+    <!-- Card 2: Pitch Pipeline -->
+    <a href="{% url 'admin:pitches_pitch_changelist' %}" class="pitchmic-kpi-card interactive" title="Review Startup Pitch Decks" style="text-decoration: none; color: inherit;">
+        <div class="kpi-card-top">
+            <span class="kpi-card-label">Pitch Pipeline</span>
+            <div class="kpi-icon-badge kpi-badge-amber">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+            </div>
+        </div>
+        <div class="kpi-card-middle">
+            <div class="kpi-value" id="kpi-total-pitches"><span class="kpi-skeleton-num"></span></div>
+            <span id="kpi-badge-pitches" class="kpi-status-pill pill-amber"><span class="kpi-pulse-dot dot-amber"></span> Dealflow</span>
+        </div>
+        <div class="kpi-card-bottom">
+            <span class="kpi-context-text" id="kpi-pitches-breakdown"><span class="kpi-skeleton-text"></span></span>
+            <span class="kpi-drilldown-hint"><span>Review</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg></span>
+        </div>
+    </a>
+
+    <!-- Card 3: Total Revenue -->
+    <div class="pitchmic-kpi-card">
+        <div class="kpi-card-top">
+            <span class="kpi-card-label">Total Revenue</span>
+            <div class="kpi-icon-badge kpi-badge-emerald">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+        </div>
+        <div class="kpi-card-middle">
+            <div class="kpi-value" id="kpi-total-revenue"><span class="kpi-skeleton-num"></span></div>
+            <span id="kpi-badge-revenue" class="kpi-status-pill pill-emerald"><span class="kpi-pulse-dot dot-emerald"></span> Settled</span>
+        </div>
+        <div class="kpi-card-bottom">
+            <span class="kpi-context-text" id="kpi-revenue-breakdown"><span class="kpi-skeleton-text"></span></span>
+            <span class="kpi-telemetry-badge">Paystack Verified</span>
         </div>
     </div>
 
-    <!-- Card 2: Pitches -->
-    <div class="kpi-card">
-        <div class="kpi-card-header">
-            <span class="kpi-title">Pitch Pipeline</span>
-            <div class="kpi-icon-wrapper icon-purple">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+    <!-- Card 4: Platform Health -->
+    <div class="pitchmic-kpi-card">
+        <div class="kpi-card-top">
+            <span class="kpi-card-label">Platform Health</span>
+            <div class="kpi-icon-badge kpi-badge-sky">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             </div>
         </div>
-        <div class="kpi-value" id="kpi-total-pitches">--</div>
-        <div class="kpi-footer">
-            <span class="kpi-subtext" id="kpi-pitches-breakdown">Live published decks</span>
-            <span class="kpi-pill pill-blue">Dealflow</span>
+        <div class="kpi-card-middle">
+            <div class="kpi-value" id="kpi-system-status"><span class="kpi-skeleton-num"></span></div>
+            <span id="kpi-badge-health" class="kpi-status-pill pill-emerald"><span class="kpi-pulse-dot dot-emerald"></span> Operational</span>
         </div>
-    </div>
-
-    <!-- Card 3: Offers & Term Sheets -->
-    <div class="kpi-card">
-        <div class="kpi-card-header">
-            <span class="kpi-title">Offers & Deals</span>
-            <div class="kpi-icon-wrapper icon-emerald">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m10 15 5-3-5-3v6Z"/></svg>
-            </div>
-        </div>
-        <div class="kpi-value" id="kpi-total-offers">--</div>
-        <div class="kpi-footer">
-            <span class="kpi-subtext" id="kpi-offers-breakdown">Term sheets in negotiation</span>
-            <span class="kpi-pill pill-purple">VC OS</span>
-        </div>
-    </div>
-
-    <!-- Card 4: System Health -->
-    <div class="kpi-card">
-        <div class="kpi-card-header">
-            <span class="kpi-title">Platform Health</span>
-            <div class="kpi-icon-wrapper icon-blue">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            </div>
-        </div>
-        <div class="kpi-value" id="kpi-system-status">99.9%</div>
-        <div class="kpi-footer">
-            <span class="kpi-subtext" id="kpi-db-latency">DB latency: ~1ms</span>
-            <span class="kpi-pill pill-green">Operational</span>
+        <div class="kpi-card-bottom">
+            <span class="kpi-context-text" id="kpi-db-latency"><span class="kpi-skeleton-text"></span></span>
+            <span class="kpi-telemetry-badge" id="kpi-infra-badge">Database · Cache</span>
         </div>
     </div>
 </div>
+{% endblock %}
 
-<!-- ── Main App Modules Section ── -->
-<div id="content-main" class="pitchmic-dashboard-main">
-    {% include "admin/app_list.html" with app_list=app_list %}
+{% block content %}
+<div id="content-main" class="pitchmic-dashboard-main" style="display: flex; flex-direction: column; gap: 32px; width: 100%;">
+
+    <!-- ── SECTION 1: Subscription Tier Breakdown ── -->
+    <section>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+            <div>
+                <h2 style="font-size: 1.125rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.02em;">Subscription &amp; Revenue Operations</h2>
+                <p style="font-size: 0.8125rem; color: #64748b; margin: 2px 0 0 0; font-weight: 500;">Real-time breakdown of user accounts by billing tier and active recurring plans</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #f97316; background: #fff7ed; border: 1px solid #fed7aa; padding: 4px 10px; border-radius: 6px;">Live Billing Telemetry</span>
+            </div>
+        </div>
+
+        <!-- 4 Plan Cards Across -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+            <!-- Free Plan -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); transition: transform 0.15s ease, box-shadow 0.15s ease;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Free Tier</span>
+                    <span id="kpi-free-share" style="background: #f1f5f9; color: #475569; font-size: 0.6875rem; font-weight: 700; padding: 2px 8px; border-radius: 9999px; border: 1px solid #e2e8f0;">— share</span>
+                </div>
+                <div id="kpi-free-users" style="font-size: 2rem; font-weight: 800; color: #0f172a; line-height: 1; margin-bottom: 6px;">—</div>
+                <div style="font-size: 0.8125rem; color: #475569; font-weight: 500;">Free registered users</div>
+            </div>
+
+            <!-- Founder Pro -->
+            <div style="background: #ffffff; border: 1px solid #fed7aa; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(249,115,22,0.06); transition: transform 0.15s ease, box-shadow 0.15s ease;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #ea580c; text-transform: uppercase; letter-spacing: 0.05em;">Founder Pro</span>
+                    <span id="kpi-founder-share" style="background: #fff7ed; color: #ea580c; font-size: 0.6875rem; font-weight: 700; padding: 2px 8px; border-radius: 9999px; border: 1px solid #fed7aa;">— share</span>
+                </div>
+                <div id="kpi-founder-pro-users" style="font-size: 2rem; font-weight: 800; color: #ea580c; line-height: 1; margin-bottom: 6px;">—</div>
+                <div style="font-size: 0.8125rem; color: #475569; font-weight: 500;">Tier-1 founder subscribers</div>
+            </div>
+
+            <!-- Raise Pass -->
+            <div style="background: #ffffff; border: 1px solid #ddd6fe; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(139,92,246,0.06); transition: transform 0.15s ease, box-shadow 0.15s ease;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #7c3aed; text-transform: uppercase; letter-spacing: 0.05em;">Raise Pass</span>
+                    <span id="kpi-raise-share" style="background: #f5f3ff; color: #7c3aed; font-size: 0.6875rem; font-weight: 700; padding: 2px 8px; border-radius: 9999px; border: 1px solid #ddd6fe;">— share</span>
+                </div>
+                <div id="kpi-raise-pass-users" style="font-size: 2rem; font-weight: 800; color: #7c3aed; line-height: 1; margin-bottom: 6px;">—</div>
+                <div style="font-size: 0.8125rem; color: #475569; font-weight: 500;">High-impact capital pass</div>
+            </div>
+
+            <!-- Active Recurring -->
+            <div style="background: #ffffff; border: 1px solid #a7f3d0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(16,185,129,0.06); transition: transform 0.15s ease, box-shadow 0.15s ease;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #059669; text-transform: uppercase; letter-spacing: 0.05em;">Active Recurring</span>
+                    <span style="background: #ecfdf5; color: #059669; font-size: 0.6875rem; font-weight: 700; padding: 2px 8px; border-radius: 9999px; border: 1px solid #a7f3d0; display: inline-flex; align-items: center; gap: 4px;">
+                        <span style="width: 5px; height: 5px; border-radius: 50%; background: #059669; display: inline-block;"></span> Active
+                    </span>
+                </div>
+                <div id="kpi-active-subscribers" style="font-size: 2rem; font-weight: 800; color: #059669; line-height: 1; margin-bottom: 6px;">—</div>
+                <div style="font-size: 0.8125rem; color: #475569; font-weight: 500;">Active paying accounts</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── SECTION 1b: User Permissions & Access Control ── -->
+    <section>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+            <div>
+                <h2 style="font-size: 1.125rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.02em;">User Permissions &amp; Access Control</h2>
+                <p style="font-size: 0.8125rem; color: #64748b; margin: 2px 0 0 0; font-weight: 500;">Live overview of admin staff roles, permission groups, and direct permission assignments</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <a href="{% url 'admin:users_user_changelist' %}?is_staff__exact=1" style="font-size: 0.75rem; font-weight: 700; color: #7c3aed; background: #f5f3ff; border: 1px solid #ddd6fe; padding: 5px 12px; border-radius: 7px; text-decoration: none; display:inline-flex; align-items:center; gap:5px; transition: all 0.15s;" onmouseover="this.style.background='#ede9fe'" onmouseout="this.style.background='#f5f3ff'">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Manage Staff
+                </a>
+                <a href="{% url 'admin:auth_group_changelist' %}" style="font-size: 0.75rem; font-weight: 700; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; padding: 5px 12px; border-radius: 7px; text-decoration: none; display:inline-flex; align-items:center; gap:5px; transition: all 0.15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'">
+                    Groups
+                </a>
+            </div>
+        </div>
+
+        <!-- 5 Permission Stat Cells -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px;">
+            <!-- Staff Users -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <span style="font-size:0.6875rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.05em;">Staff Users</span>
+                    <div style="width:32px;height:32px;border-radius:8px;background:#f5f3ff;border:1px solid #ddd6fe;display:flex;align-items:center;justify-content:center;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </div>
+                </div>
+                <div id="perm-staff-users" style="font-size:1.875rem; font-weight:800; color:#7c3aed; line-height:1;">—</div>
+                <div style="font-size:0.75rem; color:#64748b; font-weight:500;">Admin console access</div>
+            </div>
+
+            <!-- Superadmins -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <span style="font-size:0.6875rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.05em;">Superadmins</span>
+                    <div style="width:32px;height:32px;border-radius:8px;background:#fff7ed;border:1px solid #fed7aa;display:flex;align-items:center;justify-content:center;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    </div>
+                </div>
+                <div id="perm-superuser-count" style="font-size:1.875rem; font-weight:800; color:#ea580c; line-height:1;">—</div>
+                <div style="font-size:0.75rem; color:#64748b; font-weight:500;">Full platform control</div>
+            </div>
+
+            <!-- Permission Groups -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <span style="font-size:0.6875rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.05em;">Groups</span>
+                    <div style="width:32px;height:32px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;display:flex;align-items:center;justify-content:center;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                </div>
+                <div id="perm-groups-count" style="font-size:1.875rem; font-weight:800; color:#1d4ed8; line-height:1;">—</div>
+                <div style="font-size:0.75rem; color:#64748b; font-weight:500;">Defined permission groups</div>
+            </div>
+
+            <!-- Total Permissions -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <span style="font-size:0.6875rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.05em;">Total Perms</span>
+                    <div style="width:32px;height:32px;border-radius:8px;background:#fefce8;border:1px solid #fef08a;display:flex;align-items:center;justify-content:center;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </div>
+                </div>
+                <div id="perm-permissions-count" style="font-size:1.875rem; font-weight:800; color:#ca8a04; line-height:1;">—</div>
+                <div style="font-size:0.75rem; color:#64748b; font-weight:500;">Available permission codenames</div>
+            </div>
+
+            <!-- Direct Perm Users -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <span style="font-size:0.6875rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.05em;">Direct Perms</span>
+                    <div style="width:32px;height:32px;border-radius:8px;background:#f0fdf4;border:1px solid #bbf7d0;display:flex;align-items:center;justify-content:center;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </div>
+                </div>
+                <div id="perm-users-with-perms" style="font-size:1.875rem; font-weight:800; color:#16a34a; line-height:1;">—</div>
+                <div style="font-size:0.75rem; color:#64748b; font-weight:500;">Users with direct overrides</div>
+            </div>
+        </div>
+    </section>
+
+
+    <section style="display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1.1fr); gap: 24px; align-items: start;">
+        
+        <!-- LEFT COLUMN: Revenue Bar Chart & User Growth Line Chart -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+            
+            <!-- Revenue Trend Chart -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 8px;">
+                    <div>
+                        <h3 style="font-size: 0.9375rem; font-weight: 800; color: #0f172a; margin: 0;">Monthly Settlement Volume</h3>
+                        <p style="font-size: 0.75rem; color: #64748b; margin: 2px 0 0 0;">Last 6 months verified revenue · Nigerian Naira (NGN)</p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: #0f172a; background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 6px;" id="chart-total-rev-tag">₦—</span>
+                    </div>
+                </div>
+                <div style="position: relative; height: 210px; width: 100%;">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+
+            <!-- User Growth Trajectory (Sparkline / Line Chart) -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                    <div>
+                        <h3 style="font-size: 0.9375rem; font-weight: 800; color: #0f172a; margin: 0;">Platform User Growth</h3>
+                        <p style="font-size: 0.75rem; color: #64748b; margin: 2px 0 0 0;">Monthly registration velocity</p>
+                    </div>
+                    <div id="total-signups-trend" style="font-size: 0.8125rem; font-weight: 800; color: #ea580c; background: #fff7ed; border: 1px solid #fed7aa; padding: 4px 10px; border-radius: 6px;">— total</div>
+                </div>
+                <div style="position: relative; height: 110px; width: 100%;">
+                    <canvas id="signupsChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: Plan Distribution Donut + Recent Activity Audit Trail -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+
+            <!-- Plan Distribution Donut Card -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                    <div>
+                        <h3 style="font-size: 0.9375rem; font-weight: 800; color: #0f172a; margin: 0;">Plan Distribution</h3>
+                        <p style="font-size: 0.75rem; color: #64748b; margin: 2px 0 0 0;">User share by subscription tier</p>
+                    </div>
+                    <span style="font-size: 0.6875rem; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 4px;">Donut</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
+                    <div style="position: relative; width: 130px; height: 130px; flex-shrink: 0;">
+                        <canvas id="planChart"></canvas>
+                    </div>
+                    <div id="plan-legend" style="display: flex; flex-direction: column; gap: 8px; flex: 1;">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity Audit Feed (Integrated into Right Column) -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03);" id="recent-actions-module">
+                <div style="padding: 14px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; background: #f8fafc;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <h3 style="font-size: 0.8125rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #334155; margin: 0;">Recent Operations</h3>
+                    </div>
+                    <span style="font-size: 0.6875rem; font-weight: 700; background: #ffffff; color: #64748b; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 9999px;">Audit Log</span>
+                </div>
+                {% get_admin_log 6 as admin_log for_user user %}
+                {% if not admin_log %}
+                <div style="padding: 32px 20px; text-align: center; color: #94a3b8; font-size: 0.8125rem; font-weight: 500;">
+                    No operational actions recorded yet.
+                </div>
+                {% else %}
+                <ul style="margin: 0; padding: 0; list-style: none; divide-y: divide-slate-100;">
+                    {% for entry in admin_log %}
+                    <li style="padding: 12px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: flex-start; gap: 10px; transition: background 0.15s ease;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                        <div style="margin-top: 2px;">
+                            {% if entry.is_addition %}
+                                <span style="font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; padding: 2px 6px; border-radius: 4px;">Added</span>
+                            {% elif entry.is_change %}
+                                <span style="font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 2px 6px; border-radius: 4px;">Edited</span>
+                            {% elif entry.is_deletion %}
+                                <span style="font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; padding: 2px 6px; border-radius: 4px;">Deleted</span>
+                            {% else %}
+                                <span style="font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 2px 6px; border-radius: 4px;">Action</span>
+                            {% endif %}
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 0.8125rem; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                {% if entry.is_deletion %}
+                                    <span style="color: #64748b; text-decoration: line-through;">{{ entry.object_repr }}</span>
+                                {% else %}
+                                    <a href="{{ entry.get_admin_url }}" style="color: #0f172a; text-decoration: none;" onmouseover="this.style.color='#ea580c'" onmouseout="this.style.color='#0f172a'">{{ entry.object_repr }}</a>
+                                {% endif %}
+                            </div>
+                            {% if entry.content_type %}
+                            <div style="font-size: 0.6875rem; color: #64748b; margin-top: 1px;">{{ entry.content_type.name|capfirst }}</div>
+                            {% endif %}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- ── SECTION 3: Full-Width Recent Transactions Table ── -->
+    <section>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+            <div>
+                <h2 style="font-size: 1.125rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.02em;">Recent Payment Transactions</h2>
+                <p style="font-size: 0.8125rem; color: #64748b; margin: 2px 0 0 0; font-weight: 500;">Live settlement records processed through Paystack payment gateway</p>
+            </div>
+            <a href="{% url 'admin:users_user_changelist' %}" style="font-size: 0.8125rem; font-weight: 700; color: #ea580c; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                <span>View User Directory</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+            </a>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <div style="overflow-x: auto; width: 100%;">
+                <table style="width: 100%; min-width: 820px; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                            <th style="padding: 14px 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; white-space: nowrap;">Transaction Reference</th>
+                            <th style="padding: 14px 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; white-space: nowrap;">Customer Account</th>
+                            <th style="padding: 14px 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; white-space: nowrap;">Subscription Plan</th>
+                            <th style="padding: 14px 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; white-space: nowrap;">Settled Amount</th>
+                            <th style="padding: 14px 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; white-space: nowrap;">Payment Status</th>
+                            <th style="padding: 14px 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; white-space: nowrap;">Date &amp; Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-tbody">
+                        <tr>
+                            <td colspan="6" style="padding: 36px 20px; text-align: center; color: #94a3b8; font-size: 0.8125rem;">
+                                <span class="kpi-skeleton-text" style="display: inline-block; width: 220px;"></span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
 </div>
 
-<!-- Dynamic Telemetry Hydration Script -->
+<!-- ── Telemetry & Chart.js Engine ── -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async function() {
+    let revenueChartInst, planChartInst, signupsChartInst;
+
+    function formatCurrency(val) {
+        if (val >= 1000000) return '₦' + (val / 1000000).toFixed(2) + 'M';
+        if (val >= 1000) return '₦' + (val / 1000).toFixed(1) + 'K';
+        return '₦' + parseFloat(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
     try {
         const res = await fetch('/api/v1/admin/summary/', {
             headers: { 'Accept': 'application/json' },
             credentials: 'include'
         });
+
         if (res.ok) {
             const data = await res.json();
-            if (data && data.stats) {
-                const s = data.stats;
-                document.getElementById('kpi-total-users').innerText = s.total_users || '0';
-                document.getElementById('kpi-users-breakdown').innerText = 
-                    `${s.startup_users || 0} founders · ${s.investor_users || 0} investors`;
+            const s = data.stats || {};
+            const billing = data.billing || {};
+            const totalUsers = s.total_users || 1;
 
-                document.getElementById('kpi-total-pitches').innerText = s.total_pitches || '0';
-                document.getElementById('kpi-pitches-breakdown').innerText = 
-                    `${s.published_pitches || 0} published · ${s.draft_pitches || 0} drafts`;
+            // ── Core Top KPIs ──
+            const set = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+            set('kpi-total-users', s.total_users ?? 0);
+            set('kpi-users-breakdown', `${s.startup_users || 0} founders · ${s.investor_users || 0} investors`);
+            set('kpi-total-pitches', s.total_pitches ?? 0);
+            set('kpi-pitches-breakdown', `${s.published_pitches || 0} published · ${s.draft_pitches || 0} drafts`);
+            set('kpi-total-revenue', formatCurrency(s.total_revenue || 0));
+            set('kpi-revenue-breakdown', `${s.total_transactions || 0} transactions settled`);
+            set('chart-total-rev-tag', formatCurrency(s.total_revenue || 0));
 
-                document.getElementById('kpi-total-offers').innerText = s.total_offers || '0';
-                document.getElementById('kpi-offers-breakdown').innerText = 
-                    `${s.accepted_offers || 0} accepted term sheets`;
+            // ── Subscription Sub-KPIs with % Shares ──
+            const freeUsers = s.free_users ?? 0;
+            const proUsers = s.founder_pro_users ?? 0;
+            const passUsers = s.raise_pass_users ?? 0;
+            const activeSubs = s.active_subscribers ?? 0;
+
+            set('kpi-free-users', freeUsers);
+            set('kpi-free-share', `${Math.round((freeUsers / totalUsers) * 100)}% share`);
+
+            set('kpi-founder-pro-users', proUsers);
+            set('kpi-founder-share', `${Math.round((proUsers / totalUsers) * 100)}% share`);
+
+            set('kpi-raise-pass-users', passUsers);
+            set('kpi-raise-share', `${Math.round((passUsers / totalUsers) * 100)}% share`);
+
+            set('kpi-active-subscribers', activeSubs);
+
+            // ── System Health KPI (Genuine Telemetry) ──
+            if (data.system_health && data.system_health.length) {
+                const ops = data.system_health.filter(x => x.status === 'operational').length;
+                const ratio = (ops / data.system_health.length) * 100;
+                const dbSvc = data.system_health[0];
+                set('kpi-system-status', ratio >= 100 ? '99.9%' : ratio.toFixed(1) + '%');
+                set('kpi-db-latency', `DB latency: ${dbSvc?.latency || '—'}`);
+                const badgeEl = document.getElementById('kpi-infra-badge');
+                if (badgeEl && dbSvc?.service) {
+                    badgeEl.innerText = dbSvc.service.replace('Database (', '').replace(')', '') + ' · Cache';
+                }
             }
-            if (data && data.system_health && data.system_health.length > 0) {
-                const db = data.system_health[0];
-                document.getElementById('kpi-db-latency').innerText = `DB: ${db.latency || '1ms'}`;
+
+            // ── Permissions & Access Control Stats ──
+            set('perm-staff-users', s.staff_users ?? '—');
+            set('perm-superuser-count', s.superuser_count ?? '—');
+            set('perm-groups-count', s.groups_count ?? '—');
+            set('perm-permissions-count', s.permissions_count ?? '—');
+            set('perm-users-with-perms', s.users_with_perms ?? '—');
+
+            // ── Monthly Revenue Bar Chart ──
+            const revData = billing.monthly_revenue || [];
+            if (revData.length && document.getElementById('revenueChart')) {
+                const ctx = document.getElementById('revenueChart').getContext('2d');
+                revenueChartInst = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: revData.map(d => d.month),
+                        datasets: [{
+                            label: 'Settled Volume (NGN)',
+                            data: revData.map(d => d.revenue),
+                            backgroundColor: revData.map((_, i) => i === revData.length - 1 ? '#f97316' : '#fed7aa'),
+                            hoverBackgroundColor: '#ea580c',
+                            borderRadius: 6,
+                            borderSkipped: false,
+                            maxBarThickness: 40,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => ' Revenue: ' + formatCurrency(ctx.raw)
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { size: 11, weight: '600' }, color: '#64748b' }
+                            },
+                            y: {
+                                grid: { color: '#f1f5f9' },
+                                ticks: {
+                                    font: { size: 11 },
+                                    color: '#64748b',
+                                    callback: v => '₦' + (v >= 1000 ? (v / 1000) + 'K' : v)
+                                }
+                            }
+                        }
+                    }
+                });
             }
+
+            // ── Plan Distribution Donut Chart ──
+            const planDist = billing.plan_distribution || [];
+            if (planDist.length && document.getElementById('planChart')) {
+                const ctx2 = document.getElementById('planChart').getContext('2d');
+                planChartInst = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: planDist.map(p => p.plan),
+                        datasets: [{
+                            data: planDist.map(p => p.count),
+                            backgroundColor: planDist.map(p => p.color),
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            hoverOffset: 4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '72%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => ` ${ctx.label}: ${ctx.raw} users`
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Render balanced custom legend
+                const legend = document.getElementById('plan-legend');
+                if (legend) {
+                    legend.innerHTML = planDist.map(p => {
+                        const pct = Math.round((p.count / totalUsers) * 100) || 0;
+                        return `
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #f1f5f9;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="width: 8px; height: 8px; border-radius: 50%; background: ${p.color}; flex-shrink: 0; display: inline-block;"></span>
+                                <span style="font-size: 0.8125rem; font-weight: 600; color: #334155;">${p.plan}</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 0.8125rem; font-weight: 800; color: #0f172a;">${p.count}</span>
+                                <span style="font-size: 0.6875rem; color: #64748b;">(${pct}%)</span>
+                            </div>
+                        </div>
+                    `}).join('');
+                }
+            }
+
+            // ── Monthly Signups Line Chart ──
+            const signupsData = billing.monthly_signups || [];
+            if (signupsData.length && document.getElementById('signupsChart')) {
+                const totalSig = signupsData.reduce((a, d) => a + d.signups, 0);
+                set('total-signups-trend', `${totalSig} total signups`);
+                const ctx3 = document.getElementById('signupsChart').getContext('2d');
+                signupsChartInst = new Chart(ctx3, {
+                    type: 'line',
+                    data: {
+                        labels: signupsData.map(d => d.month),
+                        datasets: [{
+                            data: signupsData.map(d => d.signups),
+                            fill: true,
+                            borderColor: '#f97316',
+                            backgroundColor: 'rgba(249,115,22,0.08)',
+                            borderWidth: 2.5,
+                            tension: 0.4,
+                            pointBackgroundColor: '#f97316',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { size: 10, weight: '500' }, color: '#64748b' }
+                            },
+                            y: { display: false }
+                        }
+                    }
+                });
+            }
+
+            // ── Render Recent Transactions Ledger ──
+            renderTransactions();
+
+        } else {
+            fallbackKPIs();
+            renderTransactions();
         }
-    } catch (e) {
-        console.warn('Telemetry summary fetch skipped:', e);
+    } catch(e) {
+        console.warn('Telemetry fetch skipped:', e);
+        fallbackKPIs();
+        renderTransactions();
+    }
+
+    async function renderTransactions() {
+        const tbody = document.getElementById('transactions-tbody');
+        if (!tbody) return;
+        try {
+            const r = await fetch('/api/v1/admin/transactions/?limit=10', {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'include'
+            });
+            if (r.ok) {
+                const txData = await r.json();
+                const rows = (txData.results || txData).slice(0, 10);
+                if (!rows.length) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" style="padding: 48px 20px; text-align: center;">
+                                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+                                    <div style="width: 42px; height: 42px; border-radius: 50%; background: #f8fafc; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; color: #94a3b8; margin-bottom: 4px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                                    </div>
+                                    <div style="font-size: 0.875rem; font-weight: 700; color: #0f172a;">No Payment Transactions Recorded</div>
+                                    <div style="font-size: 0.8125rem; color: #64748b; max-width: 360px; line-height: 1.4;">Live settlement records processed through Paystack will appear here in real-time as subscriptions occur.</div>
+                                </div>
+                            </td>
+                        </tr>`;
+                    return;
+                }
+                tbody.innerHTML = rows.map(tx => {
+                    const isSuccess = tx.status === 'success';
+                    const isPending = tx.status === 'pending';
+                    const statusBg = isSuccess ? '#ecfdf5' : isPending ? '#fffbeb' : '#fff1f2';
+                    const statusColor = isSuccess ? '#047857' : isPending ? '#b45309' : '#be123c';
+                    const statusBorder = isSuccess ? '#a7f3d0' : isPending ? '#fde68a' : '#fecdd3';
+                    const dotColor = isSuccess ? '#10b981' : isPending ? '#f59e0b' : '#ef4444';
+
+                    let planLabel = 'Free';
+                    let planBg = '#f1f5f9';
+                    let planColor = '#475569';
+                    let planBorder = '#e2e8f0';
+
+                    if (tx.plan_slug === 'founder-pro') {
+                        planLabel = 'Founder Pro';
+                        planBg = '#fff7ed';
+                        planColor = '#ea580c';
+                        planBorder = '#fed7aa';
+                    } else if (tx.plan_slug === 'raise-pass') {
+                        planLabel = 'Raise Pass';
+                        planBg = '#f5f3ff';
+                        planColor = '#7c3aed';
+                        planBorder = '#ddd6fe';
+                    }
+
+                    const initial = (tx.user_email || 'U').charAt(0).toUpperCase();
+                    const dateFormatted = tx.created_at ? new Date(tx.created_at).toLocaleDateString('en-US', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) : '—';
+
+                    return `
+                    <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s ease;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                        <td style="padding: 16px 20px; white-space: nowrap;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.8125rem; font-weight: 600; color: #1e293b; background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 8px; border-radius: 6px;">
+                                    ${tx.reference || '—'}
+                                </span>
+                            </div>
+                        </td>
+                        <td style="padding: 16px 20px; white-space: nowrap;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 28px; height: 28px; border-radius: 50%; background: #fed7aa; color: #9a3412; font-size: 0.75rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    ${initial}
+                                </div>
+                                <span style="font-size: 0.8125rem; font-weight: 600; color: #0f172a;">${tx.user_email || '—'}</span>
+                            </div>
+                        </td>
+                        <td style="padding: 16px 20px; white-space: nowrap;">
+                            <span style="font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 6px; background: ${planBg}; color: ${planColor}; border: 1px solid ${planBorder};">
+                                ${planLabel}
+                            </span>
+                        </td>
+                        <td style="padding: 16px 20px; white-space: nowrap;">
+                            <span style="font-size: 0.875rem; font-weight: 800; color: #0f172a;">
+                                ₦${parseFloat(tx.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                        </td>
+                        <td style="padding: 16px 20px; white-space: nowrap;">
+                            <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 9999px; background: ${statusBg}; color: ${statusColor}; border: 1px solid ${statusBorder}; text-transform: capitalize;">
+                                <span style="width: 6px; height: 6px; border-radius: 50%; background: ${dotColor}; display: inline-block;"></span>
+                                ${tx.status}
+                            </span>
+                        </td>
+                        <td style="padding: 16px 20px; font-size: 0.8125rem; color: #64748b; font-weight: 500; white-space: nowrap;">
+                            ${dateFormatted}
+                        </td>
+                    </tr>
+                    `;
+                }).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" style="padding: 40px 20px; text-align: center; color: #94a3b8; font-size: 0.875rem;">No payment transactions available.</td></tr>';
+            }
+        } catch(e) {
+            tbody.innerHTML = '<tr><td colspan="6" style="padding: 40px 20px; text-align: center; color: #94a3b8; font-size: 0.875rem;">Transaction history endpoint unreachable.</td></tr>';
+        }
+    }
+
+    function fallbackKPIs() {
+        ['kpi-total-users','kpi-total-pitches','kpi-total-revenue','kpi-system-status',
+         'kpi-free-users','kpi-founder-pro-users','kpi-raise-pass-users','kpi-active-subscribers',
+         'total-signups-trend'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.innerText = '—';
+        });
+        ['kpi-users-breakdown','kpi-pitches-breakdown','kpi-revenue-breakdown','kpi-db-latency'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.innerText = 'Unable to load live data';
+        });
     }
 });
 </script>
 {% endblock %}
 
-{% block sidebar %}
-<div id="content-related" class="pitchmic-dashboard-sidebar">
-    <div class="module modern-timeline-card" id="recent-actions-module">
-        <div class="timeline-header">
-            <h3>Recent Admin Activity</h3>
-            <span class="timeline-badge">Audit Log</span>
-        </div>
-        {% load log %}
-        {% get_admin_log 8 as admin_log for_user user %}
-        {% if not admin_log %}
-        <p class="empty-timeline-text">No recent operational actions registered.</p>
-        {% else %}
-        <ul class="actionlist modern-actionlist">
-            {% for entry in admin_log %}
-            <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %} action-item">
-                <div class="action-meta">
-                    {% if entry.content_type %}
-                        <span class="action-type">{{ entry.content_type.name|capfirst }}</span>
-                    {% endif %}
-                </div>
-                <div class="action-title">
-                    {% if entry.is_deletion %}
-                        <span class="deleted-obj">{{ entry.object_repr }}</span>
-                    {% else %}
-                        <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
-                    {% endif %}
-                </div>
-            </li>
-            {% endfor %}
-        </ul>
-        {% endif %}
-    </div>
-</div>
-{% endblock %}
+{% block sidebar %}{% endblock %}

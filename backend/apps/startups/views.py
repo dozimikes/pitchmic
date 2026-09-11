@@ -4,7 +4,7 @@ backend.apps.startups.views
 API views for the Venture Intelligence Profile and intelligence satellite models.
 
 SEC-021: All ViewSets changed from IsAuthenticatedOrReadOnly to IsAuthenticated.
-All .objects.first() fallbacks removed — they allowed unauthenticated or
+All .objects.first() fallbacks removed - they allowed unauthenticated or
 cross-user reads of other startups' data.  Every queryset is now scoped to
 the authenticated user's own startup profile.
 """

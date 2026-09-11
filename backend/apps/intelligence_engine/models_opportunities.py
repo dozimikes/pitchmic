@@ -40,17 +40,17 @@ class OpportunityLifecycle(models.Model):
     """
 
     class LifecycleStatus(models.TextChoices):
-        DISCOVERED           = "discovered",    _("Discovered — not yet verified")
-        UNVERIFIED           = "unverified",    _("Unverified — insufficient evidence")
-        VERIFIED             = "verified",      _("Verified — confirmed active program")
-        OPENING_SOON         = "opening_soon",  _("Opening Soon — announced but not yet open")
-        OPEN                 = "open",          _("Open — applications accepted")
+        DISCOVERED           = "discovered",    _("Discovered - not yet verified")
+        UNVERIFIED           = "unverified",    _("Unverified - insufficient evidence")
+        VERIFIED             = "verified",      _("Verified - confirmed active program")
+        OPENING_SOON         = "opening_soon",  _("Opening Soon - announced but not yet open")
+        OPEN                 = "open",          _("Open - applications accepted")
         DEADLINE_APPROACHING = "closing",       _("Deadline Approaching (< 21 days)")
-        ROLLING              = "rolling",       _("Rolling — no fixed deadline")
-        CLOSED               = "closed",        _("Closed — past deadline")
-        PAUSED               = "paused",        _("Paused — temporarily suspended")
-        ARCHIVED             = "archived",      _("Archived — historical record")
-        UNKNOWN              = "unknown",       _("Unknown — insufficient signal")
+        ROLLING              = "rolling",       _("Rolling - no fixed deadline")
+        CLOSED               = "closed",        _("Closed - past deadline")
+        PAUSED               = "paused",        _("Paused - temporarily suspended")
+        ARCHIVED             = "archived",      _("Archived - historical record")
+        UNKNOWN              = "unknown",       _("Unknown - insufficient signal")
 
     class OpportunityType(models.TextChoices):
         ACCELERATOR     = "accelerator",    _("Accelerator Cohort")
@@ -92,7 +92,7 @@ class OpportunityLifecycle(models.Model):
     is_global           = models.BooleanField(default=False)
     is_rolling          = models.BooleanField(default=False)
 
-    # Capital terms (best-known values — see DeadlineEvidence for per-field evidence)
+    # Capital terms (best-known values - see DeadlineEvidence for per-field evidence)
     funding_min_usd     = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     funding_max_usd     = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     equity_terms        = models.CharField(max_length=255, blank=True)
@@ -188,13 +188,13 @@ class OpportunityLifecycle(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# DeadlineEvidence — per-field provenance for the deadline (and other dates)
+# DeadlineEvidence - per-field provenance for the deadline (and other dates)
 # ---------------------------------------------------------------------------
 
 class DeadlineEvidence(models.Model):
     """
     Stores every source that reported a deadline (or open/start date) for
-    an opportunity.  Multiple records may exist — one per source.
+    an opportunity.  Multiple records may exist - one per source.
     The canonical value in OpportunityLifecycle is chosen via conflict resolution.
     """
 
@@ -232,12 +232,12 @@ class DeadlineEvidence(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# OpportunityRequirement — granular eligibility / evidence requirements
+# OpportunityRequirement - granular eligibility / evidence requirements
 # ---------------------------------------------------------------------------
 
 class OpportunityRequirement(models.Model):
     """
-    A single requirement for an opportunity — e.g. "minimum 2 founders",
+    A single requirement for an opportunity - e.g. "minimum 2 founders",
     "must be incorporated in Africa", "requires $10K MRR".
 
     Used by ReadinessEngine to compute a startup's gap analysis.
@@ -289,7 +289,7 @@ class OpportunityRequirement(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# FundingPath — multi-step financing pathway for a startup
+# FundingPath - multi-step financing pathway for a startup
 # ---------------------------------------------------------------------------
 
 class FundingPath(models.Model):
@@ -352,7 +352,7 @@ class FundingPathStep(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# ReadinessBlocker — why a startup can't apply to an opportunity yet
+# ReadinessBlocker - why a startup can't apply to an opportunity yet
 # ---------------------------------------------------------------------------
 
 class ReadinessBlocker(models.Model):
@@ -405,7 +405,7 @@ class ReadinessBlocker(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# StartupReadinessScore — cached readiness assessment per startup per opportunity
+# StartupReadinessScore - cached readiness assessment per startup per opportunity
 # ---------------------------------------------------------------------------
 
 class StartupReadinessScore(models.Model):
@@ -447,4 +447,4 @@ class StartupReadinessScore(models.Model):
         ordering = ["-readiness_pct"]
 
     def __str__(self) -> str:
-        return f"Readiness {self.readiness_pct:.0f}% — {self.opportunity.title[:60]}"
+        return f"Readiness {self.readiness_pct:.0f}% - {self.opportunity.title[:60]}"

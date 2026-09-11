@@ -33,7 +33,7 @@ class PaystackInitializeView(APIView):
             return Response({"status": False, "message": "Plan is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         # SEC-009: Derive the authoritative amount entirely server-side.
-        # Never accept amount from the client — a client could send $0.01 for a
+        # Never accept amount from the client - a client could send $0.01 for a
         # $25 plan and we would initialize a Paystack transaction for that amount.
         from .services import get_authoritative_plan_amount
         try:
@@ -41,10 +41,10 @@ class PaystackInitializeView(APIView):
         except ValueError as exc:
             return Response({"status": False, "message": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Free plan — no payment required
+        # Free plan - no payment required
         if authoritative_amount == 0:
             return Response(
-                {"status": True, "message": "Free plan — no payment required.", "reference": None},
+                {"status": True, "message": "Free plan - no payment required.", "reference": None},
                 status=status.HTTP_200_OK,
             )
 

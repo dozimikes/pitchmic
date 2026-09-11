@@ -28,7 +28,7 @@ def get_request_context(request: Any | None = None) -> dict[str, Any]:
     """
     Build a minimal, structured context dict for a security event log.
 
-    Values present are only those that can be determined without throwing —
+    Values present are only those that can be determined without throwing -
     callers never have to guard this helper.
     """
     ctx: dict[str, Any] = {}

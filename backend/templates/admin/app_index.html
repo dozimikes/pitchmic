@@ -1,0 +1,281 @@
+﻿{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block bodyclass %}{{ block.super }} app-{{ app_label }} app-index{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+  .pm-appindex-hero {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 16px; margin-bottom: 28px;
+  }
+  .pm-appindex-hero__left { display: flex; align-items: center; gap: 16px; }
+  .pm-appindex-hero__icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .pm-appindex-hero__title {
+    font-size: 1.5rem; font-weight: 800; color: #0f172a;
+    margin: 0 0 2px 0; letter-spacing: -0.03em;
+  }
+  .pm-appindex-hero__subtitle {
+    font-size: 0.875rem; color: #64748b; margin: 0; font-weight: 500; line-height: 1.4;
+  }
+  .pm-appindex-hero__actions { display: flex; align-items: center; gap: 10px; }
+  .pm-model-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;
+  }
+  .pm-model-card {
+    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px;
+    padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .pm-model-card:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.07); transform: translateY(-2px); border-color: #cbd5e1;
+  }
+  .pm-model-card__header { display: flex; align-items: center; gap: 12px; }
+  .pm-model-card__icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .pm-model-card__name {
+    font-size: 1rem; font-weight: 700; color: #0f172a; margin: 0; letter-spacing: -0.01em;
+  }
+  .pm-model-card__desc { font-size: 0.8125rem; color: #64748b; line-height: 1.45; font-weight: 500; }
+  .pm-model-card__footer { display: flex; align-items: center; gap: 8px; margin-top: auto; }
+  .pm-btn-manage {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 8px 14px; background: #f8fafc; color: #334155; border: 1px solid #e2e8f0;
+    border-radius: 8px; font-size: 0.8125rem; font-weight: 700; text-decoration: none;
+    transition: all 0.15s ease; white-space: nowrap;
+  }
+  .pm-btn-manage:hover { background: #f1f5f9; border-color: #cbd5e1; color: #0f172a; }
+  .pm-btn-add {
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    padding: 8px 14px; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: #ffffff; border: none; border-radius: 8px; font-size: 0.8125rem; font-weight: 700;
+    text-decoration: none; transition: all 0.15s ease; white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(234,88,12,0.3);
+  }
+  .pm-btn-add:hover {
+    background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+    box-shadow: 0 4px 12px rgba(234,88,12,0.35); transform: translateY(-1px);
+  }
+  .pm-back-btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+    background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; border-radius: 9px;
+    font-size: 0.8125rem; font-weight: 600; text-decoration: none; transition: all 0.15s ease;
+  }
+  .pm-back-btn:hover { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumbs-bar" aria-label="Breadcrumbs">
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:4px;"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      {% translate 'Home' %}
+    </a>
+    <span class="sep" aria-hidden="true">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </span>
+    <span class="active-crumb">{% for app in app_list %}{{ app.name }}{% empty %}{{ app_label|capfirst }}{% endfor %}</span>
+  </div>
+</nav>
+{% endblock %}
+
+{% block content_title %}
+{% if app_label == "users" %}
+<div class="pm-appindex-hero">
+  <div class="pm-appindex-hero__left">
+    <div class="pm-appindex-hero__icon" style="background:#fff7ed;border:1px solid #fed7aa;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </div>
+    <div>
+      <h1 class="pm-appindex-hero__title">{% for app in app_list %}{{ app.name }}{% empty %}{{ app_label|capfirst }}{% endfor %}</h1>
+      <p class="pm-appindex-hero__subtitle">Platform user accounts, startup profiles, investor profiles, team members, permission groups and JWT token management.</p>
+    </div>
+  </div>
+  <div class="pm-appindex-hero__actions">
+    <a href="{% url 'admin:index' %}" class="pm-back-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Dashboard
+    </a>
+  </div>
+</div>
+{% elif app_label == "pitches" %}
+<div class="pm-appindex-hero">
+  <div class="pm-appindex-hero__left">
+    <div class="pm-appindex-hero__icon" style="background:#fff7ed;border:1px solid #fed7aa;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+    </div>
+    <div>
+      <h1 class="pm-appindex-hero__title">{% for app in app_list %}{{ app.name }}{% empty %}{{ app_label|capfirst }}{% endfor %}</h1>
+      <p class="pm-appindex-hero__subtitle">Startup pitch decks, supporting materials, and investor view tracking across the dealflow pipeline.</p>
+    </div>
+  </div>
+  <div class="pm-appindex-hero__actions">
+    <a href="{% url 'admin:index' %}" class="pm-back-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Dashboard
+    </a>
+  </div>
+</div>
+{% elif app_label == "billing" %}
+<div class="pm-appindex-hero">
+  <div class="pm-appindex-hero__left">
+    <div class="pm-appindex-hero__icon" style="background:#ecfdf5;border:1px solid #a7f3d0;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    </div>
+    <div>
+      <h1 class="pm-appindex-hero__title">{% for app in app_list %}{{ app.name }}{% empty %}{{ app_label|capfirst }}{% endfor %}</h1>
+      <p class="pm-appindex-hero__subtitle">Payment transactions, subscription records and Paystack billing events processed by the platform.</p>
+    </div>
+  </div>
+  <div class="pm-appindex-hero__actions">
+    <a href="{% url 'admin:index' %}" class="pm-back-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Dashboard
+    </a>
+  </div>
+</div>
+{% elif app_label == "accelerator" %}
+<div class="pm-appindex-hero">
+  <div class="pm-appindex-hero__left">
+    <div class="pm-appindex-hero__icon" style="background:#f5f3ff;border:1px solid #ddd6fe;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+    </div>
+    <div>
+      <h1 class="pm-appindex-hero__title">{% for app in app_list %}{{ app.name }}{% empty %}{{ app_label|capfirst }}{% endfor %}</h1>
+      <p class="pm-appindex-hero__subtitle">Accelerator programs, startup applications, assessments, cohorts, milestones, and venture resources.</p>
+    </div>
+  </div>
+  <div class="pm-appindex-hero__actions">
+    <a href="{% url 'admin:index' %}" class="pm-back-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Dashboard
+    </a>
+  </div>
+</div>
+{% else %}
+<div class="pm-appindex-hero">
+  <div class="pm-appindex-hero__left">
+    <div class="pm-appindex-hero__icon" style="background:#f8fafc;border:1px solid #e2e8f0;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+    </div>
+    <div>
+      <h1 class="pm-appindex-hero__title">{% for app in app_list %}{{ app.name }}{% empty %}{{ app_label|capfirst }}{% endfor %}</h1>
+      <p class="pm-appindex-hero__subtitle">Manage modules, data models, and operational records for this application.</p>
+    </div>
+  </div>
+  <div class="pm-appindex-hero__actions">
+    <a href="{% url 'admin:index' %}" class="pm-back-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Dashboard
+    </a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  {% if app_list %}
+    {% for app in app_list %}
+    <div class="pm-model-grid">
+      {% for model in app.models %}
+      <div class="pm-model-card">
+        <div class="pm-model-card__header">
+          {% if model.object_name == "User" %}
+            <div class="pm-model-card__icon" style="background:#fff7ed;border:1px solid #fed7aa;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          {% elif "Startup" in model.object_name %}
+            <div class="pm-model-card__icon" style="background:#fff7ed;border:1px solid #fed7aa;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg></div>
+          {% elif "Investor" in model.object_name %}
+            <div class="pm-model-card__icon" style="background:#eff6ff;border:1px solid #bfdbfe;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          {% elif "Team" in model.object_name %}
+            <div class="pm-model-card__icon" style="background:#f0fdf4;border:1px solid #bbf7d0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          {% elif "Group" in model.object_name %}
+            <div class="pm-model-card__icon" style="background:#f5f3ff;border:1px solid #ddd6fe;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          {% elif "Token" in model.object_name or "Blacklist" in model.object_name %}
+            <div class="pm-model-card__icon" style="background:#fef2f2;border:1px solid #fecaca;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          {% elif "Transaction" in model.object_name or "Payment" in model.object_name %}
+            <div class="pm-model-card__icon" style="background:#ecfdf5;border:1px solid #a7f3d0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg></div>
+          {% elif "Application" in model.object_name %}
+            <div class="pm-model-card__icon" style="background:#f5f3ff;border:1px solid #ddd6fe;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+          {% elif "Program" in model.object_name %}
+            <div class="pm-model-card__icon" style="background:#f5f3ff;border:1px solid #ddd6fe;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+          {% elif "Pitch" in model.object_name %}
+            <div class="pm-model-card__icon" style="background:#fff7ed;border:1px solid #fed7aa;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></div>
+          {% elif "Offer" in model.object_name %}
+            <div class="pm-model-card__icon" style="background:#eff6ff;border:1px solid #bfdbfe;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div>
+          {% else %}
+            <div class="pm-model-card__icon" style="background:#f8fafc;border:1px solid #e2e8f0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+          {% endif %}
+          <div>
+            {% if model.admin_url %}
+              <a href="{{ model.admin_url }}" class="pm-model-card__name" style="text-decoration:none;color:#0f172a;display:block;">{{ model.name }}</a>
+            {% else %}
+              <div class="pm-model-card__name" style="color:#64748b;">{{ model.name }}</div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="pm-model-card__desc">
+          {% if model.object_name == "User" %}
+            Platform accounts for founders, investors, and accelerators. Manage verification, subscription plans, staff access, and permission groups.
+          {% elif model.object_name == "StartupProfile" %}
+            Startup company profiles including industry, funding stage, location, team, tagline, and pitch history.
+          {% elif model.object_name == "InvestorProfile" %}
+            Investor profiles with portfolio focus, thesis, and deal preferences linked to user accounts.
+          {% elif model.object_name == "TeamMember" %}
+            Individual team members attached to startup profiles — name, role, bio, and LinkedIn.
+          {% elif model.object_name == "Group" %}
+            Django permission groups for role-based access control across the admin and API layers.
+          {% elif model.object_name == "BlacklistedToken" %}
+            Read-only audit log of JWT access tokens that have been revoked or logged out by users.
+          {% elif model.object_name == "OutstandingToken" %}
+            Active and historical JWT tokens with expiry information and bulk blacklist capabilities.
+          {% elif model.object_name == "PaymentTransaction" %}
+            Paystack payment records for subscription upgrades and billing events processed by the platform.
+          {% elif model.object_name == "AcceleratorProgram" %}
+            Accelerator cohort programs with application windows, mentors, and venture resources.
+          {% elif model.object_name == "AcceleratorApplication" %}
+            Startup applications submitted to accelerator programs, including review status and assessment.
+          {% elif model.object_name == "ApplicationAssessment" %}
+            Reviewer scores, rubric evaluations, and written comments on accelerator applications.
+          {% elif model.object_name == "Pitch" %}
+            Startup pitch decks with media, asking amount, description, and investor view analytics.
+          {% elif model.object_name == "Offer" %}
+            Term sheet offers extended by investors to startups, with negotiation status tracking.
+          {% else %}
+            Manage {{ model.name }} records, configuration, and operational data for the platform.
+          {% endif %}
+        </div>
+        <div class="pm-model-card__footer">
+          {% if model.admin_url %}
+          <a href="{{ model.admin_url }}" class="pm-btn-manage">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            {% if model.view_only %}View{% else %}Browse{% endif %}
+          </a>
+          {% endif %}
+          {% if model.add_url %}
+          <a href="{{ model.add_url }}" class="pm-btn-add">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  {% else %}
+    <div style="padding:48px 24px;text-align:center;color:#94a3b8;">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 12px;display:block;color:#cbd5e1;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <div style="font-size:0.9375rem;font-weight:600;color:#64748b;margin-bottom:4px;">No Access</div>
+      <div style="font-size:0.8125rem;">{% translate "You don't have permission to view or edit anything." %}</div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

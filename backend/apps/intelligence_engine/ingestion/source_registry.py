@@ -1,7 +1,7 @@
 """
 apps.intelligence_engine.ingestion.source_registry
 ====================================================
-SourceRegistryService — manages the SourceRegistry model records and
+SourceRegistryService - manages the SourceRegistry model records and
 dispatches fetches to the correct adapter based on tier + strategy.
 
 Replaces _get_default_sources_config() in opportunity_service.py.
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Default source definitions (seeds the DB — NOT hard-coded opportunity data)
+# Default source definitions (seeds the DB - NOT hard-coded opportunity data)
 # ---------------------------------------------------------------------------
 
 DEFAULT_SOURCES: List[Dict[str, Any]] = [
@@ -96,7 +96,7 @@ DEFAULT_SOURCES: List[Dict[str, Any]] = [
     dict(
         name="MassChallenge Africa", organization="MassChallenge",
         tier=SourceRegistry.Tier.TIER_1_OFFICIAL,
-        fetch_strategy=SourceRegistry.FetchStrategy.BROWSER,  # Cloudflare bot-protected — needs browser UA
+        fetch_strategy=SourceRegistry.FetchStrategy.BROWSER,  # Cloudflare bot-protected - needs browser UA
         crawl_frequency=SourceRegistry.CrawlFrequency.DAILY,
         base_trust_score=0.95,
         base_url="https://masschallenge.org/programs/",
@@ -168,7 +168,7 @@ DEFAULT_SOURCES: List[Dict[str, Any]] = [
     dict(
         name="54 Collective", organization="54 Collective",
         tier=SourceRegistry.Tier.TIER_1_OFFICIAL,
-        fetch_strategy=SourceRegistry.FetchStrategy.BROWSER,  # Cloudflare SSL 526 — needs browser
+        fetch_strategy=SourceRegistry.FetchStrategy.BROWSER,  # Cloudflare SSL 526 - needs browser
         crawl_frequency=SourceRegistry.CrawlFrequency.DAILY,
         base_trust_score=0.90,
         base_url="https://54collective.vc",
@@ -176,7 +176,7 @@ DEFAULT_SOURCES: List[Dict[str, Any]] = [
     ),
     # ── Tier 2: Structured news / aggregators with RSS ─────────────────────
     dict(
-        name="TechCabal — Africa Tech News", organization="TechCabal",
+        name="TechCabal - Africa Tech News", organization="TechCabal",
         tier=SourceRegistry.Tier.TIER_3_SECONDARY,
         fetch_strategy=SourceRegistry.FetchStrategy.RSS,
         crawl_frequency=SourceRegistry.CrawlFrequency.HOURLY,
@@ -185,7 +185,7 @@ DEFAULT_SOURCES: List[Dict[str, Any]] = [
         rss_url="https://techcabal.com/feed/",
     ),
     dict(
-        name="Disrupt Africa — Startup Funding News", organization="Disrupt Africa",
+        name="Disrupt Africa - Startup Funding News", organization="Disrupt Africa",
         tier=SourceRegistry.Tier.TIER_3_SECONDARY,
         fetch_strategy=SourceRegistry.FetchStrategy.RSS,
         crawl_frequency=SourceRegistry.CrawlFrequency.HOURLY,
@@ -269,7 +269,7 @@ class SourceRegistryService:
 
         if not result.ok and source.fetch_strategy not in ("static", "manual"):
             logger.warning(
-                "[registry] %s %s failed (status=%d) — falling back to static",
+                "[registry] %s %s failed (status=%d) - falling back to static",
                 source.name, source.fetch_strategy, result.http_status,
             )
             try:

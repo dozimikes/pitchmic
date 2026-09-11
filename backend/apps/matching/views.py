@@ -1,4 +1,4 @@
-﻿"""
+"""
 apps.matching.views
 ===================
 REST endpoints for the AI matching engine.
@@ -114,7 +114,7 @@ class TopMatchesView(generics.ListAPIView):
                 investor = user.investor_profile
             except (InvestorProfile.DoesNotExist, Exception):
                 # SEC-011: do NOT auto-create an investor profile for
-                # superusers/staff — that conflates admin accounts with real
+                # superusers/staff - that conflates admin accounts with real
                 # investor accounts and leaks admin user data into listings.
                 return MatchScore.objects.none()
 
@@ -146,7 +146,7 @@ class TopMatchesView(generics.ListAPIView):
         try:
             startup = user.startup_profile
         except (StartupProfile.DoesNotExist, Exception):
-            # SEC-011: do NOT fall back to .objects.first() — return empty.
+            # SEC-011: do NOT fall back to .objects.first() - return empty.
             return MatchScore.objects.none()
 
         scores = MatchScore.objects.filter(startup=startup).select_related("startup", "investor").order_by("-compatibility_score")

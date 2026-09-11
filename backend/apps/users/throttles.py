@@ -22,7 +22,7 @@ class LoginRateThrottle(AnonRateThrottle):
     """
     Limit login attempts to 5 per minute per IP address.
 
-    Scope key is "login" — maps to REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["login"]
+    Scope key is "login" - maps to REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["login"]
     in settings.py, currently "5/minute".
 
     Throttled requests receive HTTP 429 Too Many Requests with a

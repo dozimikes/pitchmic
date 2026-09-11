@@ -5,7 +5,7 @@ Derives machine-generated intelligence snapshots for startups based on
 claims, verified evidence, financial snapshots, and maturity assessments.
 
 All values are sourced from real startup data. No demo data is seeded.
-An incomplete profile returns honest zeroes and nulls — the frontend is
+An incomplete profile returns honest zeroes and nulls - the frontend is
 responsible for rendering empty states.
 """
 from __future__ import annotations
@@ -29,14 +29,14 @@ class VentureIntelligenceSnapshotService:
 
     @classmethod
     def get_or_create_snapshot(cls, startup: StartupProfile) -> Dict[str, Any]:
-        # Most recent maturity assessment — may be None for new startups
+        # Most recent maturity assessment - may be None for new startups
         maturity = (
             StartupMaturityAssessment.objects.filter(startup=startup)
             .order_by("-assessed_at")
             .first()
         )
 
-        # Real claim and evidence counts — no manual overrides
+        # Real claim and evidence counts - no manual overrides
         total_claims = StartupClaim.objects.filter(startup=startup).count()
         verified_claims = StartupClaim.objects.filter(
             startup=startup,
@@ -55,7 +55,7 @@ class VentureIntelligenceSnapshotService:
             )
         )
 
-        # Fundraising campaign — may be None for startups that haven't set one up
+        # Fundraising campaign - may be None for startups that haven't set one up
         campaign = FundraisingCampaign.objects.filter(startup=startup).first()
         campaign_data = None
         if campaign:
@@ -68,7 +68,7 @@ class VentureIntelligenceSnapshotService:
                 "status": campaign.status,
             }
 
-        # Historical trajectory — built from real maturity assessments only
+        # Historical trajectory - built from real maturity assessments only
         trajectory: List[Dict[str, Any]] = []
         if maturity:
             all_assessments = (
@@ -102,7 +102,7 @@ class VentureIntelligenceSnapshotService:
             best = sorted_dims[0]
             worst = sorted_dims[-1]
             primary_strength = f"Strongest dimension: {best[0].title()} ({best[1]}/100)"
-            primary_risk = f"Weakest dimension: {worst[0].title()} ({worst[1]}/100) — needs improvement"
+            primary_risk = f"Weakest dimension: {worst[0].title()} ({worst[1]}/100) - needs improvement"
 
         return {
             "startup_id": str(startup.id),

@@ -1,7 +1,7 @@
 """
 apps.intelligence_engine.intelligence.readiness_engine
 =======================================================
-ReadinessEngine — computes a startup's application readiness for each
+ReadinessEngine - computes a startup's application readiness for each
 opportunity with specific blocking requirements and a readiness score.
 
 Output per startup × opportunity:
@@ -197,7 +197,7 @@ class ReadinessEngine:
 
     def _check_deadline(self, opp: OpportunityLifecycle) -> Dict[str, Any]:
         if opp.is_rolling:
-            return self._met("Rolling applications — apply any time", weight=2.0, is_strength=True)
+            return self._met("Rolling applications - apply any time", weight=2.0, is_strength=True)
 
         if opp.lifecycle_status == OpportunityLifecycle.LifecycleStatus.CLOSED:
             return self._blocked(
@@ -217,13 +217,13 @@ class ReadinessEngine:
                 )
             if days <= 7:
                 return self._soft_gap(
-                    f"Deadline in {days} day(s) — extremely tight window",
+                    f"Deadline in {days} day(s) - extremely tight window",
                     hint="Submit immediately if you qualify",
                     weight=2.0,
                 )
             if days <= 21:
                 return self._met(
-                    f"Deadline in {days} days — act now",
+                    f"Deadline in {days} days - act now",
                     weight=2.0, is_strength=False,
                 )
             return self._met(f"Deadline: {opp.application_deadline} ({days} days)", weight=1.0)
@@ -286,8 +286,8 @@ class ReadinessEngine:
         }
         if startup_stage in adjacent.get(stages[0], []):
             return self._soft_gap(
-                f"Stage: {startup_stage} is adjacent to target {stages[0]} — may still qualify",
-                hint="Apply anyway with a strong growth trajectory — some programs accept adjacent stages",
+                f"Stage: {startup_stage} is adjacent to target {stages[0]} - may still qualify",
+                hint="Apply anyway with a strong growth trajectory - some programs accept adjacent stages",
                 weight=1.5,
             )
 
@@ -339,14 +339,14 @@ class ReadinessEngine:
     def _check_team_size(self, startup: Any, opp: OpportunityLifecycle) -> Optional[Dict[str, Any]]:
         founders = getattr(startup, "founder_count", None) or getattr(startup, "team_size", None)
         if founders is None:
-            return None   # unknown — skip check
+            return None   # unknown - skip check
 
         # Accelerators typically want 2+ founders
         if opp.opportunity_type == OpportunityLifecycle.OpportunityType.ACCELERATOR:
             if founders >= 2:
                 return self._met(f"Team: {founders} founders (meets typical minimum)", is_strength=True)
             return self._soft_gap(
-                f"Team size: {founders} founder — many accelerators prefer 2+",
+                f"Team size: {founders} founder - many accelerators prefer 2+",
                 hint="Consider bringing on a co-founder before applying",
                 weight=1.5,
             )
@@ -361,7 +361,7 @@ class ReadinessEngine:
         if stage in pre_rev_stages:
             return None
 
-        # Seed stage with seed fund — check if revenue is expected
+        # Seed stage with seed fund - check if revenue is expected
         if opp.opportunity_type in (
             OpportunityLifecycle.OpportunityType.SEED_FUND,
             OpportunityLifecycle.OpportunityType.SERIES_A_FUND,
@@ -370,7 +370,7 @@ class ReadinessEngine:
                 return self._met(f"Revenue: ${mrr:,.0f}/mo MRR verified", is_strength=True)
             if mrr == 0 or mrr is None:
                 return self._soft_gap(
-                    "No revenue recorded — seed funds typically require early traction",
+                    "No revenue recorded - seed funds typically require early traction",
                     hint="Document any pilot customers, LOIs, or pre-revenue traction",
                     weight=1.5,
                 )
@@ -436,7 +436,7 @@ class ReadinessEngine:
                 weight=1.5,
             )
         return self._soft_gap(
-            f"Evidence data room: {count} record(s) — more recommended",
+            f"Evidence data room: {count} record(s) - more recommended",
             hint=f"Add: {', '.join(reqs[:2])}",
             weight=1.0,
         )
@@ -454,7 +454,7 @@ class ReadinessEngine:
         ):
             return self._soft_gap(
                 "Not yet incorporated",
-                hint="Incorporate before submitting — most grant and fund programs require a legal entity",
+                hint="Incorporate before submitting - most grant and fund programs require a legal entity",
                 weight=2.0,
             )
         return None

@@ -1,7 +1,7 @@
 """
 apps.intelligence_engine.extraction.fact_extractor
 ====================================================
-AIFactExtractor — extracts structured facts from SourceDocument text.
+AIFactExtractor - extracts structured facts from SourceDocument text.
 
 Pipeline:
   SourceDocument.clean_text
@@ -114,7 +114,7 @@ _EQUITY_FREE_RE = re.compile(
 )
 _EQUITY_PCT_RE = re.compile(r"(\d+(?:\.\d+)?)\s*%\s*(?:equity|stake|ownership|dilution)", re.I)
 _LIST_ITEM_RE  = re.compile(
-    r"(?:^|\n)\s*(?:[•·▪◦‣⁃*\-–—]|\d+[.):])\s*(.{15,280})",
+    r"(?:^|\n)\s*(?:[•·▪◦‣⁃*\-–-]|\d+[.):])\s*(.{15,280})",
     re.MULTILINE,
 )
 _BENEFITS_RE   = re.compile(
@@ -240,7 +240,7 @@ _AI_SYSTEM_PROMPT = """You are a funding opportunity intelligence extractor for 
 Extract ONLY facts explicitly stated in the provided text.
 Do NOT invent, infer, or guess values that are not clearly present.
 If a value is absent, return null (not a placeholder).
-Your output will be validated against deterministic signals — fabricated values will be rejected.
+Your output will be validated against deterministic signals - fabricated values will be rejected.
 Return valid JSON matching the provided schema."""
 
 
@@ -255,10 +255,10 @@ class AIFactExtractor:
       2. Open Graph / meta tags
       3. RSS structured fields
       4. Regex + context scoring
-      5. AI LLM (via AIGateway) — validates against layer 1-4 signals
+      5. AI LLM (via AIGateway) - validates against layer 1-4 signals
       6. Anchor/heuristic fallback for JS-heavy pages
 
-    The extractor NEVER writes to the DB — it returns ExtractionResult.
+    The extractor NEVER writes to the DB - it returns ExtractionResult.
     EvidenceEngine handles DB persistence and conflict resolution.
     """
 
@@ -767,7 +767,7 @@ class AIFactExtractor:
             # Check against deterministic signals
             determ_best = result.best(fact_type)
             if determ_best and determ_best.confidence >= 0.80:
-                # High-confidence deterministic signal exists — only add if AI agrees
+                # High-confidence deterministic signal exists - only add if AI agrees
                 if not validator.agrees(fact_type, normalized, determ_best):
                     result.warnings.append(
                         f"ai_rejected_{fact_type}_conflicts_determ"
@@ -965,7 +965,7 @@ class DeterministicValidator:
                 det_date  = datetime.date.fromisoformat(str(determ_fact.normalized_value)[:10])
                 return abs((ai_date - det_date).days) <= 30
             except (ValueError, TypeError):
-                return True   # can't compare — allow
+                return True   # can't compare - allow
 
         if fact_type in ("funding_min", "funding_max"):
             try:

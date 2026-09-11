@@ -4,7 +4,7 @@ apps.intelligence_engine.models_entities
 Entity models: Organization, Person, FundingRound, Investment,
 InvestorThesis, ObservedInvestment, PortfolioRelationship.
 
-Key design principle — stated thesis vs observed behavior:
+Key design principle - stated thesis vs observed behavior:
   InvestorThesis     stores what an investor SAYS they invest in
   ObservedInvestment stores what they actually DID invest in
 
@@ -26,7 +26,7 @@ from django.utils.translation import gettext_lazy as _
 class Organization(models.Model):
     """
     Canonical organization record. Covers VCs, accelerators, corporates,
-    government bodies, foundations — any entity that provides funding or
+    government bodies, foundations - any entity that provides funding or
     runs programs.  Deduplicates across sources via slug.
     """
 
@@ -92,7 +92,7 @@ class Organization(models.Model):
 
 class Person(models.Model):
     """
-    Canonical person record — founders, partners, investors, advisors.
+    Canonical person record - founders, partners, investors, advisors.
     """
 
     id              = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -120,7 +120,7 @@ class Person(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# InvestorThesis — what an investor SAYS they invest in
+# InvestorThesis - what an investor SAYS they invest in
 # ---------------------------------------------------------------------------
 
 class InvestorThesis(models.Model):
@@ -148,7 +148,7 @@ class InvestorThesis(models.Model):
     thesis_alignment_pct    = models.FloatField(default=0.0,
                                                  help_text=_("% of observed investments that match stated thesis"))
     observed_sector_dist    = models.JSONField(default=dict,
-                                               help_text=_("{'fintech': 14, 'healthtech': 5} — actual counts"))
+                                               help_text=_("{'fintech': 14, 'healthtech': 5} - actual counts"))
     observed_geo_dist       = models.JSONField(default=dict)
     observed_stage_dist     = models.JSONField(default=dict)
     observed_avg_check_usd  = models.BigIntegerField(null=True, blank=True)
@@ -247,7 +247,7 @@ class FundingRound(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# Investment — individual investor → round participation
+# Investment - individual investor → round participation
 # ---------------------------------------------------------------------------
 
 class Investment(models.Model):
@@ -282,7 +282,7 @@ class Investment(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# ObservedInvestment — actual investment behavior (vs stated thesis)
+# ObservedInvestment - actual investment behavior (vs stated thesis)
 # ---------------------------------------------------------------------------
 
 class ObservedInvestment(models.Model):

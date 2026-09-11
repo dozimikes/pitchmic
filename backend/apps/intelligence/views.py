@@ -1,4 +1,4 @@
-﻿"""
+"""
 apps.intelligence.views
 =======================
 REST endpoints for the intelligence / due-diligence pipeline.
@@ -351,7 +351,7 @@ class EnterpriseTriageWebhookView(APIView):
                         ):
                             _is_ssrf = True
                     except ValueError:
-                        pass  # hostname, not an IP — already checked blocked list
+                        pass  # hostname, not an IP - already checked blocked list
             if _is_ssrf:
                 return Response(
                     {"detail": "callback_url must be an HTTPS URL pointing to an external host."},
@@ -366,7 +366,7 @@ class EnterpriseTriageWebhookView(APIView):
 class DigitalBrainQueryView(APIView):
     """
     POST - Query the firm's Digital Brain for past memos, sector theses, and reasoning.
-    tenant_id is derived from the authenticated user — never accepted from request body.
+    tenant_id is derived from the authenticated user - never accepted from request body.
     """
 
     permission_classes = (IsAuthenticated,)
@@ -397,7 +397,7 @@ class DigitalBrainQueryView(APIView):
 class DigitalBrainIngestView(APIView):
     """
     POST - Ingest a deal memo, partner note, or thesis into the firm's Digital Brain.
-    tenant_id is derived from the authenticated user — never accepted from request body.
+    tenant_id is derived from the authenticated user - never accepted from request body.
     """
 
     permission_classes = (IsAuthenticated,)
@@ -554,7 +554,7 @@ class PitchDeckUploadView(APIView):
         score_ledger_dict = report.score_ledger.to_dict() if hasattr(report.score_ledger, "to_dict") else report.score_ledger.__dict__
         stage_assessment_dict = report.stage_assessment.to_dict() if hasattr(report.stage_assessment, "to_dict") else report.stage_assessment.__dict__
 
-        # Store in DB if associated with a startup profile — SEC-006 / IDOR:
+        # Store in DB if associated with a startup profile - SEC-006 / IDOR:
         # only store when the caller is authorized for that startup.
         analysis_record_id = None
         if startup_id:
@@ -577,7 +577,7 @@ class PitchDeckUploadView(APIView):
                 analysis_record_id = rec.id
             except Exception:
                 # Authorization failures (NotFound) and other errors should
-                # not cause the forensic analysis response to fail — the
+                # not cause the forensic analysis response to fail - the
                 # report is still returned, but not persisted to an
                 # unauthorized startup.
                 analysis_record_id = None

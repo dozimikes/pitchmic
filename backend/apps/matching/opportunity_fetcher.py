@@ -62,21 +62,21 @@ try:
     _HAS_REQUESTS = True
 except ImportError:
     _HAS_REQUESTS = False
-    logger.info("[fetcher] requests not available — falling back to stdlib urllib")
+    logger.info("[fetcher] requests not available - falling back to stdlib urllib")
 
 try:
     from bs4 import BeautifulSoup
     _HAS_BS4 = True
 except ImportError:
     _HAS_BS4 = False
-    logger.info("[fetcher] beautifulsoup4 not available — using regex on raw HTML")
+    logger.info("[fetcher] beautifulsoup4 not available - using regex on raw HTML")
 
 try:
     from dateutil import parser as du_parser  # type: ignore[import-untyped]
     _HAS_DATEUTIL = True
 except ImportError:
     _HAS_DATEUTIL = False
-    logger.info("[fetcher] python-dateutil not available — using stdlib date parsing")
+    logger.info("[fetcher] python-dateutil not available - using stdlib date parsing")
 
 
 # ---------------------------------------------------------------------------
@@ -440,7 +440,7 @@ class SourceFetcher:
     def fetch_and_parse(cls, source: Any) -> ParsedOpportunitySignals:
         """
         Full pipeline: multi-page crawl + RSS + signal merge.
-        Never raises — always returns a ParsedOpportunitySignals (possibly empty).
+        Never raises - always returns a ParsedOpportunitySignals (possibly empty).
         """
         from django.utils import timezone
         retrieved_at = timezone.now().isoformat()
@@ -659,7 +659,7 @@ class SourceFetcher:
             sig.overall_confidence = cls._compute_overall_confidence(sig)
             return sig
 
-        # HTML path — build soup + text
+        # HTML path - build soup + text
         soup = None
         if _HAS_BS4:
             try:
@@ -847,7 +847,7 @@ class SourceFetcher:
         changed = old_hash != new_hash
         if not changed:
             logger.debug(
-                "[fetcher] page_has_changed(%s) = False — hash unchanged",
+                "[fetcher] page_has_changed(%s) = False - hash unchanged",
                 getattr(source, "organization", "?"),
             )
         return changed
@@ -944,13 +944,13 @@ class SourceFetcher:
                 retrieved_at=retrieved_at,
             )
         except Exception as exc:
-            logger.debug("[fetcher] requests failed for %s: %s — retrying urllib", url, exc)
+            logger.debug("[fetcher] requests failed for %s: %s - retrying urllib", url, exc)
             return cls._fetch_with_urllib(url, headers, retrieved_at)
 
     @classmethod
     def _fetch_with_urllib(cls, url: str, headers: Dict, retrieved_at: str) -> FetchResult:
         try:
-            # urllib does NOT auto-decompress — strip the Accept-Encoding header so
+            # urllib does NOT auto-decompress - strip the Accept-Encoding header so
             # the server returns plain text, avoiding gzip/brotli mojibake when the
             # requests library is unavailable.
             safe_headers = {
@@ -1003,7 +1003,7 @@ class SourceFetcher:
                         raw_bytes = _brotli.decompress(raw_bytes)
                     except ImportError:
                         logger.debug(
-                            "[fetcher] brotli not installed — re-requesting %s without compression",
+                            "[fetcher] brotli not installed - re-requesting %s without compression",
                             url,
                         )
                         # Re-request without Accept-Encoding to avoid brotli

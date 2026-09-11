@@ -1,7 +1,7 @@
 """
 apps.intelligence_engine.extraction.opportunity_parser
 =======================================================
-OpportunityParser — maps the canonical fact map from EvidenceEngine to
+OpportunityParser - maps the canonical fact map from EvidenceEngine to
 OpportunityLifecycle DB records (and backwards-compat FundingOpportunity).
 
 Flow:
@@ -20,7 +20,7 @@ Flow:
 Architecture note:
   The baseline profile provides immutable *metadata* about each program
   (sector focus, stage, app URL) that cannot be scraped from a live page.
-  It is NOT a fabricated data source — it is curated minimum-known-good info.
+  It is NOT a fabricated data source - it is curated minimum-known-good info.
   All time-sensitive fields (deadline, status, funding amount, equity) come
   exclusively from the live canonical_map.  If a live value is missing the
   field stays null/UNKNOWN rather than inventing a value.
@@ -62,7 +62,7 @@ _STATUS_MAP = {
 
 # ---------------------------------------------------------------------------
 # Curated baseline profiles
-# (structural metadata only — NO time-sensitive values)
+# (structural metadata only - NO time-sensitive values)
 # ---------------------------------------------------------------------------
 _BASELINE_PROFILES: Dict[str, Dict[str, Any]] = {
     "Antler": dict(

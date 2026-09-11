@@ -146,11 +146,11 @@ class FundabilityAssessment(models.Model):
     """
 
     class EvidenceConviction(models.TextChoices):
-        EXCEPTIONAL = "exceptional", _("Exceptional — High Conviction")
-        STRONG = "strong", _("Strong — Investable")
-        PROMISING = "promising", _("Promising — Diligence Required")
-        SPECULATIVE = "speculative", _("Speculative — Significant Gaps")
-        WEAK = "weak", _("Weak — Insufficient Evidence")
+        EXCEPTIONAL = "exceptional", _("Exceptional - High Conviction")
+        STRONG = "strong", _("Strong - Investable")
+        PROMISING = "promising", _("Promising - Diligence Required")
+        SPECULATIVE = "speculative", _("Speculative - Significant Gaps")
+        WEAK = "weak", _("Weak - Insufficient Evidence")
 
     class StageLabel(models.TextChoices):
         IDEA = "idea", _("Idea / Concept")
@@ -162,7 +162,7 @@ class FundabilityAssessment(models.Model):
     class Confidence(models.TextChoices):
         HIGH = "high", _("High")
         MEDIUM = "medium", _("Medium")
-        LOW = "low", _("Low — Insufficient Data")
+        LOW = "low", _("Low - Insufficient Data")
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     startup = models.ForeignKey(
@@ -227,7 +227,7 @@ class FundabilityAssessment(models.Model):
         max_digits=14, decimal_places=2, null=True, blank=True,
     )
 
-    # Versioning — every re-assessment creates a new record
+    # Versioning - every re-assessment creates a new record
     methodology_version = models.CharField(max_length=20, default="v1.0")
     assessed_at = models.DateTimeField(auto_now_add=True)
     is_current = models.BooleanField(
@@ -289,10 +289,10 @@ class FundabilityDimension(models.Model):
         FUNDRAISING = "fundraising", _("Fundraising Readiness")
 
     class EvidenceState(models.TextChoices):
-        VERIFIED_EMPIRICAL = "verified_empirical", _("Verified — Empirical Evidence")
-        SUPPORTED = "supported", _("Supported — Contextual Evidence")
-        FOUNDER_CLAIMED = "founder_claimed", _("Founder-Claimed — Unverified")
-        UNAVAILABLE = "unavailable", _("Unavailable — Not Provided")
+        VERIFIED_EMPIRICAL = "verified_empirical", _("Verified - Empirical Evidence")
+        SUPPORTED = "supported", _("Supported - Contextual Evidence")
+        FOUNDER_CLAIMED = "founder_claimed", _("Founder-Claimed - Unverified")
+        UNAVAILABLE = "unavailable", _("Unavailable - Not Provided")
 
     class StageConcern(models.TextChoices):
         ACCEPTABLE = "acceptable", _("Acceptable for Stage")
@@ -355,10 +355,10 @@ class FundabilityGap(models.Model):
     """
 
     class Severity(models.TextChoices):
-        CRITICAL = "critical", _("Critical — Must Fix Before Applying")
-        HIGH = "high", _("High — Significantly Affects Readiness")
-        MEDIUM = "medium", _("Medium — Should Improve")
-        LOW = "low", _("Low — Minor Enhancement")
+        CRITICAL = "critical", _("Critical - Must Fix Before Applying")
+        HIGH = "high", _("High - Significantly Affects Readiness")
+        MEDIUM = "medium", _("Medium - Should Improve")
+        LOW = "low", _("Low - Minor Enhancement")
 
     class GapStatus(models.TextChoices):
         OPEN = "open", _("Open")
@@ -520,13 +520,13 @@ class ImprovementAction(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# Program Readiness (lightweight — full program intelligence is P1)
+# Program Readiness (lightweight - full program intelligence is P1)
 # ---------------------------------------------------------------------------
 
 class ProgramReadiness(models.Model):
     """
     Per-program readiness score for a startup.
-    Lightweight record — full Application Intelligence is a P1 feature.
+    Lightweight record - full Application Intelligence is a P1 feature.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

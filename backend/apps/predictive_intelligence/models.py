@@ -447,7 +447,7 @@ class VentureOutcomePrediction(models.Model):
 
     def __str__(self) -> str:
         u = self.unicorn_prob_60m or 0.0
-        return f"VentureForecast {self.startup.company_name} - 🦄60m={u * 100:.1f}%"
+        return f"VentureForecast {self.startup.company_name} - 60m={u * 100:.1f}%"
 
 
 # =========================================================================

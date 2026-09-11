@@ -1,7 +1,7 @@
 """
 apps.intelligence_engine.extraction.evidence_engine
 ====================================================
-EvidenceEngine — persists extracted facts with full provenance,
+EvidenceEngine - persists extracted facts with full provenance,
 detects conflicts across sources, and computes canonical field values.
 
 Responsibilities:
@@ -307,7 +307,7 @@ class EvidenceEngine:
         conflict.auto_resolve()
 
         logger.info(
-            "[conflict] %s field=%s — %d sources disagree → resolved=%s",
+            "[conflict] %s field=%s - %d sources disagree → resolved=%s",
             subject_entity, new_fact.fact_type, len(facts_list),
             conflict.recommended_value,
         )

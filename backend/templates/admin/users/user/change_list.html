@@ -1,0 +1,55 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls %}
+
+{% block breadcrumbs %}
+{% if not is_popup %}
+<nav class="breadcrumbs-bar" aria-label="Breadcrumbs">
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -1px; margin-right: 4px;">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      {% translate 'Home' %}
+    </a>
+    <span class="sep" aria-hidden="true">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </span>
+    <a href="{% url 'admin:app_list' app_label=cl.opts.app_label %}">{{ cl.opts.app_config.verbose_name }}</a>
+    <span class="sep" aria-hidden="true">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </span>
+    <span class="active-crumb">{{ cl.opts.verbose_name_plural|capfirst }}</span>
+  </div>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block content_title %}
+<div class="pm-page-hero">
+  <div class="pm-page-hero__left">
+    <div class="pm-page-hero__icon-wrap">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+    </div>
+    <div class="pm-page-hero__text">
+      <h1 class="pm-page-hero__title">Users</h1>
+      <p class="pm-page-hero__subtitle">Manage platform accounts, roles, and subscription access</p>
+    </div>
+  </div>
+  <div class="pm-page-hero__actions">
+    {% if has_add_permission %}
+    <a href="{% url cl.opts|admin_urlname:'add' %}" class="pm-hero-add-btn" id="add-user-hero-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add User
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block object-tools %}{% endblock %}

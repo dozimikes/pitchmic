@@ -6,14 +6,14 @@ Each model captures one dimension of startup evidence with enough
 detail to drive the stage assessment and fundability scoring.
 
 Models:
-  FounderProfile       — per-founder background, experience, founder-market fit
-  ProductProfile       — product maturity, technology, differentiation
-  MarketProfile        — TAM/SAM/SOM, evidence, competitive landscape
-  BusinessModelProfile — revenue model, pricing, unit economics
-  TractionMetric       — time-series traction data with evidence provenance
+  FounderProfile       - per-founder background, experience, founder-market fit
+  ProductProfile       - product maturity, technology, differentiation
+  MarketProfile        - TAM/SAM/SOM, evidence, competitive landscape
+  BusinessModelProfile - revenue model, pricing, unit economics
+  TractionMetric       - time-series traction data with evidence provenance
 
 These are satellite models to StartupProfile (apps.users.models).
-They do NOT replace existing StartupProfile fields — they extend them
+They do NOT replace existing StartupProfile fields - they extend them
 with structured, evidence-bearing detail.
 """
 from __future__ import annotations
@@ -119,7 +119,7 @@ class FounderProfile(models.Model):
         ordering = ["-is_primary", "full_name"]
 
     def __str__(self) -> str:
-        return f"{self.full_name} ({self.role}) — {self.startup.company_name}"
+        return f"{self.full_name} ({self.role}) - {self.startup.company_name}"
 
 
 # ---------------------------------------------------------------------------
@@ -130,16 +130,16 @@ class ProductProfile(models.Model):
     """
     Captures product maturity, technology stack, differentiation, and
     the evidence that supports product claims.
-    OneToOne with StartupProfile — a startup has one canonical product profile.
+    OneToOne with StartupProfile - a startup has one canonical product profile.
     """
 
     class ProductStatus(models.TextChoices):
         IDEA = "idea", _("Idea / Concept Only")
         PROTOTYPE = "prototype", _("Prototype / Early Build")
-        MVP = "mvp", _("MVP — Internal / Limited Testing")
-        BETA = "beta", _("Beta — External Users")
+        MVP = "mvp", _("MVP - Internal / Limited Testing")
+        BETA = "beta", _("Beta - External Users")
         LIVE = "live", _("Live / Production")
-        SCALING = "scaling", _("Scaling — Post-PMF")
+        SCALING = "scaling", _("Scaling - Post-PMF")
 
     class TechDifferentiator(models.TextChoices):
         NONE = "none", _("No Significant Technical Differentiation")
@@ -164,7 +164,7 @@ class ProductProfile(models.Model):
     )
     target_customer_description = models.TextField(
         _("target customer"), blank=True,
-        help_text=_("Specific description of the primary customer — not 'SMEs' but 'logistics managers at 10–50 person companies'")
+        help_text=_("Specific description of the primary customer - not 'SMEs' but 'logistics managers at 10–50 person companies'")
     )
     customer_pain_frequency = models.CharField(
         _("pain frequency"), max_length=50, blank=True,
@@ -184,7 +184,7 @@ class ProductProfile(models.Model):
     # Solution
     solution_description = models.TextField(
         _("solution description"), blank=True,
-        help_text=_("What the product actually does — specifically and concretely")
+        help_text=_("What the product actually does - specifically and concretely")
     )
     product_status = models.CharField(
         _("product status"), max_length=16,
@@ -341,11 +341,11 @@ class BusinessModelProfile(models.Model):
         NOT_YET = "not_yet", _("Not Yet Monetizing")
 
     class CustomerType(models.TextChoices):
-        B2B = "b2b", _("B2B — Businesses")
-        B2C = "b2c", _("B2C — Consumers")
+        B2B = "b2b", _("B2B - Businesses")
+        B2C = "b2c", _("B2C - Consumers")
         B2B2C = "b2b2c", _("B2B2C")
-        B2G = "b2g", _("B2G — Government")
-        MARKETPLACE = "marketplace", _("Marketplace — Both Sides")
+        B2G = "b2g", _("B2G - Government")
+        MARKETPLACE = "marketplace", _("Marketplace - Both Sides")
 
     class SalesModel(models.TextChoices):
         PRODUCT_LED = "product_led", _("Product-Led Growth")
@@ -446,8 +446,8 @@ class TractionMetric(models.Model):
     """
 
     class MetricType(models.TextChoices):
-        MRR = "mrr", _("MRR — Monthly Recurring Revenue")
-        ARR = "arr", _("ARR — Annual Recurring Revenue")
+        MRR = "mrr", _("MRR - Monthly Recurring Revenue")
+        ARR = "arr", _("ARR - Annual Recurring Revenue")
         REVENUE = "revenue", _("Revenue (Non-Recurring)")
         GMV = "gmv", _("GMV / TPV")
         USERS = "users", _("Registered Users")
@@ -526,4 +526,4 @@ class TractionMetric(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"{self.startup.company_name} — {self.metric_type}: {self.value} ({self.period_label})"
+        return f"{self.startup.company_name} - {self.metric_type}: {self.value} ({self.period_label})"

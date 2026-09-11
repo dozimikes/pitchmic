@@ -13,7 +13,7 @@ Defence-in-depth layers (evaluated in order):
     2. Hostname blocklist (explicit internal aliases used by Docker Compose).
     3. Allowlist override: hostnames in ``SSRF_ALLOWLIST_HOSTNAMES`` bypass
        the rest of the check, but only for HTTPS URLs.
-    4. DNS A/AAAA resolution — performed TWICE with a TTL window to mitigate
+    4. DNS A/AAAA resolution - performed TWICE with a TTL window to mitigate
        DNS rebinding.  Any resolved IP in EITHER pass that matches any of
        the IP ranges below causes rejection:
          * Loopback (127.0.0.0/8, ::1)

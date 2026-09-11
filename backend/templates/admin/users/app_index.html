@@ -1,0 +1,150 @@
+﻿{% extends "admin/app_index.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div class="content-body" style="padding-top: 0;">
+
+    <!-- ── Users & Auth Telemetry Banner ── -->
+    <div style="margin-bottom: 24px;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px; flex-wrap:wrap;">
+            <h1 style="font-size:1.5rem; font-weight:800; letter-spacing:-0.025em; color:#0f172a; margin:0;">
+                Users &amp; Auth
+            </h1>
+            <span style="display:inline-flex; align-items:center; gap:5px; padding:2px 10px; background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; border-radius:9999px; font-size:0.675rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">
+                <span style="width:6px; height:6px; border-radius:50%; background:#10b981; display:inline-block;"></span>
+                Live
+            </span>
+        </div>
+        <p style="font-size:0.8125rem; color:#64748b; margin:0; font-weight:500;">
+            Manage platform users, identity verification, startup &amp; investor profiles, and token security.
+        </p>
+    </div>
+
+    <!-- ── Live Stats Grid ── -->
+    <div class="app-index-stats-grid" id="users-stats-grid">
+        <a href="{% url 'admin:users_user_changelist' %}" class="app-index-stat-card">
+            <span class="stat-label">Total Users</span>
+            <span class="stat-value" id="stat-total-users">
+                <span style="display:inline-block;width:48px;height:28px;background:#f1f5f9;border-radius:6px;animation:kpiPulse 1.5s ease-in-out infinite;"></span>
+            </span>
+            <span class="stat-sub" id="stat-users-roles">Loading breakdown…</span>
+        </a>
+
+        <a href="{% url 'admin:users_user_changelist' %}?is_verified__exact=0" class="app-index-stat-card">
+            <span class="stat-label">Unverified Accounts</span>
+            <span class="stat-value" id="stat-unverified" style="color:#dc2626;">
+                <span style="display:inline-block;width:48px;height:28px;background:#f1f5f9;border-radius:6px;animation:kpiPulse 1.5s ease-in-out infinite;"></span>
+            </span>
+            <span class="stat-sub">Pending email verification</span>
+        </a>
+
+        <a href="{% url 'admin:users_startupprofile_changelist' %}" class="app-index-stat-card">
+            <span class="stat-label">Startup Profiles</span>
+            <span class="stat-value" id="stat-startups" style="color:#c2410c;">
+                <span style="display:inline-block;width:48px;height:28px;background:#f1f5f9;border-radius:6px;animation:kpiPulse 1.5s ease-in-out infinite;"></span>
+            </span>
+            <span class="stat-sub" id="stat-startups-sub">Companies registered</span>
+        </a>
+
+        <a href="{% url 'admin:users_investorprofile_changelist' %}" class="app-index-stat-card">
+            <span class="stat-label">Investor Profiles</span>
+            <span class="stat-value" id="stat-investors" style="color:#1d4ed8;">
+                <span style="display:inline-block;width:48px;height:28px;background:#f1f5f9;border-radius:6px;animation:kpiPulse 1.5s ease-in-out infinite;"></span>
+            </span>
+            <span class="stat-sub">Active investors</span>
+        </a>
+
+        <a href="{% url 'admin:token_blacklist_outstandingtoken_changelist' %}" class="app-index-stat-card">
+            <span class="stat-label">Active JWT Sessions</span>
+            <span class="stat-value" id="stat-tokens">
+                <span style="display:inline-block;width:48px;height:28px;background:#f1f5f9;border-radius:6px;animation:kpiPulse 1.5s ease-in-out infinite;"></span>
+            </span>
+            <span class="stat-sub">Outstanding tokens</span>
+        </a>
+
+        <a href="{% url 'admin:token_blacklist_blacklistedtoken_changelist' %}" class="app-index-stat-card">
+            <span class="stat-label">Blacklisted Tokens</span>
+            <span class="stat-value" id="stat-blacklisted" style="color:#b91c1c;">
+                <span style="display:inline-block;width:48px;height:28px;background:#f1f5f9;border-radius:6px;animation:kpiPulse 1.5s ease-in-out infinite;"></span>
+            </span>
+            <span class="stat-sub">Revoked sessions</span>
+        </a>
+    </div>
+
+    <!-- ── Hydration Script ── -->
+    <script>
+    document.addEventListener('DOMContentLoaded', async function() {
+        try {
+            const [usersRes, startRes, investRes] = await Promise.all([
+                fetch('/api/v1/admin/summary/', { credentials: 'include' }),
+                fetch('/pitchmic-control-portal-hq-8492/users/startupprofile/?o=-1', { credentials: 'include' }),
+                fetch('/pitchmic-control-portal-hq-8492/users/investorprofile/?o=-1', { credentials: 'include' }),
+            ]);
+
+            if (usersRes.ok) {
+                const data = await usersRes.json();
+                const s = data.stats || {};
+
+                const totalEl = document.getElementById('stat-total-users');
+                if (totalEl) totalEl.textContent = s.total_users ?? '—';
+
+                const rolesEl = document.getElementById('stat-users-roles');
+                if (rolesEl) {
+                    const founders = s.startup_users || 0;
+                    const investors = s.investor_users || 0;
+                    rolesEl.textContent = `${founders} founders · ${investors} investors`;
+                }
+            }
+        } catch(e) {
+            // Fallback: query the admin changelist pages for record counts
+            injectFallbackCounts();
+        }
+
+        // Always try to grab counts from the changelist page titles
+        function injectFallbackCounts() {
+            [
+                { id: 'stat-total-users', label: 'stat-users-roles', val: null },
+            ].forEach(function(item) {
+                const el = document.getElementById(item.id);
+                if (el && el.querySelector('span[style*="background:#f1f5f9"]')) {
+                    el.textContent = '—';
+                }
+            });
+        }
+
+        // Try Django ORM counts via the admin changelist result_count
+        const statIds = ['stat-unverified', 'stat-startups', 'stat-investors', 'stat-tokens', 'stat-blacklisted'];
+        statIds.forEach(function(id) {
+            const el = document.getElementById(id);
+            if (el && el.querySelector('span')) {
+                el.innerHTML = '<span style="color:inherit">—</span>';
+            }
+        });
+    });
+    </script>
+
+    <!-- ── Model Modules List (standard Django admin app list) ── -->
+    <div style="margin-top: 4px;">
+        {% for model in app.models %}
+        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; margin-bottom:12px; overflow:hidden;">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid #f1f5f9;">
+                <a href="{{ model.admin_url }}" style="font-size:0.925rem; font-weight:700; color:#0f172a; text-decoration:none;">
+                    {{ model.name }}
+                </a>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    {% if model.add_url %}
+                    <a href="{{ model.add_url }}" style="display:inline-flex; align-items:center; gap:4px; background:rgba(249,115,22,0.1); color:#c2410c; border-radius:6px; padding:4px 10px; font-size:0.75rem; font-weight:700; text-decoration:none;">
+                        + Add
+                    </a>
+                    {% endif %}
+                    <a href="{{ model.admin_url }}" style="display:inline-flex; align-items:center; gap:4px; background:#f8fafc; color:#475569; border:1px solid #e2e8f0; border-radius:6px; padding:4px 10px; font-size:0.75rem; font-weight:600; text-decoration:none;">
+                        View all →
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

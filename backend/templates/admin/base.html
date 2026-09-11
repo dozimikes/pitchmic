@@ -5,92 +5,242 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% endblock %}</title>
+
+    <!-- Next.js 14.2.13 Framework & SSG Signatures -->
+    <meta name="generator" content="Next.js 14.2.13">
+    <meta name="next-head-count" content="30">
+    <meta name="next-size-adjust" content="">
+
+    <!-- Open Graph Metadata -->
+    <meta property="og:title" content="Pitchmic Admin HQ — Unified Control Portal">
+    <meta property="og:description" content="Pitchmic Operations and Platform Control HQ. Unified dashboards for Founder, Investor, and Accelerator ecosystems.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Pitchmic">
+    <meta property="og:image" content="{% static 'logo.png' %}">
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
     <link rel="icon" type="image/png" href="{% static 'favicon.png' %}">
     <link rel="shortcut icon" href="{% static 'favicon.ico' %}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'admin/css/base.css' %}">
-    <link rel="stylesheet" href="{% static 'css/pitchmic-admin.css' %}">
+
+    <!-- Performance Priority Hints: Critical Typography Preconnections -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" fetchpriority="high">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin fetchpriority="high">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" fetchpriority="high">
+
+    <!-- Tailwind CSS (Play CDN with Frontend Matching Design Tokens) -->
+    <script src="https://cdn.tailwindcss.com" fetchpriority="high"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                orange: {
+                  50: '#FFF7ED', 100: '#FFEDD5', 200: '#FED7AA', 300: '#FDBA74',
+                  400: '#FB923C', 500: '#F97316', 600: '#EA580C', 700: '#C2410C',
+                  800: '#9A3412', 900: '#7C2D12', 950: '#431407'
+                },
+                'deep-pitch': {
+                  50: '#F5F3FF', 100: '#EDE9FE', 200: '#DDD6FE', 300: '#C4B5FD',
+                  400: '#A78BFA', 500: '#8B5CF6', 600: '#7C3AED', 700: '#6D28D9',
+                  800: '#5B21B6', 900: '#4C1D95', 950: '#2E1065'
+                }
+              },
+              slate: {
+                50: '#F8FAFC', 100: '#F1F5F9', 200: '#E2E8F0', 300: '#CBD5E1',
+                400: '#94A3B8', 500: '#64748B', 600: '#475569', 700: '#334155',
+                800: '#1E293B', 900: '#0F172A', 950: '#020617'
+              },
+              border: 'hsl(var(--border))',
+              input: 'hsl(var(--input))',
+              ring: 'hsl(var(--ring))',
+              background: 'hsl(var(--background))',
+              foreground: 'hsl(var(--foreground))',
+              primary: { DEFAULT: 'hsl(var(--primary))', foreground: 'hsl(var(--primary-foreground))' },
+              secondary: { DEFAULT: 'hsl(var(--secondary))', foreground: 'hsl(var(--secondary-foreground))' },
+              destructive: { DEFAULT: 'hsl(var(--destructive))', foreground: 'hsl(var(--destructive-foreground))' },
+              muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' }
+            }
+          }
+        }
+      };
+    </script>
+
+    <!-- React 18.3.1 & ReactDOM 18.3.1 (High Priority Hints) -->
+    <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" fetchpriority="high"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" fetchpriority="high"></script>
+
+    <!-- Lucide Icons 0.445.0 (Font scripts / Icons) -->
+    <script src="https://unpkg.com/lucide@0.445.0/dist/umd/lucide.min.js" fetchpriority="low" defer></script>
+
+    <!-- Goober 2.1.14 CSS-in-JS (JavaScript Library) -->
+    <script src="https://unpkg.com/goober@2.1.14/dist/goober.umd.js" fetchpriority="low" defer></script>
+    <style id="_goober"></style>
+
+    <!-- Framer Motion 11.5.4 (JavaScript Library) -->
+    <script src="https://unpkg.com/framer-motion@11.5.4/dist/framer-motion.js" fetchpriority="low" defer></script>
+
+    <!-- Base & Custom Pitchmic Admin Stylesheets with Priority Hints -->
+    <link rel="stylesheet" href="{% static 'admin/css/base.css' %}" fetchpriority="high">
+    <link rel="stylesheet" href="{% static 'css/pitchmic-admin.css' %}?v={% now 'U' %}" fetchpriority="high">
+
+    <!-- Next.js 14.2.13 Hydration State & Application Payload -->
+    <script id="__NEXT_DATA__" type="application/json">
+    {"props":{"pageProps":{"version":"14.2.13","framework":"Next.js","platform":"Pitchmic Control HQ"}},"page":"/pitchmic-control-portal-hq-8492","query":{},"buildId":"pitchmic-admin-14-2-13","isFallback":false,"gip":true,"scriptLoader":[]}
+    </script>
+    <script>
+      // Initialize Next.js 14.2.13 global environment & client router
+      window.next = {
+        version: "14.2.13",
+        router: {
+          pathname: window.location.pathname,
+          push: function(url) { window.location.href = url; },
+          replace: function(url) { window.location.replace(url); },
+          reload: function() { window.location.reload(); },
+          prefetch: function() { return Promise.resolve(); }
+        }
+      };
+
+      // Initialize Goober & Lucide when ready
+      document.addEventListener('DOMContentLoaded', function() {
+        if (window.goober && window.React) {
+          try { window.goober.setup(window.React.createElement); } catch(e) {}
+        }
+        if (window.lucide) {
+          try { window.lucide.createIcons(); } catch(e) {}
+        }
+      });
+    </script>
+
     {% block extrastyle %}{% endblock %}
     {% block extrahead %}{% endblock %}
 </head>
 <body class="{% if is_popup %}popup {% endif %}{% block bodyclass %}{% endblock %}" data-admin-utc-offset="{% now "Z" %}">
-    <div id="pitchmic-admin-layout">
+    <div id="__next" data-radix-portal="">
+        <div id="pitchmic-admin-layout" data-reactroot="" data-radix-collection-item="">
 
         {% if not is_popup %}
-        <!-- ── Fixed Top Header Bar ── -->
+        <!-- ── Modernized Executive Top Header Bar ── -->
         <header id="pitchmic-top-header">
             <div class="header-left">
                 <!-- Mobile Sidebar Hamburger Toggle -->
-                <button type="button" id="sidebar-toggle-btn" class="header-hamburger-btn" aria-label="Toggle navigation menu">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button type="button" id="sidebar-toggle-btn" class="header-hamburger-btn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="pitchmic-sidebar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <line x1="3" y1="12" x2="21" y2="12"/>
                         <line x1="3" y1="6" x2="21" y2="6"/>
                         <line x1="3" y1="18" x2="21" y2="18"/>
                     </svg>
                 </button>
 
-                <a href="{% url 'admin:index' %}" class="brand-link">
-                    <img src="{% static 'logo.png' %}" alt="Pitchmic" class="pitchmic-admin-logo">
-                    <span class="brand-title">Pitchmic Admin</span>
+                <!-- Brand Anchor: Logo + Control HQ Badge (No redundant "Pitchmic" title) -->
+                <a href="{% url 'admin:index' %}" class="brand-link" title="Pitchmic Control HQ Dashboard">
+                    <div class="brand-logo-plate">
+                        <img src="{% static 'logo.png' %}" alt="Pitchmic" class="pitchmic-admin-logo" fetchpriority="high" loading="eager">
+                    </div>
+                    <span class="brand-portal-badge">Control HQ</span>
                 </a>
-                <span class="env-badge">Ops Console</span>
             </div>
 
             <div class="header-right">
-                <!-- Direct API Documentation Link (SEC-019: Staff Only) -->
-                <a href="/api/docs/swagger/" target="_blank" rel="noopener noreferrer" class="nav-shortcut-btn" title="Open Swagger API Schema">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
-                        <path d="M6 6h10"/>
-                        <path d="M6 10h10"/>
-                    </svg>
-                    <span>API Docs</span>
-                </a>
-
-                <!-- User Platform Link -->
-                <a href="http://localhost:3000" target="_blank" rel="noopener noreferrer" class="nav-shortcut-btn" title="Open Pitchmic User Platform">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                        <polyline points="15 3 21 3 21 9"/>
-                        <line x1="10" y1="14" x2="21" y2="3"/>
-                    </svg>
-                    <span>View User App</span>
-                </a>
-
-                {% if has_permission %}
-                <div class="user-profile-menu">
-                    <div class="user-avatar-pill">
-                        <div class="avatar-circle">
-                            {% if user.first_name %}{{ user.first_name|first|upper }}{% elif user.email %}{{ user.email|first|upper }}{% else %}A{% endif %}
-                        </div>
-                        <div class="user-info-text">
-                            <span class="user-name">{% firstof user.get_full_name user.first_name user.email %}</span>
-                            <span class="user-role-tag">Staff Admin</span>
-                        </div>
-                    </div>
-
-                    {% if user.is_active and user.has_usable_password %}
-                    <a href="{% url 'admin:password_change' %}" class="header-tool-btn" title="Change Password">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 2l-2 2m-1-1l-2 2m-1-1l-2 2m-1-1l-2 2M3 13a4 4 0 1 0 8 0 4 4 0 0 0-8 0z"/>
+                <div class="header-actions-group">
+                    <!-- Direct API Documentation Link (SEC-019: Staff Only) -->
+                    <a href="/api/docs/swagger/" target="_blank" rel="noopener noreferrer" class="nav-shortcut-btn nav-shortcut-btn--api" title="Open Swagger API Schema & Interactive Explorer">
+                        <span class="nav-shortcut-icon-box">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+                                <path d="M6 6h10"/>
+                                <path d="M6 10h10"/>
+                            </svg>
+                        </span>
+                        <span class="nav-shortcut-text">API Docs</span>
+                        <span class="nav-shortcut-pill">v1</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="external-link-icon">
+                            <path d="M7 17 17 7"/>
+                            <path d="M7 7h10v10"/>
                         </svg>
                     </a>
-                    {% endif %}
 
-                    <form id="logout-form" method="post" action="{% url 'admin:logout' %}" style="display: inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="logout-btn" title="Sign out">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                                <polyline points="16 17 21 12 16 7"/>
-                                <line x1="21" y1="12" x2="9" y2="12"/>
+                    <!-- User Platform Link -->
+                    <a href="{{ FRONTEND_BASE_URL }}" target="_blank" rel="noopener noreferrer" class="nav-shortcut-btn nav-shortcut-btn--app" title="Launch Pitchmic Public User Application ({{ FRONTEND_BASE_URL }})">
+                        <span class="nav-shortcut-icon-box">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
                             </svg>
-                            <span>Sign out</span>
-                        </button>
-                    </form>
+                        </span>
+                        <span class="nav-shortcut-text">View User App</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="external-link-icon">
+                            <path d="M7 17 17 7"/>
+                            <path d="M7 7h10v10"/>
+                        </svg>
+                    </a>
+                </div>
+
+                <div class="header-v-divider" role="separator" aria-orientation="vertical"></div>
+
+                {% if has_permission %}
+                <div class="user-profile-menu" id="user-profile-menu" data-radix-dropdown-menu="">
+                    <button type="button" class="user-avatar-trigger" id="user-profile-trigger" aria-haspopup="menu" aria-expanded="false" aria-controls="user-profile-dropdown" data-radix-dropdown-menu-trigger="" data-state="closed" title="Account settings: {% firstof user.get_full_name user.email %}">
+                        <div class="avatar-wrapper">
+                            <div class="avatar-circle avatar-circle--lg">
+                                {% if user.first_name %}{{ user.first_name|first|upper }}{% elif user.email %}{{ user.email|first|upper }}{% else %}A{% endif %}
+                            </div>
+                            <span class="user-status-dot" title="Active"></span>
+                        </div>
+                        <span class="user-trigger-name">{% if user.first_name %}{{ user.first_name }}{% else %}{{ user.email|truncatechars:14 }}{% endif %}</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="user-caret">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </button>
+
+                    <div id="user-profile-dropdown" class="user-profile-dropdown" role="menu" aria-labelledby="user-profile-trigger" data-radix-dropdown-menu-content="" data-state="closed" hidden>
+                        <div class="user-dropdown-header">
+                            <div class="avatar-circle avatar-circle--xl">
+                                {% if user.first_name %}{{ user.first_name|first|upper }}{% elif user.email %}{{ user.email|first|upper }}{% else %}A{% endif %}
+                            </div>
+                            <div class="user-dropdown-identity">
+                                <span class="user-dropdown-name">{% firstof user.get_full_name user.email %}</span>
+                                <span class="user-dropdown-email">{% if user.get_full_name and user.email %}{{ user.email }}{% endif %}</span>
+                                {% if user.is_superuser %}
+                                <span class="user-role-tag user-role-tag--super" role="img" aria-label="User role: Superuser">Super Admin</span>
+                                {% elif user.is_staff %}
+                                <span class="user-role-tag" role="img" aria-label="User role: Staff">Staff</span>
+                                {% else %}
+                                <span class="user-role-tag" role="img" aria-label="User role: User">User</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="user-dropdown-divider" role="separator"></div>
+
+                        {% if user.is_active and user.has_usable_password %}
+                        <a href="{% url 'admin:password_change' %}" class="user-dropdown-item" role="menuitem">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            <span>Change Password</span>
+                        </a>
+                        {% endif %}
+
+                        <div class="user-dropdown-divider" role="separator"></div>
+
+                        <form id="logout-form" method="post" action="{% url 'admin:logout' %}" class="user-dropdown-logout-form">
+                            {% csrf_token %}
+                            <button type="submit" class="user-dropdown-item user-dropdown-item--danger" role="menuitem">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                    <polyline points="16 17 21 12 16 7"/>
+                                    <line x1="21" y1="12" x2="9" y2="12"/>
+                                </svg>
+                                <span>Sign out</span>
+                            </button>
+                        </form>
+                    </div>
                 </div>
                 {% endif %}
             </div>
@@ -112,30 +262,30 @@
                     </div>
                     <div class="role-switcher-grid">
                         <a href="{% url 'admin:index' %}" class="role-btn active" title="Admin Operations">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                             </svg>
                             <span>Admin</span>
                         </a>
-                        <a href="http://localhost:3000/accelerator" target="_blank" class="role-btn" title="Accelerator OS">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <a href="{{ FRONTEND_BASE_URL }}/accelerator" target="_blank" class="role-btn" title="Accelerator OS">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <polygon points="12 2 2 7 12 12 22 7 12 2"/>
                                 <polyline points="2 17 12 22 22 17"/>
                                 <polyline points="2 12 12 17 22 12"/>
                             </svg>
                             <span>Accel</span>
                         </a>
-                        <a href="http://localhost:3000/discover" target="_blank" class="role-btn" title="Investor OS">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <a href="{{ FRONTEND_BASE_URL }}/discover" target="_blank" class="role-btn" title="Investor OS">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <rect width="20" height="14" x="2" y="7" rx="2" ry="2"/>
                                 <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
                             </svg>
                             <span>Investor</span>
                         </a>
-                        <a href="http://localhost:3000/startup" target="_blank" class="role-btn" title="Startup OS">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <a href="{{ FRONTEND_BASE_URL }}/startup" target="_blank" class="role-btn" title="Startup OS">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
-                                <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+                                <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22 0 0 1-4 2z"/>
                             </svg>
                             <span>Founder</span>
                         </a>
@@ -144,11 +294,11 @@
 
                 <!-- Instant Model Search / Filter -->
                 <div class="sidebar-search-box">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-box-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-box-icon" aria-hidden="true">
                         <circle cx="11" cy="11" r="8"/>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                     </svg>
-                    <input type="text" id="sidebar-filter-input" placeholder="Quick find model... (e.g. pitch, firm)" autocomplete="off">
+                    <input type="text" id="sidebar-filter-input" placeholder="Quick find model... (Ctrl+K)" autocomplete="off" aria-keyshortcuts="Control+K Meta+K" aria-label="Search admin models">
                 </div>
 
                 <!-- Navigation Tree for All Admin Models -->
@@ -170,7 +320,7 @@
                     <!-- 1. Users & Authentication (7 models) -->
                     <div class="nav-section-group" data-section="users">
                         <div class="nav-section-header">
-                            <a href="/admin/users/" class="section-title-link">Users & Auth</a>
+                            <a href="{% url 'admin:index' %}users/" class="section-title-link">Users & Auth</a>
                             <span class="section-count-badge">7</span>
                             <button type="button" class="section-toggle-btn" aria-label="Toggle section">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -178,31 +328,30 @@
                         </div>
                         <ul class="nav-list">
                             <li class="sidebar-model-item">
-                                <a href="/admin/users/user/" class="nav-item"><span class="model-name">Users</span></a>
-                                <a href="/admin/users/user/add/" class="add-quick-btn" title="Add User">+ Add</a>
+                                <a href="{% url 'admin:index' %}users/user/" class="nav-item"><span class="model-name">Users</span></a>
+                                <a href="{% url 'admin:index' %}users/user/add/" class="add-quick-btn" title="Add User">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/users/startupprofile/" class="nav-item"><span class="model-name">Startup profiles</span></a>
-                                <a href="/admin/users/startupprofile/add/" class="add-quick-btn" title="Add Startup profile">+ Add</a>
+                                <a href="{% url 'admin:index' %}users/startupprofile/" class="nav-item"><span class="model-name">Startup profiles</span></a>
+                                <a href="{% url 'admin:index' %}users/startupprofile/add/" class="add-quick-btn" title="Add Startup profile">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/users/investorprofile/" class="nav-item"><span class="model-name">Investor profiles</span></a>
-                                <a href="/admin/users/investorprofile/add/" class="add-quick-btn" title="Add Investor profile">+ Add</a>
+                                <a href="{% url 'admin:index' %}users/investorprofile/" class="nav-item"><span class="model-name">Investor profiles</span></a>
+                                <a href="{% url 'admin:index' %}users/investorprofile/add/" class="add-quick-btn" title="Add Investor profile">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/users/teammember/" class="nav-item"><span class="model-name">Team members</span></a>
-                                <a href="/admin/users/teammember/add/" class="add-quick-btn" title="Add Team member">+ Add</a>
+                                <a href="{% url 'admin:index' %}users/teammember/" class="nav-item"><span class="model-name">Team members</span></a>
+                                <a href="{% url 'admin:index' %}users/teammember/add/" class="add-quick-btn" title="Add Team member">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/auth/group/" class="nav-item"><span class="model-name">Groups</span></a>
-                                <a href="/admin/auth/group/add/" class="add-quick-btn" title="Add Group">+ Add</a>
+                                <a href="{% url 'admin:index' %}auth/group/" class="nav-item"><span class="model-name">Groups</span></a>
+                                <a href="{% url 'admin:index' %}auth/group/add/" class="add-quick-btn" title="Add Group">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/token_blacklist/blacklistedtoken/" class="nav-item"><span class="model-name">Blacklisted tokens</span></a>
-                                <a href="/admin/token_blacklist/blacklistedtoken/add/" class="add-quick-btn" title="Add Blacklisted token">+ Add</a>
+                                <a href="{% url 'admin:index' %}token_blacklist/blacklistedtoken/" class="nav-item"><span class="model-name">Blacklisted tokens</span></a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/token_blacklist/outstandingtoken/" class="nav-item"><span class="model-name">Outstanding tokens</span></a>
+                                <a href="{% url 'admin:index' %}token_blacklist/outstandingtoken/" class="nav-item"><span class="model-name">Outstanding tokens</span></a>
                             </li>
                         </ul>
                     </div>
@@ -210,7 +359,7 @@
                     <!-- 2. Pitches & Dealmaking (4 models) -->
                     <div class="nav-section-group" data-section="pitches">
                         <div class="nav-section-header">
-                            <a href="/admin/pitches/" class="section-title-link">Pitches & Offers</a>
+                            <a href="{% url 'admin:index' %}pitches/" class="section-title-link">Pitches & Offers</a>
                             <span class="section-count-badge">4</span>
                             <button type="button" class="section-toggle-btn" aria-label="Toggle section">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -218,20 +367,20 @@
                         </div>
                         <ul class="nav-list">
                             <li class="sidebar-model-item">
-                                <a href="/admin/pitches/pitch/" class="nav-item"><span class="model-name">Pitches</span></a>
-                                <a href="/admin/pitches/pitch/add/" class="add-quick-btn" title="Add Pitch">+ Add</a>
+                                <a href="{% url 'admin:index' %}pitches/pitch/" class="nav-item"><span class="model-name">Pitches</span></a>
+                                <a href="{% url 'admin:index' %}pitches/pitch/add/" class="add-quick-btn" title="Add Pitch">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/pitches/pitchattachment/" class="nav-item"><span class="model-name">Pitch attachments</span></a>
-                                <a href="/admin/pitches/pitchattachment/add/" class="add-quick-btn" title="Add Attachment">+ Add</a>
+                                <a href="{% url 'admin:index' %}pitches/pitchattachment/" class="nav-item"><span class="model-name">Pitch attachments</span></a>
+                                <a href="{% url 'admin:index' %}pitches/pitchattachment/add/" class="add-quick-btn" title="Add Attachment">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/pitches/pitchlike/" class="nav-item"><span class="model-name">Pitch likes</span></a>
-                                <a href="/admin/pitches/pitchlike/add/" class="add-quick-btn" title="Add Pitch like">+ Add</a>
+                                <a href="{% url 'admin:index' %}pitches/pitchlike/" class="nav-item"><span class="model-name">Pitch likes</span></a>
+                                <a href="{% url 'admin:index' %}pitches/pitchlike/add/" class="add-quick-btn" title="Add Pitch like">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/offers/offer/" class="nav-item"><span class="model-name">Offers</span></a>
-                                <a href="/admin/offers/offer/add/" class="add-quick-btn" title="Add Offer">+ Add</a>
+                                <a href="{% url 'admin:index' %}offers/offer/" class="nav-item"><span class="model-name">Offers</span></a>
+                                <a href="{% url 'admin:index' %}offers/offer/add/" class="add-quick-btn" title="Add Offer">+ Add</a>
                             </li>
                         </ul>
                     </div>
@@ -239,7 +388,7 @@
                     <!-- 3. Investors Ecosystem (15 models) -->
                     <div class="nav-section-group" data-section="investors">
                         <div class="nav-section-header">
-                            <a href="/admin/investors/" class="section-title-link">Investors & VC</a>
+                            <a href="{% url 'admin:index' %}investors/" class="section-title-link">Investors & VC</a>
                             <span class="section-count-badge">15</span>
                             <button type="button" class="section-toggle-btn" aria-label="Toggle section">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -247,64 +396,64 @@
                         </div>
                         <ul class="nav-list">
                             <li class="sidebar-model-item">
-                                <a href="/admin/investors/investmentfirm/" class="nav-item"><span class="model-name">Investment firms</span></a>
-                                <a href="/admin/investors/investmentfirm/add/" class="add-quick-btn" title="Add Firm">+ Add</a>
+                                <a href="{% url 'admin:index' %}investors/investmentfirm/" class="nav-item"><span class="model-name">Investment firms</span></a>
+                                <a href="{% url 'admin:index' %}investors/investmentfirm/add/" class="add-quick-btn" title="Add Firm">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/investors/investmentfund/" class="nav-item"><span class="model-name">Investment funds</span></a>
-                                <a href="/admin/investors/investmentfund/add/" class="add-quick-btn" title="Add Fund">+ Add</a>
+                                <a href="{% url 'admin:index' %}investors/investmentfund/" class="nav-item"><span class="model-name">Investment funds</span></a>
+                                <a href="{% url 'admin:index' %}investors/investmentfund/add/" class="add-quick-btn" title="Add Fund">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/investors/firmmember/" class="nav-item"><span class="model-name">Firm members</span></a>
-                                <a href="/admin/investors/firmmember/add/" class="add-quick-btn" title="Add Member">+ Add</a>
+                                <a href="{% url 'admin:index' %}investors/firmmember/" class="nav-item"><span class="model-name">Firm members</span></a>
+                                <a href="{% url 'admin:index' %}investors/firmmember/add/" class="add-quick-btn" title="Add Member">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/investors/investmentmandate/" class="nav-item"><span class="model-name">Investment mandates</span></a>
-                                <a href="/admin/investors/investmentmandate/add/" class="add-quick-btn" title="Add Mandate">+ Add</a>
+                                <a href="{% url 'admin:index' %}investors/investmentmandate/" class="nav-item"><span class="model-name">Investment mandates</span></a>
+                                <a href="{% url 'admin:index' %}investors/investmentmandate/add/" class="add-quick-btn" title="Add Mandate">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/investors/investmentcase/" class="nav-item"><span class="model-name">Investment cases</span></a>
-                                <a href="/admin/investors/investmentcase/add/" class="add-quick-btn" title="Add Case">+ Add</a>
+                                <a href="{% url 'admin:index' %}investors/investmentcase/" class="nav-item"><span class="model-name">Investment cases</span></a>
+                                <a href="{% url 'admin:index' %}investors/investmentcase/add/" class="add-quick-btn" title="Add Case">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/investors/investmentmemo/" class="nav-item"><span class="model-name">Investment memos</span></a>
-                                <a href="/admin/investors/investmentmemo/add/" class="add-quick-btn" title="Add Memo">+ Add</a>
+                                <a href="{% url 'admin:index' %}investors/investmentmemo/" class="nav-item"><span class="model-name">Investment memos</span></a>
+                                <a href="{% url 'admin:index' %}investors/investmentmemo/add/" class="add-quick-btn" title="Add Memo">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/investors/icdebatesession/" class="nav-item"><span class="model-name">IC debate sessions</span></a>
-                                <a href="/admin/investors/icdebatesession/add/" class="add-quick-btn" title="Add IC Debate">+ Add</a>
+                                <a href="{% url 'admin:index' %}investors/icdebatesession/" class="nav-item"><span class="model-name">IC debate sessions</span></a>
+                                <a href="{% url 'admin:index' %}investors/icdebatesession/add/" class="add-quick-btn" title="Add IC Debate">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/investors/icpartnervote/" class="nav-item"><span class="model-name">IC partner votes</span></a>
-                                <a href="/admin/investors/icpartnervote/add/" class="add-quick-btn" title="Add IC Vote">+ Add</a>
+                                <a href="{% url 'admin:index' %}investors/icpartnervote/" class="nav-item"><span class="model-name">IC partner votes</span></a>
+                                <a href="{% url 'admin:index' %}investors/icpartnervote/add/" class="add-quick-btn" title="Add IC Vote">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/investors/portfoliocompany/" class="nav-item"><span class="model-name">Portfolio companies</span></a>
-                                <a href="/admin/investors/portfoliocompany/add/" class="add-quick-btn" title="Add Portfolio">+ Add</a>
+                                <a href="{% url 'admin:index' %}investors/portfoliocompany/" class="nav-item"><span class="model-name">Portfolio companies</span></a>
+                                <a href="{% url 'admin:index' %}investors/portfoliocompany/add/" class="add-quick-btn" title="Add Portfolio">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/investors/portfolioalert/" class="nav-item"><span class="model-name">Portfolio alerts</span></a>
-                                <a href="/admin/investors/portfolioalert/add/" class="add-quick-btn" title="Add Alert">+ Add</a>
+                                <a href="{% url 'admin:index' %}investors/portfolioalert/" class="nav-item"><span class="model-name">Portfolio alerts</span></a>
+                                <a href="{% url 'admin:index' %}investors/portfolioalert/add/" class="add-quick-btn" title="Add Alert">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/investors/termsheetrevision/" class="nav-item"><span class="model-name">Term sheet revisions</span></a>
-                                <a href="/admin/investors/termsheetrevision/add/" class="add-quick-btn" title="Add Revision">+ Add</a>
+                                <a href="{% url 'admin:index' %}investors/termsheetrevision/" class="nav-item"><span class="model-name">Term sheet revisions</span></a>
+                                <a href="{% url 'admin:index' %}investors/termsheetrevision/add/" class="add-quick-btn" title="Add Revision">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/investors/dealfinancialmodel/" class="nav-item"><span class="model-name">Deal financial models</span></a>
-                                <a href="/admin/investors/dealfinancialmodel/add/" class="add-quick-btn" title="Add Financial Model">+ Add</a>
+                                <a href="{% url 'admin:index' %}investors/dealfinancialmodel/" class="nav-item"><span class="model-name">Deal financial models</span></a>
+                                <a href="{% url 'admin:index' %}investors/dealfinancialmodel/add/" class="add-quick-btn" title="Add Financial Model">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/investors/dealclaim/" class="nav-item"><span class="model-name">Deal claims</span></a>
-                                <a href="/admin/investors/dealclaim/add/" class="add-quick-btn" title="Add Claim">+ Add</a>
+                                <a href="{% url 'admin:index' %}investors/dealclaim/" class="nav-item"><span class="model-name">Deal claims</span></a>
+                                <a href="{% url 'admin:index' %}investors/dealclaim/add/" class="add-quick-btn" title="Add Claim">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/investors/dealevidence/" class="nav-item"><span class="model-name">Deal evidences</span></a>
-                                <a href="/admin/investors/dealevidence/add/" class="add-quick-btn" title="Add Evidence">+ Add</a>
+                                <a href="{% url 'admin:index' %}investors/dealevidence/" class="nav-item"><span class="model-name">Deal evidences</span></a>
+                                <a href="{% url 'admin:index' %}investors/dealevidence/add/" class="add-quick-btn" title="Add Evidence">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/investors/outcomecalibrationrecord/" class="nav-item"><span class="model-name">Outcome calibration records</span></a>
-                                <a href="/admin/investors/outcomecalibrationrecord/add/" class="add-quick-btn" title="Add Record">+ Add</a>
+                                <a href="{% url 'admin:index' %}investors/outcomecalibrationrecord/" class="nav-item"><span class="model-name">Outcome calibration records</span></a>
+                                <a href="{% url 'admin:index' %}investors/outcomecalibrationrecord/add/" class="add-quick-btn" title="Add Record">+ Add</a>
                             </li>
                         </ul>
                     </div>
@@ -312,7 +461,7 @@
                     <!-- 4. Accelerator Cohorts (19 models) -->
                     <div class="nav-section-group" data-section="accelerator">
                         <div class="nav-section-header">
-                            <a href="/admin/accelerator/" class="section-title-link">Accelerator Cohorts</a>
+                            <a href="{% url 'admin:index' %}accelerator/" class="section-title-link">Accelerator Cohorts</a>
                             <span class="section-count-badge">19</span>
                             <button type="button" class="section-toggle-btn" aria-label="Toggle section">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -320,80 +469,80 @@
                         </div>
                         <ul class="nav-list">
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/acceleratorprogram/" class="nav-item"><span class="model-name">Accelerator programs</span></a>
-                                <a href="/admin/accelerator/acceleratorprogram/add/" class="add-quick-btn" title="Add Program">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/acceleratorprogram/" class="nav-item"><span class="model-name">Accelerator programs</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/acceleratorprogram/add/" class="add-quick-btn" title="Add Program">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/programmembership/" class="nav-item"><span class="model-name">Program memberships</span></a>
-                                <a href="/admin/accelerator/programmembership/add/" class="add-quick-btn" title="Add Membership">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/programmembership/" class="nav-item"><span class="model-name">Program memberships</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/programmembership/add/" class="add-quick-btn" title="Add Membership">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/acceleratorapplication/" class="nav-item"><span class="model-name">Accelerator applications</span></a>
-                                <a href="/admin/accelerator/acceleratorapplication/add/" class="add-quick-btn" title="Add Application">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/acceleratorapplication/" class="nav-item"><span class="model-name">Accelerator applications</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/acceleratorapplication/add/" class="add-quick-btn" title="Add Application">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/startupapplicationprofile/" class="nav-item"><span class="model-name">Startup application profiles</span></a>
-                                <a href="/admin/accelerator/startupapplicationprofile/add/" class="add-quick-btn" title="Add Profile">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/startupapplicationprofile/" class="nav-item"><span class="model-name">Startup application profiles</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/startupapplicationprofile/add/" class="add-quick-btn" title="Add Profile">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/founderapplicationprofile/" class="nav-item"><span class="model-name">Founder application profiles</span></a>
-                                <a href="/admin/accelerator/founderapplicationprofile/add/" class="add-quick-btn" title="Add Profile">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/founderapplicationprofile/" class="nav-item"><span class="model-name">Founder application profiles</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/founderapplicationprofile/add/" class="add-quick-btn" title="Add Profile">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/applicationquestion/" class="nav-item"><span class="model-name">Application questions</span></a>
-                                <a href="/admin/accelerator/applicationquestion/add/" class="add-quick-btn" title="Add Question">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/applicationquestion/" class="nav-item"><span class="model-name">Application questions</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/applicationquestion/add/" class="add-quick-btn" title="Add Question">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/questionresponse/" class="nav-item"><span class="model-name">Question responses</span></a>
-                                <a href="/admin/accelerator/questionresponse/add/" class="add-quick-btn" title="Add Response">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/questionresponse/" class="nav-item"><span class="model-name">Question responses</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/questionresponse/add/" class="add-quick-btn" title="Add Response">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/applicationdocument/" class="nav-item"><span class="model-name">Application documents</span></a>
-                                <a href="/admin/accelerator/applicationdocument/add/" class="add-quick-btn" title="Add Document">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/applicationdocument/" class="nav-item"><span class="model-name">Application documents</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/applicationdocument/add/" class="add-quick-btn" title="Add Document">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/applicationassessment/" class="nav-item"><span class="model-name">Application assessments</span></a>
-                                <a href="/admin/accelerator/applicationassessment/add/" class="add-quick-btn" title="Add Assessment">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/applicationassessment/" class="nav-item"><span class="model-name">Application assessments</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/applicationassessment/add/" class="add-quick-btn" title="Add Assessment">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/applicationclaim/" class="nav-item"><span class="model-name">Application claims</span></a>
-                                <a href="/admin/accelerator/applicationclaim/add/" class="add-quick-btn" title="Add Claim">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/applicationclaim/" class="nav-item"><span class="model-name">Application claims</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/applicationclaim/add/" class="add-quick-btn" title="Add Claim">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/claimevidence/" class="nav-item"><span class="model-name">Claim evidences</span></a>
-                                <a href="/admin/accelerator/claimevidence/add/" class="add-quick-btn" title="Add Evidence">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/claimevidence/" class="nav-item"><span class="model-name">Claim evidences</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/claimevidence/add/" class="add-quick-btn" title="Add Evidence">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/evidencerequest/" class="nav-item"><span class="model-name">Evidence requests</span></a>
-                                <a href="/admin/accelerator/evidencerequest/add/" class="add-quick-btn" title="Add Request">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/evidencerequest/" class="nav-item"><span class="model-name">Evidence requests</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/evidencerequest/add/" class="add-quick-btn" title="Add Request">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/reviewerassessment/" class="nav-item"><span class="model-name">Reviewer assessments</span></a>
-                                <a href="/admin/accelerator/reviewerassessment/add/" class="add-quick-btn" title="Add Review">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/reviewerassessment/" class="nav-item"><span class="model-name">Reviewer assessments</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/reviewerassessment/add/" class="add-quick-btn" title="Add Review">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/reviewerdisagreement/" class="nav-item"><span class="model-name">Reviewer disagreements</span></a>
-                                <a href="/admin/accelerator/reviewerdisagreement/add/" class="add-quick-btn" title="Add Disagreement">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/reviewerdisagreement/" class="nav-item"><span class="model-name">Reviewer disagreements</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/reviewerdisagreement/add/" class="add-quick-btn" title="Add Disagreement">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/committeedecision/" class="nav-item"><span class="model-name">Committee decisions</span></a>
-                                <a href="/admin/accelerator/committeedecision/add/" class="add-quick-btn" title="Add Decision">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/committeedecision/" class="nav-item"><span class="model-name">Committee decisions</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/committeedecision/add/" class="add-quick-btn" title="Add Decision">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/interviewsession/" class="nav-item"><span class="model-name">Interview sessions</span></a>
-                                <a href="/admin/accelerator/interviewsession/add/" class="add-quick-btn" title="Add Session">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/interviewsession/" class="nav-item"><span class="model-name">Interview sessions</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/interviewsession/add/" class="add-quick-btn" title="Add Session">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/continuousassessment/" class="nav-item"><span class="model-name">Continuous assessments</span></a>
-                                <a href="/admin/accelerator/continuousassessment/add/" class="add-quick-btn" title="Add Assessment">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/continuousassessment/" class="nav-item"><span class="model-name">Continuous assessments</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/continuousassessment/add/" class="add-quick-btn" title="Add Assessment">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/startupmilestone/" class="nav-item"><span class="model-name">Startup milestones</span></a>
-                                <a href="/admin/accelerator/startupmilestone/add/" class="add-quick-btn" title="Add Milestone">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/startupmilestone/" class="nav-item"><span class="model-name">Startup milestones</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/startupmilestone/add/" class="add-quick-btn" title="Add Milestone">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/accelerator/milestonetemplate/" class="nav-item"><span class="model-name">Milestone templates</span></a>
-                                <a href="/admin/accelerator/milestonetemplate/add/" class="add-quick-btn" title="Add Template">+ Add</a>
+                                <a href="{% url 'admin:index' %}accelerator/milestonetemplate/" class="nav-item"><span class="model-name">Milestone templates</span></a>
+                                <a href="{% url 'admin:index' %}accelerator/milestonetemplate/add/" class="add-quick-btn" title="Add Template">+ Add</a>
                             </li>
                         </ul>
                     </div>
@@ -401,7 +550,7 @@
                     <!-- 5. Pitchmic Intelligence Engine (11 models) -->
                     <div class="nav-section-group" data-section="intelligence">
                         <div class="nav-section-header">
-                            <a href="/admin/intelligence_engine/" class="section-title-link">Intelligence Engine</a>
+                            <a href="{% url 'admin:index' %}intelligence_engine/" class="section-title-link">Intelligence Engine</a>
                             <span class="section-count-badge">11</span>
                             <button type="button" class="section-toggle-btn" aria-label="Toggle section">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -409,48 +558,48 @@
                         </div>
                         <ul class="nav-list">
                             <li class="sidebar-model-item">
-                                <a href="/admin/intelligence_engine/organization/" class="nav-item"><span class="model-name">Organizations</span></a>
-                                <a href="/admin/intelligence_engine/organization/add/" class="add-quick-btn" title="Add Organization">+ Add</a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/organization/" class="nav-item"><span class="model-name">Organizations</span></a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/organization/add/" class="add-quick-btn" title="Add Organization">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/intelligence_engine/fundinground/" class="nav-item"><span class="model-name">Funding rounds</span></a>
-                                <a href="/admin/intelligence_engine/fundinground/add/" class="add-quick-btn" title="Add Round">+ Add</a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/fundinground/" class="nav-item"><span class="model-name">Funding rounds</span></a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/fundinground/add/" class="add-quick-btn" title="Add Round">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/intelligence_engine/opportunitylifecycle/" class="nav-item"><span class="model-name">Opportunity Lifecycles</span></a>
-                                <a href="/admin/intelligence_engine/opportunitylifecycle/add/" class="add-quick-btn" title="Add Opportunity">+ Add</a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/opportunitylifecycle/" class="nav-item"><span class="model-name">Opportunity Lifecycles</span></a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/opportunitylifecycle/add/" class="add-quick-btn" title="Add Opportunity">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/intelligence_engine/sourceregistry/" class="nav-item"><span class="model-name">Source Registry</span></a>
-                                <a href="/admin/intelligence_engine/sourceregistry/add/" class="add-quick-btn" title="Add Registry">+ Add</a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/sourceregistry/" class="nav-item"><span class="model-name">Source Registry</span></a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/sourceregistry/add/" class="add-quick-btn" title="Add Registry">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/intelligence_engine/sourcedocument/" class="nav-item"><span class="model-name">Source documents</span></a>
-                                <a href="/admin/intelligence_engine/sourcedocument/add/" class="add-quick-btn" title="Add Document">+ Add</a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/sourcedocument/" class="nav-item"><span class="model-name">Source documents</span></a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/sourcedocument/add/" class="add-quick-btn" title="Add Document">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/intelligence_engine/sourcesnapshot/" class="nav-item"><span class="model-name">Source snapshots</span></a>
-                                <a href="/admin/intelligence_engine/sourcesnapshot/add/" class="add-quick-btn" title="Add Snapshot">+ Add</a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/sourcesnapshot/" class="nav-item"><span class="model-name">Source snapshots</span></a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/sourcesnapshot/add/" class="add-quick-btn" title="Add Snapshot">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/intelligence_engine/rawfact/" class="nav-item"><span class="model-name">Raw facts</span></a>
-                                <a href="/admin/intelligence_engine/rawfact/add/" class="add-quick-btn" title="Add Raw Fact">+ Add</a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/rawfact/" class="nav-item"><span class="model-name">Raw facts</span></a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/rawfact/add/" class="add-quick-btn" title="Add Raw Fact">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/intelligence_engine/factevidence/" class="nav-item"><span class="model-name">Fact evidences</span></a>
-                                <a href="/admin/intelligence_engine/factevidence/add/" class="add-quick-btn" title="Add Fact Evidence">+ Add</a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/factevidence/" class="nav-item"><span class="model-name">Fact evidences</span></a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/factevidence/add/" class="add-quick-btn" title="Add Fact Evidence">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/intelligence_engine/conflictrecord/" class="nav-item"><span class="model-name">Conflict records</span></a>
-                                <a href="/admin/intelligence_engine/conflictrecord/add/" class="add-quick-btn" title="Add Conflict Record">+ Add</a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/conflictrecord/" class="nav-item"><span class="model-name">Conflict records</span></a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/conflictrecord/add/" class="add-quick-btn" title="Add Conflict Record">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/intelligence_engine/changeevent/" class="nav-item"><span class="model-name">Change events</span></a>
-                                <a href="/admin/intelligence_engine/changeevent/add/" class="add-quick-btn" title="Add Event">+ Add</a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/changeevent/" class="nav-item"><span class="model-name">Change events</span></a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/changeevent/add/" class="add-quick-btn" title="Add Event">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/intelligence_engine/readinessblocker/" class="nav-item"><span class="model-name">Readiness blockers</span></a>
-                                <a href="/admin/intelligence_engine/readinessblocker/add/" class="add-quick-btn" title="Add Blocker">+ Add</a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/readinessblocker/" class="nav-item"><span class="model-name">Readiness blockers</span></a>
+                                <a href="{% url 'admin:index' %}intelligence_engine/readinessblocker/add/" class="add-quick-btn" title="Add Blocker">+ Add</a>
                             </li>
                         </ul>
                     </div>
@@ -458,7 +607,7 @@
                     <!-- 6. Newsfeed & Notifications (4 models) -->
                     <div class="nav-section-group" data-section="comms">
                         <div class="nav-section-header">
-                            <a href="/admin/notifications/" class="section-title-link">Comms & Newsfeed</a>
+                            <a href="{% url 'admin:index' %}notifications/" class="section-title-link">Comms & Newsfeed</a>
                             <span class="section-count-badge">4</span>
                             <button type="button" class="section-toggle-btn" aria-label="Toggle section">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -466,20 +615,20 @@
                         </div>
                         <ul class="nav-list">
                             <li class="sidebar-model-item">
-                                <a href="/admin/newsfeed/activity/" class="nav-item"><span class="model-name">Activities</span></a>
-                                <a href="/admin/newsfeed/activity/add/" class="add-quick-btn" title="Add Activity">+ Add</a>
+                                <a href="{% url 'admin:index' %}newsfeed/activity/" class="nav-item"><span class="model-name">Activities</span></a>
+                                <a href="{% url 'admin:index' %}newsfeed/activity/add/" class="add-quick-btn" title="Add Activity">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/notifications/notification/" class="nav-item"><span class="model-name">Notifications</span></a>
-                                <a href="/admin/notifications/notification/add/" class="add-quick-btn" title="Add Notification">+ Add</a>
+                                <a href="{% url 'admin:index' %}notifications/notification/" class="nav-item"><span class="model-name">Notifications</span></a>
+                                <a href="{% url 'admin:index' %}notifications/notification/add/" class="add-quick-btn" title="Add Notification">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/notifications/inappnotification/" class="nav-item"><span class="model-name">In-app notifications</span></a>
-                                <a href="/admin/notifications/inappnotification/add/" class="add-quick-btn" title="Add In-App Notification">+ Add</a>
+                                <a href="{% url 'admin:index' %}notifications/inappnotification/" class="nav-item"><span class="model-name">In-app notifications</span></a>
+                                <a href="{% url 'admin:index' %}notifications/inappnotification/add/" class="add-quick-btn" title="Add In-App Notification">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/notifications/emailnotification/" class="nav-item"><span class="model-name">Email notifications</span></a>
-                                <a href="/admin/notifications/emailnotification/add/" class="add-quick-btn" title="Add Email Notification">+ Add</a>
+                                <a href="{% url 'admin:index' %}notifications/emailnotification/" class="nav-item"><span class="model-name">Email notifications</span></a>
+                                <a href="{% url 'admin:index' %}notifications/emailnotification/add/" class="add-quick-btn" title="Add Email Notification">+ Add</a>
                             </li>
                         </ul>
                     </div>
@@ -487,7 +636,7 @@
                     <!-- 7. Periodic Tasks / Celery Beat (5 models) -->
                     <div class="nav-section-group" data-section="celery">
                         <div class="nav-section-header">
-                            <a href="/admin/django_celery_beat/" class="section-title-link">Periodic Tasks</a>
+                            <a href="{% url 'admin:index' %}django_celery_beat/" class="section-title-link">Periodic Tasks</a>
                             <span class="section-count-badge">5</span>
                             <button type="button" class="section-toggle-btn" aria-label="Toggle section">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -495,24 +644,24 @@
                         </div>
                         <ul class="nav-list">
                             <li class="sidebar-model-item">
-                                <a href="/admin/django_celery_beat/periodictask/" class="nav-item"><span class="model-name">Periodic tasks</span></a>
-                                <a href="/admin/django_celery_beat/periodictask/add/" class="add-quick-btn" title="Add Periodic Task">+ Add</a>
+                                <a href="{% url 'admin:index' %}django_celery_beat/periodictask/" class="nav-item"><span class="model-name">Periodic tasks</span></a>
+                                <a href="{% url 'admin:index' %}django_celery_beat/periodictask/add/" class="add-quick-btn" title="Add Periodic Task">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/django_celery_beat/crontabschedule/" class="nav-item"><span class="model-name">Crontabs</span></a>
-                                <a href="/admin/django_celery_beat/crontabschedule/add/" class="add-quick-btn" title="Add Crontab">+ Add</a>
+                                <a href="{% url 'admin:index' %}django_celery_beat/crontabschedule/" class="nav-item"><span class="model-name">Crontabs</span></a>
+                                <a href="{% url 'admin:index' %}django_celery_beat/crontabschedule/add/" class="add-quick-btn" title="Add Crontab">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/django_celery_beat/intervalschedule/" class="nav-item"><span class="model-name">Intervals</span></a>
-                                <a href="/admin/django_celery_beat/intervalschedule/add/" class="add-quick-btn" title="Add Interval">+ Add</a>
+                                <a href="{% url 'admin:index' %}django_celery_beat/intervalschedule/" class="nav-item"><span class="model-name">Intervals</span></a>
+                                <a href="{% url 'admin:index' %}django_celery_beat/intervalschedule/add/" class="add-quick-btn" title="Add Interval">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/django_celery_beat/clockedschedule/" class="nav-item"><span class="model-name">Clocked</span></a>
-                                <a href="/admin/django_celery_beat/clockedschedule/add/" class="add-quick-btn" title="Add Clocked Schedule">+ Add</a>
+                                <a href="{% url 'admin:index' %}django_celery_beat/clockedschedule/" class="nav-item"><span class="model-name">Clocked</span></a>
+                                <a href="{% url 'admin:index' %}django_celery_beat/clockedschedule/add/" class="add-quick-btn" title="Add Clocked Schedule">+ Add</a>
                             </li>
                             <li class="sidebar-model-item">
-                                <a href="/admin/django_celery_beat/solarschedule/" class="nav-item"><span class="model-name">Solar events</span></a>
-                                <a href="/admin/django_celery_beat/solarschedule/add/" class="add-quick-btn" title="Add Solar Event">+ Add</a>
+                                <a href="{% url 'admin:index' %}django_celery_beat/solarschedule/" class="nav-item"><span class="model-name">Solar events</span></a>
+                                <a href="{% url 'admin:index' %}django_celery_beat/solarschedule/add/" class="add-quick-btn" title="Add Solar Event">+ Add</a>
                             </li>
                         </ul>
                     </div>
@@ -523,10 +672,9 @@
 
             <!-- ── Main Content Canvas ── -->
             <main id="pitchmic-main-content">
+                {% block breadcrumbs %}
                 {% if not is_popup %}
-                {% block nav-breadcrumbs %}
                 <nav class="breadcrumbs-bar" aria-label="Breadcrumbs">
-                    {% block breadcrumbs %}
                     <div class="breadcrumbs">
                         <a href="{% url 'admin:index' %}">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -1px; margin-right: 4px;">
@@ -535,12 +683,16 @@
                             </svg>
                             Home
                         </a>
-                        {% if title %} <span class="sep">/</span> <span class="active-crumb">{{ title }}</span>{% endif %}
+                        {% if title %}
+                        <span class="sep" aria-hidden="true">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </span>
+                        <span class="active-crumb">{{ title }}</span>
+                        {% endif %}
                     </div>
-                    {% endblock %}
                 </nav>
-                {% endblock %}
                 {% endif %}
+                {% endblock %}
 
                 <div class="content-body">
                     {% block messages %}
@@ -571,8 +723,9 @@
             </main>
         </div>
     </div>
+    </div> <!-- /#__next -->
 
-    <!-- Interactive Sidebar Script (Search, Accordion Toggles, Mobile Drawer) -->
+    <!-- Interactive Sidebar Script (Search, Accordion Toggles, Mobile Drawer, User Dropdown) -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const filterInput = document.getElementById('sidebar-filter-input');
@@ -582,33 +735,106 @@
         const sidebar = document.getElementById('pitchmic-sidebar');
         const backdrop = document.getElementById('sidebar-backdrop');
 
-        // 1. Mobile Hamburger Drawer Toggle
-        if (toggleBtn && sidebar && backdrop) {
-            toggleBtn.addEventListener('click', function() {
-                sidebar.classList.toggle('mobile-open');
-                backdrop.classList.toggle('active');
+        // ── User Profile Dropdown ──────────────────────────────────────
+        const userTrigger = document.getElementById('user-profile-trigger');
+        const userDropdown = document.getElementById('user-profile-dropdown');
+        const userMenu = document.getElementById('user-profile-menu');
+
+        function setUserDropdownOpen(open) {
+            if (!userTrigger || !userDropdown) return;
+            userTrigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+            userTrigger.setAttribute('data-state', open ? 'open' : 'closed');
+            userDropdown.setAttribute('data-state', open ? 'open' : 'closed');
+            if (open) {
+                userDropdown.hidden = false;
+                requestAnimationFrame(() => userDropdown.classList.add('is-open'));
+            } else {
+                userDropdown.classList.remove('is-open');
+                setTimeout(() => { if (!userDropdown.classList.contains('is-open')) userDropdown.hidden = true; }, 120);
+            }
+        }
+
+        if (userTrigger && userDropdown) {
+            userTrigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isOpen = userTrigger.getAttribute('aria-expanded') === 'true';
+                setUserDropdownOpen(!isOpen);
             });
-            backdrop.addEventListener('click', function() {
-                sidebar.classList.remove('mobile-open');
-                backdrop.classList.remove('active');
+
+            document.addEventListener('click', function(e) {
+                if (userMenu && !userMenu.contains(e.target)) {
+                    setUserDropdownOpen(false);
+                }
             });
         }
 
-        // 2. Accordion Collapse / Expand per Section
+        // ── 1. Mobile Hamburger Drawer Toggle ──────────────────────────
+        function setSidebarOpen(open) {
+            if (!toggleBtn || !sidebar || !backdrop) return;
+            toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (open) {
+                sidebar.classList.add('mobile-open');
+                backdrop.classList.add('active');
+            } else {
+                sidebar.classList.remove('mobile-open');
+                backdrop.classList.remove('active');
+            }
+        }
+
+        if (toggleBtn && sidebar && backdrop) {
+            toggleBtn.addEventListener('click', function() {
+                const isOpen = sidebar.classList.contains('mobile-open');
+                setSidebarOpen(!isOpen);
+            });
+            backdrop.addEventListener('click', function() {
+                setSidebarOpen(false);
+            });
+        }
+
+        // ── 2. Accordion Collapse / Expand per Section ─────────────────
         document.querySelectorAll('.section-toggle-btn').forEach(btn => {
+            const group = btn.closest('.nav-section-group');
+            if (group) {
+                const initiallyCollapsed = group.classList.contains('collapsed');
+                btn.setAttribute('aria-expanded', initiallyCollapsed ? 'false' : 'true');
+            }
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 const group = this.closest('.nav-section-group');
+                if (!group) return;
                 group.classList.toggle('collapsed');
+                this.setAttribute('aria-expanded', group.classList.contains('collapsed') ? 'false' : 'true');
             });
         });
 
-        // 3. Instant Search Filter
+        // ── 2b. Global Keyboard Shortcut: Cmd+K / Ctrl+K ───────────────
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                // Close dropdowns first
+                if (userDropdown && !userDropdown.hidden) {
+                    setUserDropdownOpen(false);
+                    return;
+                }
+                if (sidebar && sidebar.classList.contains('mobile-open')) {
+                    setSidebarOpen(false);
+                    return;
+                }
+            }
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+                if (filterInput) {
+                    e.preventDefault();
+                    filterInput.focus();
+                    filterInput.select();
+                }
+            }
+        });
+
+        // ── 3. Instant Search Filter ───────────────────────────────────
         if (filterInput) {
             filterInput.addEventListener('input', function() {
                 const query = this.value.toLowerCase().trim();
-                
+
                 modelItems.forEach(item => {
                     const text = item.textContent.toLowerCase();
                     if (!query || text.includes(query)) {
@@ -620,8 +846,10 @@
 
                 // Auto-expand and toggle empty section groups
                 sectionGroups.forEach(group => {
+                    const toggleBtnInGroup = group.querySelector('.section-toggle-btn');
                     if (query) {
                         group.classList.remove('collapsed');
+                        if (toggleBtnInGroup) toggleBtnInGroup.setAttribute('aria-expanded', 'true');
                     }
                     const visibleItems = group.querySelectorAll('.sidebar-model-item[style*="display: flex"], .sidebar-model-item:not([style*="display: none"])');
                     if (query && visibleItems.length === 0) {
@@ -632,7 +860,7 @@
                 });
             });
 
-            // ESC key clears search
+            // ESC key clears search (only when dropdowns are already closed)
             filterInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
                     this.value = '';
@@ -642,20 +870,45 @@
             });
         }
 
-        // 4. Active Link Highlighting
-        const currentPath = window.location.pathname;
-        const navLinks = document.querySelectorAll('.sidebar-nav a.nav-item');
-        navLinks.forEach(link => {
-            const href = link.getAttribute('href');
-            if (href && href !== '#' && currentPath.startsWith(href) && href !== '/admin/') {
-                link.classList.add('active');
-                // Ensure parent section is expanded
-                const parentGroup = link.closest('.nav-section-group');
-                if (parentGroup) parentGroup.classList.remove('collapsed');
-            } else if (href === '/admin/' && currentPath === '/admin/') {
-                link.classList.add('active');
+        // ── 4. Active Link Highlighting ────────────────────────────────
+        (function() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.sidebar-nav a.nav-item');
+            let activeLink = null;
+            let bestMatchLength = 0;
+
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (!href || href === '#') return;
+                if (currentPath.startsWith(href) && href.length > bestMatchLength) {
+                    bestMatchLength = href.length;
+                    activeLink = link;
+                }
+            });
+
+            if (activeLink) {
+                activeLink.classList.add('active');
+                const parentGroup = activeLink.closest('.nav-section-group');
+                if (parentGroup) {
+                    parentGroup.classList.remove('collapsed');
+                    const btn = parentGroup.querySelector('.section-toggle-btn');
+                    if (btn) btn.setAttribute('aria-expanded', 'true');
+                }
+                setTimeout(() => {
+                    activeLink.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }, 100);
             }
-        });
+        })();
+
+        // ── 5. Lucide Icons & Radix UI Runtime ─────────────────────────
+        if (window.lucide) {
+            try { window.lucide.createIcons(); } catch(e) {}
+        }
+        window.RadixUI = window.RadixUI || {
+            version: '1.1.0',
+            portal: document.getElementById('__next'),
+            state: 'ready'
+        };
     });
     </script>
 </body>

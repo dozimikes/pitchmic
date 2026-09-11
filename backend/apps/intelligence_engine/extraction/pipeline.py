@@ -1,7 +1,7 @@
 """
 apps.intelligence_engine.extraction.pipeline
 =============================================
-ExtractionPipeline — wires AIFactExtractor → EvidenceEngine → OpportunityParser
+ExtractionPipeline - wires AIFactExtractor → EvidenceEngine → OpportunityParser
 into a single callable used by CrawlEngine.
 
 Pipeline:
@@ -49,14 +49,14 @@ _ORG_TITLE_MAP = {
     "Visa":          "Visa Africa Fintech Accelerator",
     "Google":        "Google for Startups Accelerator: Africa",
     "Y Combinator":  "Y Combinator W2026 Batch",
-    "Techstars":     "Techstars Accelerator — Africa Track",
+    "Techstars":     "Techstars Accelerator - Africa Track",
     "Future Africa": "Future Africa Pre-Seed Collective",
     "MassChallenge": "MassChallenge Africa Program",
     "Microsoft":     "Microsoft for Startups Founders Hub",
     "Seedstars":     "Seedstars Africa Ventures",
     "Base10":        "Base10 Advancement Initiative",
     "Flat6Labs":     "Flat6Labs Africa Accelerator",
-    "Launch Africa": "Launch Africa Ventures — Pre-Seed Fund",
+    "Launch Africa": "Launch Africa Ventures - Pre-Seed Fund",
     "Norrsken22":    "Norrsken22 Africa Growth Fund",
     "Orange Corners":"Orange Corners Incubation Programme",
     "54 Collective": "54 Collective Seed Fund",

@@ -1,7 +1,7 @@
 """
 apps.intelligence_engine.intelligence.investor_graph
 =====================================================
-InvestorIntelligenceEngine — computes investor behavior intelligence.
+InvestorIntelligenceEngine - computes investor behavior intelligence.
 
 Core distinction:
   InvestorThesis  = what an investor SAYS they invest in

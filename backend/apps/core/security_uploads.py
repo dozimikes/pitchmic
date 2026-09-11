@@ -113,9 +113,9 @@ def sanitize_filename(raw_name: str, *, prefix_uuid: bool = True, request_contex
 
     Returns a tuple ``(sanitized_name, stored_name)``:
 
-    * ``sanitized_name`` — human-readable name for display (no path components,
+    * ``sanitized_name`` - human-readable name for display (no path components,
       null bytes, or control chars).  Extension is preserved if allowed.
-    * ``stored_name`` — filesystem-safe name with a random UUID4 prefix to
+    * ``stored_name`` - filesystem-safe name with a random UUID4 prefix to
       avoid collisions and to strip any residual semantic meaning.
 
     If *prefix_uuid* is False the UUID prefix is omitted (used mainly for
@@ -210,7 +210,7 @@ def validate_uploaded_file(
     Parameters
     ----------
     file:
-        A Django ``UploadedFile`` instance — its ``size`` attribute is read
+        A Django ``UploadedFile`` instance - its ``size`` attribute is read
         first (bounded by ``DATA_UPLOAD_MAX_MEMORY_SIZE`` / the WSGI server).
     max_bytes:
         Hard size cap.  Files above this size are rejected immediately.

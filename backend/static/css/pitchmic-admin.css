@@ -1,16 +1,12 @@
-/* ==========================================================================
-   Pitchmic Modern Django Administration Theme
-   Complete UI/UX design system parity with Pitchmic user dashboard & sign-in
-   ========================================================================== */
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
+  /* Pitchmic Brand Design Tokens - Strict Parity with Founder/Investor/Accelerator Dashboards */
   --pitchmic-orange: #f97316;
   --pitchmic-orange-hover: #ea580c;
   --pitchmic-orange-active: #c2410c;
   --pitchmic-orange-subtle: rgba(249, 115, 22, 0.1);
-  --pitchmic-deep: #4f46e5;
+  --pitchmic-deep: #8b5cf6;
   --pitchmic-slate-950: #020617;
   --pitchmic-slate-900: #0f172a;
   --pitchmic-slate-800: #1e293b;
@@ -31,10 +27,56 @@
   --pitchmic-shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.07), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
   --pitchmic-shadow-orange: 0 4px 14px 0 rgba(249, 115, 22, 0.28);
   --sidebar-width: 300px;
+
+  /* shadcn/ui Core Design Tokens (HSL) */
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 25 95% 53%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 262 83% 58%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 25 95% 53%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 25 95% 53%;
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 25 95% 53%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 262 83% 58%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 25 95% 53%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 25 95% 53%;
 }
 
 /* Global Reset */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -45,6 +87,13 @@ body {
   margin: 0 !important;
   padding: 0 !important;
   -webkit-font-smoothing: antialiased;
+  color-scheme: light !important;
+}
+
+:focus-visible {
+  outline: 2px solid var(--pitchmic-orange);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 /* Master Layout */
@@ -57,37 +106,52 @@ body {
 /* --------------------------------------------------------------------------
    1. Fixed Top Header Bar (#pitchmic-top-header)
    -------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------
+   1. Executive Top Header Bar (#pitchmic-top-header)
+      Strict Parity with Founder, Investor, and Accelerator Dashboard Navbar
+   -------------------------------------------------------------------------- */
 #pitchmic-top-header {
-  background: var(--pitchmic-slate-900);
-  color: #ffffff;
-  height: 64px;
-  padding: 0 20px;
+  background: #ffffff !important;
+  color: #0f172a;
+  height: 56px;
+  padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--pitchmic-slate-800);
+  border-bottom: 1px solid #e2e8f0;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+#pitchmic-top-header::before {
+  display: none !important;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .header-hamburger-btn {
   display: none;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  border-radius: 8px;
   padding: 6px;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.header-hamburger-btn:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
 }
 
 @media (max-width: 960px) {
@@ -98,88 +162,285 @@ body {
   }
 }
 
+/* Brand Anchor & Plates */
 .brand-link {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   text-decoration: none;
-  color: #ffffff;
+  color: #0f172a;
+  transition: opacity 0.15s ease;
+}
+
+.brand-link:hover {
+  opacity: 0.95;
+}
+
+.brand-logo-plate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  background: #ffffff;
+  border-radius: 8px;
 }
 
 .pitchmic-admin-logo {
-  height: 28px;
+  height: 24px;
   width: auto;
   object-fit: contain;
 }
 
-.brand-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: #ffffff;
-}
-
-.env-badge {
-  font-size: 0.675rem;
+.brand-portal-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  color: var(--pitchmic-orange, #f97316);
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
   padding: 3px 8px;
-  border-radius: 9999px;
-  background: rgba(249, 115, 22, 0.15);
-  color: #fb923c;
-  border: 1px solid rgba(249, 115, 22, 0.3);
+  border-radius: 6px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
+/* Environment Badge with Live Telemetry Pulse */
+.env-badge-container {
+  display: flex;
+  align-items: center;
+  margin-left: 2px;
+}
+
+.env-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.env-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+  animation: envPulseAnim 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes envPulseAnim {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+}
+
+.env-badge--dev {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+}
+
+.env-badge--staging {
+  background: rgba(245, 158, 11, 0.14);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.15);
+}
+
+.env-badge--prod {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.2);
+}
+
+/* Header Right Utilities */
 .header-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+}
+
+.header-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .nav-shortcut-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
+  gap: 7px;
+  font-size: 0.775rem;
   font-weight: 600;
-  color: #cbd5e1;
+  color: #334155;
   text-decoration: none;
   padding: 6px 12px;
-  border-radius: var(--pitchmic-radius-sm);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  transition: all 0.2s ease;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: all 0.15s ease;
+}
+
+.nav-shortcut-icon-box {
+  display: flex;
+  align-items: center;
+  color: #64748b;
+  transition: color 0.15s ease;
+}
+
+.nav-shortcut-pill {
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+  letter-spacing: 0.04em;
+}
+
+.external-link-icon {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
 }
 
 .nav-shortcut-btn:hover {
-  background: var(--pitchmic-orange);
-  color: #ffffff;
-  border-color: var(--pitchmic-orange);
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transform: translateY(-0.5px);
 }
 
-@media (max-width: 600px) {
-  .nav-shortcut-btn span {
+.nav-shortcut-btn:hover .nav-shortcut-icon-box,
+.nav-shortcut-btn:hover .external-link-icon {
+  color: #0f172a;
+  opacity: 0.95;
+}
+
+.nav-shortcut-btn--api:hover {
+  border-color: #fdba74;
+}
+
+.nav-shortcut-btn--app:hover {
+  border-color: #c4b5fd;
+}
+
+.header-v-divider {
+  width: 1px;
+  height: 22px;
+  background: #e2e8f0;
+  margin: 0 2px;
+}
+
+@media (max-width: 680px) {
+  .nav-shortcut-text {
+    display: none;
+  }
+
+  .nav-shortcut-pill {
     display: none;
   }
 }
 
+/* ── User Profile: Trigger Button ──────────────────────────────── */
 .user-profile-menu {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
 }
 
-.user-avatar-pill {
-  display: flex;
+.user-avatar-trigger {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 3px 10px 3px 4px;
+  padding: 3px 10px 3px 3px;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: all 0.15s ease;
 }
 
+.user-avatar-trigger:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.user-avatar-trigger[aria-expanded="true"] {
+  background: #f8fafc;
+  border-color: #0f172a;
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.06);
+}
+
+.avatar-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.user-status-dot {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 0 4px rgba(16, 185, 129, 0.4);
+}
+
+.user-trigger-name {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #0f172a;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 840px) {
+  .user-trigger-name {
+    display: none;
+  }
+}
+
+.user-caret {
+  color: #64748b;
+  transition: transform 0.2s ease;
+}
+
+.user-avatar-trigger[aria-expanded="true"] .user-caret {
+  transform: rotate(180deg);
+}
+
+/* ── Avatar Circle Sizes ───────────────────────────────────────── */
 .avatar-circle {
   width: 26px;
   height: 26px;
@@ -191,6 +452,32 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(249, 115, 22, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.avatar-circle--lg {
+  width: 28px;
+  height: 28px;
+  font-size: 0.8rem;
+}
+
+.avatar-circle--xl {
+  width: 42px;
+  height: 42px;
+  font-size: 1rem;
+}
+
+/* ── Legacy exposed-user styles (kept for backwards compat) ────── */
+.user-avatar-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px 3px 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .user-info-text {
@@ -210,12 +497,26 @@ body {
 }
 
 .user-role-tag {
-  font-size: 0.625rem;
-  font-weight: 500;
-  color: #94a3b8;
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  margin-top: 4px;
 }
 
-.header-tool-btn, .logout-btn {
+.user-role-tag--super {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.32);
+}
+
+/* ── Header Tool Buttons (Password Change + Legacy Logout) ─────── */
+.header-tool-btn,
+.logout-btn {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #e2e8f0;
@@ -231,15 +532,137 @@ body {
   transition: all 0.2s ease;
 }
 
-.header-tool-btn:hover, .logout-btn:hover {
+.header-tool-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.logout-btn:hover {
   background: rgba(239, 68, 68, 0.9);
   color: #ffffff;
   border-color: #ef4444;
 }
 
-/* --------------------------------------------------------------------------
-   2. Fixed & Independently Scrollable Left Sidebar
-   -------------------------------------------------------------------------- */
+/* ── User Dropdown Panel ───────────────────────────────────────── */
+.user-profile-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 260px;
+  background: #ffffff;
+  border: 1px solid var(--pitchmic-slate-200);
+  border-radius: var(--pitchmic-radius-lg);
+  box-shadow: 0 20px 40px -12px rgba(15, 23, 42, 0.2);
+  z-index: 2000;
+  padding: 6px;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+
+.user-profile-dropdown.is-open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.user-dropdown-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 12px 14px;
+}
+
+.user-dropdown-identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.user-dropdown-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--pitchmic-slate-900);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-dropdown-email {
+  font-size: 0.75rem;
+  color: var(--pitchmic-slate-500);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-dropdown-divider {
+  height: 1px;
+  background: var(--pitchmic-slate-100);
+  margin: 4px 6px;
+}
+
+.user-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: var(--pitchmic-radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--pitchmic-slate-700);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.user-dropdown-item:hover {
+  background: var(--pitchmic-slate-50);
+  color: var(--pitchmic-slate-900);
+}
+
+.user-dropdown-item svg {
+  color: var(--pitchmic-slate-500);
+  flex-shrink: 0;
+}
+
+.user-dropdown-item:hover svg {
+  color: var(--pitchmic-slate-700);
+}
+
+.user-dropdown-item--danger {
+  color: #dc2626;
+  margin-top: 2px;
+}
+
+.user-dropdown-item--danger svg {
+  color: #ef4444;
+}
+
+.user-dropdown-item--danger:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.user-dropdown-item--danger:hover svg {
+  color: #dc2626;
+}
+
+.user-dropdown-logout-form {
+  display: block;
+  margin: 0;
+}
+
 #pitchmic-body-container {
   margin-top: 64px;
   display: flex;
@@ -257,13 +680,13 @@ body {
   height: calc(100vh - 64px);
   overflow-y: auto;
   overflow-x: hidden;
-  background: #ffffff;
-  border-right: 1px solid var(--pitchmic-slate-200);
+  background: #020617;
+  border-right: 1px solid rgba(30, 41, 59, 0.8);
   z-index: 900;
   display: flex;
   flex-direction: column;
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: #1e293b transparent;
   transition: transform 0.25s ease;
 }
 
@@ -276,41 +699,44 @@ body {
 }
 
 #pitchmic-sidebar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #1e293b;
   border-radius: 4px;
 }
 
 #pitchmic-sidebar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #334155;
 }
 
 /* Mobile Drawer View */
 @media (max-width: 960px) {
   #pitchmic-sidebar {
     transform: translateX(-100%);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
   }
+
   #pitchmic-sidebar.mobile-open {
     transform: translateX(0);
   }
+
   .sidebar-backdrop {
     display: none;
     position: fixed;
     inset: 64px 0 0 0;
-    background: rgba(15, 23, 42, 0.5);
+    background: rgba(2, 6, 23, 0.6);
     backdrop-filter: blur(4px);
     z-index: 850;
   }
+
   .sidebar-backdrop.active {
     display: block;
   }
 }
 
-/* Superuser Role Switcher in Sidebar */
+/* Superuser Role Switcher in Sidebar (Aligned with Next.js Dashboard Shell) */
 .sidebar-role-switcher {
   padding: 12px;
-  border-bottom: 1px solid var(--pitchmic-slate-100);
-  background: var(--pitchmic-slate-50);
+  border-bottom: 1px solid rgba(30, 41, 59, 0.7);
+  background: #020617;
   flex-shrink: 0;
 }
 
@@ -319,77 +745,97 @@ body {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--pitchmic-slate-400);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: #64748b !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
 }
 
 .current-role-badge {
-  background: var(--pitchmic-slate-200);
-  color: var(--pitchmic-slate-700);
-  padding: 1px 5px;
-  border-radius: 4px;
+  background: #0f172a !important;
+  color: #94a3b8 !important;
+  padding: 1px 6px !important;
+  border-radius: 4px !important;
+  border: 1px solid rgba(30, 41, 59, 0.8) !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
 }
 
 .role-switcher-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 4px;
-  background: #e2e8f0;
+  background: #0f172a;
+  border: 1px solid rgba(30, 41, 59, 0.8);
   padding: 3px;
   border-radius: 8px;
 }
 
-.role-btn {
+.role-btn,
+.role-btn:link,
+.role-btn:visited {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 5px 2px;
+  padding: 6px 2px;
   border-radius: 6px;
-  text-decoration: none;
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--pitchmic-slate-600);
+  text-decoration: none !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
   transition: all 0.15s ease;
   gap: 2px;
 }
 
-.role-btn:hover {
-  background: rgba(255, 255, 255, 0.8);
-  color: var(--pitchmic-slate-900);
+.role-btn svg {
+  color: #64748b !important;
+  transition: color 0.15s ease;
 }
 
-.role-btn.active {
-  background: var(--pitchmic-slate-900);
-  color: #ffffff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+.role-btn:hover {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+.role-btn:hover svg {
+  color: #e2e8f0 !important;
+}
+
+.role-btn.active,
+.role-btn.active:link,
+.role-btn.active:visited {
+  background: #1e293b !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(249, 115, 22, 0.45);
 }
 
 .role-btn.active svg {
-  color: #34d399;
+  color: #fb923c !important;
 }
 
 /* Sidebar Instant Filter / Search Box */
 .sidebar-search-box {
   position: sticky;
   top: 0;
-  background: #ffffff;
+  background: #020617;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--pitchmic-slate-100);
+  border-bottom: 1px solid rgba(30, 41, 59, 0.7);
   z-index: 20;
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  position: relative;
 }
 
 .search-box-icon {
   position: absolute;
   left: 22px;
-  color: var(--pitchmic-slate-400);
+  color: #64748b;
   pointer-events: none;
 }
 
@@ -397,76 +843,95 @@ body {
   width: 100% !important;
   height: 34px !important;
   padding: 4px 10px 4px 30px !important;
-  border: 1px solid var(--pitchmic-slate-200) !important;
+  border: 1px solid #1e293b !important;
   border-radius: 8px !important;
   font-size: 0.775rem !important;
-  background: var(--pitchmic-slate-50) !important;
-  color: var(--pitchmic-slate-900) !important;
+  background: #0f172a !important;
+  color: #f8fafc !important;
   transition: all 0.15s ease !important;
 }
 
-.sidebar-search-box input:focus {
-  background: #ffffff !important;
-  border-color: var(--pitchmic-orange) !important;
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2) !important;
+.sidebar-search-box input::placeholder {
+  color: #64748b !important;
 }
 
-/* Sidebar Navigation Items */
+.sidebar-search-box input:focus {
+  background: #020617 !important;
+  border-color: var(--pitchmic-orange) !important;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.25) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Sidebar Navigation Items (Exact Parity with Founder/Investor/Accelerator Sidebar)
+   -------------------------------------------------------------------------- */
 .sidebar-nav {
-  padding: 10px 10px 36px 10px;
+  padding: 8px 10px 48px 10px;
   flex: 1;
 }
 
 .nav-section-group {
-  margin-bottom: 12px;
+  margin-bottom: 6px;
+}
+
+.nav-section-group:not(:first-child) {
+  border-top: 1px solid rgba(30, 41, 59, 0.6);
+  padding-top: 10px;
+  margin-top: 6px;
 }
 
 .nav-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 10px 4px 10px;
+  padding: 4px 10px 4px 10px;
+  margin-bottom: 2px;
 }
 
-.section-title-link {
-  font-size: 0.675rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--pitchmic-slate-500);
-  text-decoration: none;
+/* Section Title: Matches text-[10px] font-bold uppercase tracking-widest text-slate-500 */
+#pitchmic-sidebar .section-title-link,
+#pitchmic-sidebar .section-title-link:link,
+#pitchmic-sidebar .section-title-link:visited {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  color: #64748b !important;
+  text-decoration: none !important;
+  transition: color 0.15s ease;
 }
 
-.section-title-link:hover {
-  color: var(--pitchmic-orange);
+#pitchmic-sidebar .section-title-link:hover {
+  color: #94a3b8 !important;
 }
 
-.section-count-badge {
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 9999px;
-  background: var(--pitchmic-slate-100);
-  color: var(--pitchmic-slate-600);
+/* Section Count Badge: Matches bg-slate-800 text-slate-400 */
+#pitchmic-sidebar .section-count-badge {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  padding: 1px 6px !important;
+  border-radius: 9999px !important;
+  background: rgba(30, 41, 59, 0.8) !important;
+  color: #94a3b8 !important;
+  border: none !important;
   margin-left: auto;
   margin-right: 6px;
 }
 
-.section-toggle-btn {
+#pitchmic-sidebar .section-toggle-btn {
   background: transparent;
   border: none;
-  color: var(--pitchmic-slate-400);
+  color: #64748b !important;
   cursor: pointer;
   padding: 2px 4px;
   border-radius: 4px;
   display: inline-flex;
   align-items: center;
-  transition: transform 0.2s ease;
+  transition: all 0.15s ease;
 }
 
-.section-toggle-btn:hover {
-  color: var(--pitchmic-slate-700);
-  background: var(--pitchmic-slate-100);
+#pitchmic-sidebar .section-toggle-btn:hover {
+  color: #e2e8f0 !important;
+  background: #0f172a;
 }
 
 .nav-section-group.collapsed ul.nav-list {
@@ -483,6 +948,7 @@ body {
   padding: 0;
 }
 
+/* Model Row Container */
 .sidebar-model-item {
   display: flex;
   align-items: center;
@@ -491,103 +957,142 @@ body {
   padding-right: 6px;
   transition: background 0.15s ease;
   margin-bottom: 2px;
+  position: relative;
 }
 
 .sidebar-model-item:hover {
-  background: var(--pitchmic-slate-100);
+  background: #0f172a;
 }
 
-.nav-item {
+/* Model Link Item: Matches text-xs font-medium text-slate-400 hover:text-slate-100 */
+#pitchmic-sidebar .nav-item,
+#pitchmic-sidebar .nav-item:link,
+#pitchmic-sidebar .nav-item:visited {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex: 1;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--pitchmic-slate-700);
-  text-decoration: none;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 16px !important;
+  color: #94a3b8 !important;
+  text-decoration: none !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: color 0.15s ease;
 }
 
-.nav-item:hover {
-  color: var(--pitchmic-slate-900);
+#pitchmic-sidebar .nav-item svg {
+  color: #64748b !important;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
 }
 
-.nav-item.active {
-  background: var(--pitchmic-slate-900);
+/* Row Hover State: Matches group-hover:text-slate-100 and group-hover:text-slate-200 for icons */
+#pitchmic-sidebar .sidebar-model-item:hover .nav-item,
+#pitchmic-sidebar .sidebar-model-item:hover .nav-item:link,
+#pitchmic-sidebar .sidebar-model-item:hover .nav-item:visited,
+#pitchmic-sidebar .nav-item:hover {
+  color: #f1f5f9 !important;
+}
+
+#pitchmic-sidebar .sidebar-model-item:hover .nav-item svg,
+#pitchmic-sidebar .nav-item:hover svg {
+  color: #e2e8f0 !important;
+}
+
+#pitchmic-sidebar .sidebar-model-item:hover .model-name,
+#pitchmic-sidebar .nav-item:hover .model-name {
+  color: #f1f5f9 !important;
+}
+
+/* Active Link State: Matches bg-slate-800 text-white font-semibold with orange-400 icon */
+#pitchmic-sidebar .nav-item.active,
+#pitchmic-sidebar .nav-item.active:link,
+#pitchmic-sidebar .nav-item.active:visited {
+  background: #1e293b !important;
   color: #ffffff !important;
-  font-weight: 600;
+  font-weight: 600 !important;
+  box-shadow: inset 3px 0 0 0 #f97316 !important;
 }
 
-.nav-item.active .model-name {
+#pitchmic-sidebar .nav-item.active .model-name {
   color: #ffffff !important;
+  font-weight: 600 !important;
 }
 
-.nav-item.active svg {
-  color: var(--pitchmic-orange) !important;
+#pitchmic-sidebar .nav-item.active svg {
+  color: #fb923c !important;
 }
 
 .model-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: inherit !important;
 }
 
-/* Quick Add Button (+ Add) */
-.add-quick-btn {
-  font-size: 0.675rem;
-  font-weight: 700;
-  color: var(--pitchmic-orange);
-  background: var(--pitchmic-orange-subtle);
+/* Quick Add Button (+ Add): Sleek subtle action visible on row hover */
+#pitchmic-sidebar .add-quick-btn,
+#pitchmic-sidebar .add-quick-btn:link,
+#pitchmic-sidebar .add-quick-btn:visited {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+  background: transparent !important;
   border-radius: 4px;
   padding: 2px 6px;
-  text-decoration: none;
-  opacity: 0.75;
+  text-decoration: none !important;
+  opacity: 0;
   flex-shrink: 0;
   transition: all 0.15s ease;
 }
 
-.sidebar-model-item:hover .add-quick-btn {
+#pitchmic-sidebar .sidebar-model-item:hover .add-quick-btn {
   opacity: 1;
+  color: #f97316 !important;
+  background: rgba(249, 115, 22, 0.12) !important;
 }
 
-.add-quick-btn:hover {
-  background: var(--pitchmic-orange);
-  color: #ffffff;
+#pitchmic-sidebar .add-quick-btn:hover {
+  background: #f97316 !important;
+  color: #ffffff !important;
 }
 
-/* Pills */
+/* Badges / Status Pills in Sidebar */
 .nav-pill {
   margin-left: auto;
-  font-size: 0.65rem;
-  font-weight: 700;
+  font-size: 9px !important;
+  font-weight: 700 !important;
   padding: 2px 6px;
   border-radius: 9999px;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .pill-live {
-  background: #ecfdf5;
-  color: #047857;
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
 }
 
 .pill-vc {
-  background: #eef2ff;
-  color: #4338ca;
+  background: rgba(99, 102, 241, 0.15) !important;
+  color: #818cf8 !important;
 }
 
 .pill-active {
-  background: #fff7ed;
-  color: #c2410c;
+  background: rgba(249, 115, 22, 0.15) !important;
+  color: #fb923c !important;
 }
 
 .pill-sec {
-  background: #f1f5f9;
-  color: #475569;
+  background: #0f172a !important;
+  color: #64748b !important;
+  border: 1px solid #1e293b !important;
 }
 
 /* --------------------------------------------------------------------------
@@ -607,41 +1112,63 @@ body {
   }
 }
 
-.breadcrumbs-bar {
-  background: #ffffff;
-  border-bottom: 1px solid var(--pitchmic-slate-200);
-  padding: 12px 32px;
+.breadcrumbs-bar,
+nav.breadcrumbs-bar {
+  background: #ffffff !important;
+  border-bottom: 1px solid var(--pitchmic-slate-200) !important;
+  padding: 12px 32px !important;
 }
 
+div.breadcrumbs,
 .breadcrumbs {
-  font-size: 0.825rem;
-  font-weight: 500;
-  color: var(--pitchmic-slate-500);
+  background: transparent !important;
+  background-color: transparent !important;
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  color: var(--pitchmic-slate-500) !important;
+  line-height: 1.2 !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
+div.breadcrumbs a,
 .breadcrumbs a {
-  color: var(--pitchmic-slate-700);
-  text-decoration: none;
-  font-weight: 600;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  color: var(--pitchmic-slate-700) !important;
+  text-decoration: none !important;
+  font-weight: 600 !important;
+  transition: color 0.15s ease !important;
 }
 
+div.breadcrumbs a:hover,
 .breadcrumbs a:hover {
-  color: var(--pitchmic-orange);
+  color: var(--pitchmic-orange, #f97316) !important;
 }
 
+div.breadcrumbs .sep,
 .breadcrumbs .sep {
-  margin: 0 8px;
-  color: var(--pitchmic-slate-300);
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 4px !important;
+  color: var(--pitchmic-slate-400) !important;
 }
 
+div.breadcrumbs .active-crumb,
 .breadcrumbs .active-crumb {
-  color: var(--pitchmic-slate-900);
-  font-weight: 600;
+  color: var(--pitchmic-slate-900) !important;
+  font-weight: 600 !important;
 }
 
 .content-body {
-  padding: 28px 32px;
-  max-width: 1440px;
+  padding: 24px 28px;
+  max-width: 1600px;
   margin: 0 auto;
 }
 
@@ -653,127 +1180,7 @@ body {
   margin-bottom: 24px;
 }
 
-/* --------------------------------------------------------------------------
-   4. Executive KPI Telemetry Grid
-   -------------------------------------------------------------------------- */
-.pitchmic-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(1, 1fr);
-  gap: 16px;
-  margin-bottom: 28px;
-}
 
-@media (min-width: 640px) {
-  .pitchmic-kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1150px) {
-  .pitchmic-kpi-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.kpi-card {
-  background: #ffffff;
-  border: 1px solid var(--pitchmic-slate-200);
-  border-radius: var(--pitchmic-radius-lg);
-  padding: 18px 20px;
-  box-shadow: var(--pitchmic-shadow-sm);
-  transition: all 0.2s ease;
-}
-
-.kpi-card:hover {
-  box-shadow: var(--pitchmic-shadow-md);
-  border-color: #cbd5e1;
-}
-
-.kpi-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.kpi-title {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--pitchmic-slate-500);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.kpi-icon-wrapper {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.icon-orange {
-  background: rgba(249, 115, 22, 0.12);
-  color: var(--pitchmic-orange);
-}
-
-.icon-purple {
-  background: rgba(139, 92, 246, 0.12);
-  color: #7c3aed;
-}
-
-.icon-emerald {
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
-}
-
-.icon-blue {
-  background: rgba(59, 130, 246, 0.12);
-  color: #2563eb;
-}
-
-.kpi-value {
-  font-size: 1.85rem;
-  font-weight: 800;
-  color: var(--pitchmic-slate-900);
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-}
-
-.kpi-footer {
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.kpi-subtext {
-  font-size: 0.775rem;
-  color: var(--pitchmic-slate-500);
-}
-
-.kpi-pill {
-  font-size: 0.675rem;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 9999px;
-}
-
-.pill-green {
-  background: #ecfdf5;
-  color: #047857;
-}
-
-.pill-blue {
-  background: #eff6ff;
-  color: #1d4ed8;
-}
-
-.pill-purple {
-  background: #f5f3ff;
-  color: #6d28d9;
-}
 
 /* --------------------------------------------------------------------------
    5. Modules, App Tables, & Dashboard Sections
@@ -791,7 +1198,8 @@ body {
   overflow: hidden !important;
 }
 
-.module h2, .module caption {
+.module h2,
+.module caption {
   background: #ffffff !important;
   color: var(--pitchmic-slate-900) !important;
   font-size: 0.975rem !important;
@@ -806,7 +1214,8 @@ body {
   border-collapse: collapse !important;
 }
 
-.module th, .module td {
+.module th,
+.module td {
   padding: 12px 20px !important;
   font-size: 0.85rem !important;
   border-bottom: 1px solid var(--pitchmic-slate-100) !important;
@@ -822,7 +1231,8 @@ body {
   color: var(--pitchmic-orange) !important;
 }
 
-.module tr:hover th, .module tr:hover td {
+.module tr:hover th,
+.module tr:hover td {
   background: #fafaf9 !important;
 }
 
@@ -891,93 +1301,661 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   6. Forms, Inputs, Buttons, & Change Lists
+   6. Forms, Inputs, Buttons, & Change Lists (shadcn/ui style)
    -------------------------------------------------------------------------- */
-.button, input[type=submit], input[type=button], .submit-row input, a.button {
+.button,
+input[type=submit],
+input[type=button],
+.submit-row input,
+a.button {
   background: var(--pitchmic-orange) !important;
   color: #ffffff !important;
   font-weight: 600 !important;
-  font-size: 0.85rem !important;
-  padding: 9px 18px !important;
-  border-radius: var(--pitchmic-radius-md) !important;
-  border: none !important;
-  box-shadow: var(--pitchmic-shadow-orange) !important;
+  font-size: 0.8125rem !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  border: 1px solid transparent !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
   cursor: pointer !important;
-  transition: all 0.2s ease !important;
+  transition: all 0.15s ease !important;
   text-transform: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
 }
 
-.button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover {
+.button:hover,
+input[type=submit]:hover,
+input[type=button]:hover,
+.submit-row input:hover {
   background: var(--pitchmic-orange-hover) !important;
-  transform: translateY(-1px) !important;
+  transform: translateY(-0.5px) !important;
+  box-shadow: 0 4px 10px 0 rgba(249, 115, 22, 0.25) !important;
 }
 
-.button.default, input[type=submit].default {
+.button.default,
+input[type=submit].default {
   background: var(--pitchmic-orange) !important;
 }
 
-.button.deletelink, a.deletelink {
-  background: #ef4444 !important;
+.button.deletelink,
+a.deletelink {
+  background: #f43f5e !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25) !important;
+  box-shadow: 0 1px 3px rgba(244, 63, 94, 0.2) !important;
+  border-radius: 8px !important;
 }
 
-input[type="text"], input[type="password"], input[type="email"], input[type="url"],
-input[type="number"], select, textarea {
-  border: 1px solid var(--pitchmic-slate-200) !important;
-  border-radius: var(--pitchmic-radius-md) !important;
+.button.deletelink:hover,
+a.deletelink:hover {
+  background: #e11d48 !important;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="url"],
+input[type="number"],
+select,
+textarea {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
   padding: 8px 12px !important;
   font-size: 0.875rem !important;
   background: #ffffff !important;
-  color: var(--pitchmic-slate-900) !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
   transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
 }
 
-input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus,
-input[type="url"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+input[type="number"]:focus,
+select:focus,
+textarea:focus {
   border-color: var(--pitchmic-orange) !important;
   outline: none !important;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2) !important;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15) !important;
 }
 
-#changelist {
+/* --------------------------------------------------------------------------
+   6. Page Hero & Modern Branded Changelist Layout
+   -------------------------------------------------------------------------- */
+.pm-page-hero {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 20px 24px !important;
   background: #ffffff !important;
-  border: 1px solid var(--pitchmic-slate-200) !important;
-  border-radius: var(--pitchmic-radius-lg) !important;
-  box-shadow: var(--pitchmic-shadow-sm) !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  margin-bottom: 20px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+}
+
+.pm-page-hero__left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+}
+
+.pm-page-hero__icon-wrap {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  background: #fff7ed !important;
+  color: #ea580c !important;
+  border: 1px solid #fed7aa !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.pm-page-hero__text {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+.pm-page-hero__title {
+  font-size: 1.5rem !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.025em !important;
+}
+
+.pm-page-hero__subtitle {
+  font-size: 0.8125rem !important;
+  color: #64748b !important;
+  margin: 0 !important;
+  font-weight: 500 !important;
+}
+
+.pm-hero-add-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: var(--pitchmic-orange, #f97316) !important;
+  color: #ffffff !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  padding: 9px 18px !important;
+  border-radius: 8px !important;
+  text-decoration: none !important;
+  box-shadow: 0 1px 3px rgba(249, 115, 22, 0.3) !important;
+  transition: all 0.15s ease !important;
+  white-space: nowrap !important;
+}
+
+.pm-hero-add-btn:hover {
+  background: #ea580c !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35) !important;
+  color: #ffffff !important;
+}
+
+.pm-hero-back-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: #ffffff !important;
+  color: #475569 !important;
+  border: 1px solid #cbd5e1 !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  text-decoration: none !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.15s ease !important;
+  white-space: nowrap !important;
+}
+
+.pm-hero-back-btn:hover {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Danger variant of page hero for deletion confirmation */
+.pm-page-hero--danger {
+  border-color: #fecdd3 !important;
+  background: #fff8f8 !important;
+}
+
+.pm-page-hero__icon-wrap--danger {
+  background: #ffe4e6 !important;
+  color: #e11d48 !important;
+  border-color: #fecdd3 !important;
+}
+
+/* Master Changelist Flex Layout */
+#changelist {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: flex !important;
+  gap: 20px !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+  overflow: visible !important;
+}
+
+#changelist .changelist-form-container {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+
+/* Search Toolbar */
+#toolbar {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 12px 18px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+  margin-bottom: 0 !important;
+}
+
+#toolbar form {
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+#toolbar form>div {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+  flex-wrap: wrap !important;
+}
+
+#toolbar label[for="searchbar"] {
+  display: none !important;
+}
+
+#toolbar #searchbar {
+  flex: 1 1 300px !important;
+  max-width: 440px !important;
+  height: 38px !important;
+  font-size: 0.8125rem !important;
+  padding: 8px 14px 8px 38px !important;
+  border-radius: 8px !important;
+  border: 1px solid #e2e8f0 !important;
+  background-color: #f8fafc !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: 12px center !important;
+  transition: all 0.15s ease !important;
+  box-sizing: border-box !important;
+}
+
+#toolbar #searchbar:focus {
+  background-color: #ffffff !important;
+  border-color: var(--pitchmic-orange, #f97316) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23f97316' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E") !important;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12) !important;
+  outline: none !important;
+}
+
+#toolbar input[type="submit"] {
+  height: 38px !important;
+  background: var(--pitchmic-orange, #f97316) !important;
+  color: #ffffff !important;
+  padding: 0 18px !important;
+  border-radius: 8px !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  border: none !important;
+  cursor: pointer !important;
+  box-shadow: 0 1px 2px rgba(249, 115, 22, 0.25) !important;
+  transition: all 0.15s ease !important;
+}
+
+#toolbar input[type="submit"]:hover {
+  background: #ea580c !important;
+  transform: translateY(-0.5px) !important;
+  box-shadow: 0 3px 8px rgba(249, 115, 22, 0.35) !important;
+}
+
+#toolbar .small.quiet {
+  font-size: 0.8125rem !important;
+  color: #64748b !important;
+  margin-left: 8px !important;
+}
+
+/* Date Hierarchy Pill Chips */
+#changelist .toplinks,
+nav.toplinks {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 10px 16px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  margin-bottom: 0 !important;
+  font-size: 0.8125rem !important;
+  flex-wrap: wrap !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+}
+
+#changelist .toplinks a,
+nav.toplinks a {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 4px 12px !important;
+  border-radius: 9999px !important;
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  transition: all 0.15s ease !important;
+  border: 1px solid #e2e8f0 !important;
+  font-size: 0.775rem !important;
+}
+
+#changelist .toplinks a:hover,
+nav.toplinks a:hover {
+  background: #fff7ed !important;
+  color: #ea580c !important;
+  border-color: #fed7aa !important;
+}
+
+#changelist .toplinks a.date-back,
+nav.toplinks a.date-back {
+  background: #f8fafc !important;
+  color: #64748b !important;
+  font-weight: 600 !important;
+}
+
+/* Changelist Form & Results Table Card */
+#changelist-form {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
   overflow: hidden !important;
+  width: 100% !important;
+}
+
+#changelist-form .results {
+  overflow-x: auto !important;
+  width: 100% !important;
+  scrollbar-width: thin !important;
+}
+
+#changelist-form table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 0 !important;
 }
 
 #changelist table thead th {
   background: #f8fafc !important;
-  color: var(--pitchmic-slate-600) !important;
-  font-size: 0.725rem !important;
+  color: #64748b !important;
+  font-size: 0.7rem !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.05em !important;
-  padding: 12px 16px !important;
-  border-bottom: 1px solid var(--pitchmic-slate-200) !important;
+  padding: 12px 14px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  border-top: none !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+}
+
+#changelist table thead th a {
+  color: inherit !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+#changelist table thead th a:hover {
+  color: var(--pitchmic-orange, #f97316) !important;
+}
+
+#changelist table thead th.sorted .sortoptions {
+  display: inline-flex !important;
+  margin-left: 4px !important;
+}
+
+#changelist table thead th.ascending a::after {
+  content: " ▲";
+  font-size: 0.65rem;
+  color: var(--pitchmic-orange, #f97316);
+}
+
+#changelist table thead th.descending a::after {
+  content: " ▼";
+  font-size: 0.65rem;
+  color: var(--pitchmic-orange, #f97316);
+}
+
+#changelist table tbody tr {
+  transition: background-color 0.15s ease !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+#changelist table tbody tr:last-child {
+  border-bottom: none !important;
 }
 
 #changelist table tbody tr:hover {
-  background: #f8fafc !important;
+  background: #fdfaf6 !important;
 }
 
-#changelist-filter {
+#changelist table tbody tr.selected {
+  background: #fff7ed !important;
+}
+
+#changelist table tbody td,
+#changelist table tbody th {
+  padding: 10px 12px !important;
+  font-size: 0.8125rem !important;
+  color: #1e293b !important;
+  vertical-align: middle !important;
+  border-bottom: inherit !important;
+}
+
+/* Specific column widths for clean fit without awkward overflow */
+#changelist table .field-get_user_identity {
+  min-width: 180px !important;
+  max-width: 210px !important;
+}
+
+#changelist table .field-get_plan_badge {
+  min-width: 80px !important;
+}
+
+#changelist table .field-get_is_verified {
+  min-width: 85px !important;
+}
+
+#changelist table .field-get_account_status {
+  min-width: 75px !important;
+}
+
+#changelist table .field-get_access_level {
+  min-width: 75px !important;
+}
+
+#changelist table .field-get_last_active_formatted,
+#changelist table .field-get_joined_formatted {
+  min-width: 85px !important;
+}
+
+#changelist table .action-checkbox,
+#changelist table thead th.action-checkbox-column {
+  width: 38px !important;
+  text-align: center !important;
+  padding: 10px 6px !important;
+}
+
+#changelist-form .results::-webkit-scrollbar {
+  height: 6px !important;
+}
+
+#changelist-form .results::-webkit-scrollbar-track {
+  background: #f1f5f9 !important;
+}
+
+#changelist-form .results::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+  border-radius: 9999px !important;
+}
+
+#changelist-form .results::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}
+
+/* Actions Row (Batch Select & Actions Dropdown) */
+#changelist .actions {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 10px 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  font-size: 0.8125rem !important;
+  color: #475569 !important;
+}
+
+#changelist .actions label {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+#changelist .actions select {
+  height: 34px !important;
+  padding: 4px 12px !important;
+  font-size: 0.8125rem !important;
+  border-radius: 6px !important;
+  border: 1px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  min-width: 200px !important;
+  color: #0f172a !important;
+}
+
+#changelist .actions button.button {
+  height: 34px !important;
+  background: #1e293b !important;
+  color: #ffffff !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  padding: 0 16px !important;
+  border-radius: 6px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+#changelist .actions button.button:hover {
+  background: var(--pitchmic-orange, #f97316) !important;
+}
+
+#changelist .actions .action-counter {
+  margin-left: auto !important;
+  font-size: 0.775rem !important;
+  color: #64748b !important;
   background: #ffffff !important;
-  border-left: 1px solid var(--pitchmic-slate-200) !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+/* Filter Card */
+#changelist #changelist-filter {
+  flex: 0 0 220px !important;
+  width: 220px !important;
+  margin: 0 !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+  overflow: hidden !important;
+  position: sticky !important;
+  top: 80px !important;
+  align-self: flex-start !important;
+  max-height: calc(100vh - 100px) !important;
+  overflow-y: auto !important;
 }
 
 #changelist-filter h2 {
   background: #f8fafc !important;
-  color: var(--pitchmic-slate-900) !important;
-  font-size: 0.85rem !important;
+  color: #0f172a !important;
+  font-size: 0.75rem !important;
   font-weight: 700 !important;
-  padding: 12px 16px !important;
-  border-bottom: 1px solid var(--pitchmic-slate-200) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  padding: 14px 16px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  margin: 0 !important;
 }
 
+#changelist-filter #changelist-filter-extra-actions {
+  padding: 10px 16px !important;
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+#changelist-filter #changelist-filter-extra-actions h3 {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+#changelist-filter #changelist-filter-extra-actions a {
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+#changelist-filter #changelist-filter-extra-actions a:hover {
+  color: var(--pitchmic-orange, #f97316) !important;
+}
+
+#changelist-filter details {
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+#changelist-filter details:last-child {
+  border-bottom: none !important;
+}
+
+#changelist-filter details summary {
+  padding: 12px 16px !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  color: #1e293b !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  transition: background 0.15s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+#changelist-filter details summary:hover {
+  background: #f8fafc !important;
+  color: var(--pitchmic-orange, #f97316) !important;
+}
+
+#changelist-filter ul {
+  padding: 4px 12px 12px 12px !important;
+  margin: 0 !important;
+  list-style: none !important;
+}
+
+#changelist-filter li {
+  margin: 0 0 2px 0 !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+  transition: all 0.15s ease !important;
+}
+
+#changelist-filter li a {
+  display: block !important;
+  padding: 6px 10px !important;
+  font-size: 0.8125rem !important;
+  color: #475569 !important;
+  text-decoration: none !important;
+  border-radius: 6px !important;
+  transition: all 0.15s ease !important;
+}
+
+#changelist-filter li:hover a {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+#changelist-filter li.selected a {
+  background: #fff7ed !important;
+  color: #ea580c !important;
+  font-weight: 700 !important;
+}
+
+/* System Notifications */
 ul.messagelist {
   margin: 0 0 20px 0 !important;
   padding: 0 !important;
@@ -985,7 +1963,7 @@ ul.messagelist {
 
 ul.messagelist li {
   padding: 12px 16px !important;
-  border-radius: var(--pitchmic-radius-md) !important;
+  border-radius: var(--pitchmic-radius-md, 8px) !important;
   font-size: 0.85rem !important;
   font-weight: 500 !important;
   margin-bottom: 10px !important;
@@ -1009,4 +1987,1470 @@ ul.messagelist li.error {
   background: #fef2f2 !important;
   color: #991b1b !important;
   border-color: #fecaca !important;
+}
+
+/* Object Tools (Add Item Button) */
+.object-tools {
+  margin: 0 0 16px 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.object-tools li a {
+  background: var(--pitchmic-orange, #f97316) !important;
+  color: #ffffff !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  text-decoration: none !important;
+  box-shadow: 0 1px 3px rgba(249, 115, 22, 0.25) !important;
+  transition: all 0.15s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.object-tools li a:hover {
+  background: var(--pitchmic-orange-hover, #ea580c) !important;
+  transform: translateY(-0.5px) !important;
+  box-shadow: 0 4px 10px rgba(249, 115, 22, 0.35) !important;
+}
+
+/* Paginator */
+.paginator {
+  background: #ffffff !important;
+  border-top: 1px solid #e2e8f0 !important;
+  padding: 12px 16px !important;
+  font-size: 0.8125rem !important;
+  color: #64748b !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.paginator a:link,
+.paginator a:visited {
+  color: var(--pitchmic-orange, #f97316) !important;
+  font-weight: 600 !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  text-decoration: none !important;
+}
+
+.paginator a:hover {
+  background: var(--pitchmic-orange-subtle, #fff7ed) !important;
+}
+
+/* Change Form & Modules */
+.change-form fieldset.module {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  margin-bottom: 24px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+}
+
+.change-form fieldset.module h2 {
+  font-size: 0.9375rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  padding-bottom: 12px !important;
+  margin-bottom: 16px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.change-form .form-row {
+  padding: 12px 0 !important;
+  border-bottom: 1px solid #f8fafc !important;
+  font-size: 0.875rem !important;
+}
+
+.change-form .submit-row {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 14px 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* --------------------------------------------------------------------------
+   8. Executive Telemetry & KPI Cards (shadcn/ui & Radix UI Design Standard)
+   -------------------------------------------------------------------------- */
+
+/* Modern layout for dashboard: unified full-width executive command center */
+body.dashboard #content {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body.dashboard .pitchmic-dashboard-hero,
+body.dashboard .pitchmic-kpi-grid {
+  width: 100% !important;
+}
+
+body.dashboard #content-main {
+  width: 100% !important;
+  max-width: 100% !important;
+  float: none !important;
+  margin: 0 !important;
+}
+
+body.dashboard #content-related {
+  display: none !important;
+  /* Managed seamlessly inside the analytics grid */
+}
+
+/* Hero Section */
+.pitchmic-dashboard-hero {
+  margin-bottom: 22px !important;
+}
+
+.hero-text-content {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.hero-title-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+.hero-title {
+  font-size: 1.625rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  color: var(--pitchmic-slate-900) !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+}
+
+.hero-status-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 3px 10px !important;
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border: 1px solid #a7f3d0 !important;
+  border-radius: 9999px !important;
+  font-size: 0.6875rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+.hero-subtitle {
+  font-size: 0.8125rem !important;
+  color: var(--pitchmic-slate-500) !important;
+  margin: 0 !important;
+  font-weight: 500 !important;
+}
+
+/* KPI Telemetry Grid */
+.pitchmic-kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 18px !important;
+  margin-bottom: 32px !important;
+  width: 100% !important;
+}
+
+@media (max-width: 1280px) {
+  .pitchmic-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .pitchmic-kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* KPI Card */
+.pitchmic-kpi-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  padding: 20px 22px !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.02) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  text-decoration: none !important;
+  color: inherit !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  min-height: 145px !important;
+}
+
+.pitchmic-kpi-card:hover {
+  border-color: #cbd5e1 !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 12px 24px -6px rgba(15, 23, 42, 0.08), 0 8px 12px -4px rgba(15, 23, 42, 0.04) !important;
+}
+
+.pitchmic-kpi-card.interactive:hover {
+  border-color: #fb923c !important;
+  box-shadow: 0 12px 24px -6px rgba(249, 115, 22, 0.12), 0 8px 12px -4px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Card Top Row */
+.kpi-card-top {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 12px !important;
+}
+
+.kpi-card-label {
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+  letter-spacing: -0.01em !important;
+  transition: color 0.15s ease !important;
+}
+
+.pitchmic-kpi-card:hover .kpi-card-label {
+  color: #0f172a !important;
+}
+
+.kpi-icon-badge {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  transition: transform 0.2s ease !important;
+}
+
+.pitchmic-kpi-card:hover .kpi-icon-badge {
+  transform: scale(1.08) !important;
+}
+
+.kpi-badge-orange {
+  background: #fff7ed !important;
+  color: #ea580c !important;
+  border: 1px solid #ffedd5 !important;
+}
+
+.kpi-badge-amber {
+  background: #fffbeb !important;
+  color: #d97706 !important;
+  border: 1px solid #fef3c7 !important;
+}
+
+.kpi-badge-purple {
+  background: #faf5ff !important;
+  color: #9333ea !important;
+  border: 1px solid #f3e8ff !important;
+}
+
+.kpi-badge-sky {
+  background: #f0f9ff !important;
+  color: #0284c7 !important;
+  border: 1px solid #e0f2fe !important;
+}
+
+/* Card Middle Row */
+.kpi-card-middle {
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin-bottom: 14px !important;
+}
+
+.kpi-value {
+  font-size: 2.25rem !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  line-height: 1 !important;
+  letter-spacing: -0.035em !important;
+  font-variant-numeric: tabular-nums !important;
+  display: flex !important;
+  align-items: baseline !important;
+  min-height: 36px !important;
+}
+
+/* Status Pill */
+.kpi-status-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 3px 10px !important;
+  border-radius: 9999px !important;
+  font-size: 0.6875rem !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  flex-shrink: 0 !important;
+  letter-spacing: 0.02em !important;
+}
+
+.pill-emerald {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border: 1px solid #a7f3d0 !important;
+}
+
+.pill-amber {
+  background: #fffbeb !important;
+  color: #b45309 !important;
+  border: 1px solid #fde68a !important;
+}
+
+.pill-purple {
+  background: #faf5ff !important;
+  color: #7e22ce !important;
+  border: 1px solid #e9d5ff !important;
+}
+
+.pill-rose {
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+  border: 1px solid #fecaca !important;
+}
+
+/* Pulse Dot */
+.kpi-pulse-dot {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  display: inline-block !important;
+}
+
+.dot-emerald {
+  background: #10b981 !important;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25) !important;
+  animation: kpiPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+}
+
+.dot-amber {
+  background: #f59e0b !important;
+}
+
+.dot-purple {
+  background: #a855f7 !important;
+}
+
+.dot-rose {
+  background: #ef4444 !important;
+}
+
+/* Card Bottom Row */
+.kpi-card-bottom {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding-top: 12px !important;
+  border-top: 1px solid #f1f5f9 !important;
+  gap: 8px !important;
+}
+
+.kpi-context-text {
+  font-size: 0.775rem !important;
+  color: #64748b !important;
+  font-weight: 500 !important;
+  white-space: normal !important;
+  line-height: 1.3 !important;
+  flex: 1 !important;
+}
+
+.kpi-drilldown-hint {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  font-size: 0.6875rem !important;
+  font-weight: 600 !important;
+  color: #94a3b8 !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.pitchmic-kpi-card:hover .kpi-drilldown-hint {
+  color: #ea580c !important;
+  transform: translateX(3px) !important;
+}
+
+.kpi-telemetry-badge {
+  font-size: 0.6875rem !important;
+  font-weight: 600 !important;
+  color: #94a3b8 !important;
+  background: #f8fafc !important;
+  padding: 2px 7px !important;
+  border-radius: 4px !important;
+  border: 1px solid #f1f5f9 !important;
+  white-space: nowrap !important;
+}
+
+/* Skeleton Loaders */
+.kpi-skeleton-num {
+  display: inline-block !important;
+  height: 32px !important;
+  width: 56px !important;
+  background: #f1f5f9 !important;
+  border-radius: 8px !important;
+  animation: kpiPulse 1.5s ease-in-out infinite !important;
+}
+
+.kpi-skeleton-text {
+  display: inline-block !important;
+  height: 14px !important;
+  width: 120px !important;
+  background: #f1f5f9 !important;
+  border-radius: 4px !important;
+  animation: kpiPulse 1.5s ease-in-out infinite !important;
+}
+
+@keyframes kpiPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Readonly fields — visual distinction (greyed + lock cursor)
+   -------------------------------------------------------------------------- */
+.change-form .readonly,
+.change-form .field-readonly input,
+.change-form .field-readonly textarea,
+.change-form .field-readonly select,
+.change-form .form-row.field-created_at input,
+.change-form .form-row.field-updated_at input,
+.change-form .form-row.field-last_login input {
+  background: var(--pitchmic-slate-50) !important;
+  color: var(--pitchmic-slate-500) !important;
+  cursor: not-allowed !important;
+  border-color: var(--pitchmic-slate-200) !important;
+  box-shadow: none !important;
+}
+
+/* Readonly field label hint */
+.change-form .form-row.field-created_at label::after,
+.change-form .form-row.field-updated_at label::after,
+.change-form .form-row.field-last_login label::after {
+  content: " (read-only)";
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--pitchmic-slate-400);
+  font-style: italic;
+}
+
+/* --------------------------------------------------------------------------
+   Empty changelist state — custom styled zero-results message
+   -------------------------------------------------------------------------- */
+#changelist #result_list+p,
+#changelist .paginator+p {
+  /* Django renders "0 results (N total)" as a <p> after the table */
+  color: var(--pitchmic-slate-500) !important;
+  font-size: 0.875rem !important;
+  padding: 12px 16px !important;
+}
+
+/* Custom empty result row styling */
+#changelist tbody tr.empty-results,
+#changelist .results+.paginator {
+  border-top: 1px solid var(--pitchmic-slate-100);
+}
+
+#changelist-form .results:empty::after,
+#changelist .results table tbody:empty::after {
+  content: "No records found. Use the filters or search bar to refine your query.";
+  display: block;
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--pitchmic-slate-400);
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: #fafafa;
+}
+
+/* --------------------------------------------------------------------------
+   Sticky submit row on long change forms
+   -------------------------------------------------------------------------- */
+.change-form .submit-row {
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 100 !important;
+  background: #ffffff !important;
+  border-top: 1px solid var(--pitchmic-slate-200) !important;
+  border-radius: 0 0 12px 12px !important;
+  box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Users App Index — custom telemetry layout
+   -------------------------------------------------------------------------- */
+.app-index-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.app-index-stat-card {
+  background: #ffffff;
+  border: 1px solid var(--pitchmic-slate-200);
+  border-radius: var(--pitchmic-radius-lg);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: var(--pitchmic-shadow-sm);
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.app-index-stat-card:hover {
+  border-color: var(--pitchmic-slate-300);
+  transform: translateY(-2px);
+  box-shadow: var(--pitchmic-shadow-md);
+}
+
+.app-index-stat-card .stat-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pitchmic-slate-500);
+}
+
+.app-index-stat-card .stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--pitchmic-slate-900);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.app-index-stat-card .stat-sub {
+  font-size: 0.775rem;
+  color: var(--pitchmic-slate-500);
+  font-weight: 500;
+}
+
+@media (max-width: 900px) {
+  .app-index-stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .app-index-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Inline formsets (Team Members) — visual improvement
+   -------------------------------------------------------------------------- */
+.inline-group .tabular thead th {
+  background: var(--pitchmic-slate-50) !important;
+  color: var(--pitchmic-slate-500) !important;
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  padding: 10px 12px !important;
+  border-bottom: 1px solid var(--pitchmic-slate-200) !important;
+}
+
+.inline-group .tabular tbody tr:hover td {
+  background: var(--pitchmic-slate-50) !important;
+}
+
+/* "Add another" link in inlines */
+.inline-group .add-row a {
+  color: var(--pitchmic-orange) !important;
+  font-weight: 600 !important;
+  font-size: 0.8125rem !important;
+}
+
+.inline-group .add-row a:hover {
+  color: var(--pitchmic-orange-hover) !important;
+}
+
+/* --------------------------------------------------------------------------
+   9. Pitchmic Admin Design Tokens — Changelist Badges & Identity
+   (Removes inline-style dependency for WCAG + forced-colors resilience)
+   -------------------------------------------------------------------------- */
+.pm-identity-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pm-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.pm-identity-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pm-identity-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.pm-identity-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.pm-identity-email {
+  font-size: 0.75rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+/* Stacked two-line column cells (Plan, Last active, Joined) */
+.pm-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Badge base — replaces inline <span style="..."> strings */
+.pm-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  letter-spacing: 0.01em;
+}
+
+.pm-badge--muted {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.pm-badge--empty {
+  background: #f8fafc;
+  color: #94a3b8;
+  border: 1px dashed #e2e8f0;
+  font-weight: 500;
+}
+
+/* Role badges */
+.pm-badge--role-startup {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+.pm-badge--role-investor {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.pm-badge--role-accelerator {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border-color: #ddd6fe;
+}
+
+/* Plan badges */
+.pm-badge--plan-free {
+  background: #f8fafc;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.pm-badge--plan-pro {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+.pm-badge--plan-raise {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+/* Access / staff badges */
+.pm-badge--staff {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border-color: #ddd6fe;
+}
+
+.pm-badge--staff-super {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #92400e;
+  border-color: #fcd34d;
+  box-shadow: 0 0 0 1px rgba(180, 83, 9, 0.06) inset;
+}
+
+/* Status — icon + text pairs (text always visible for non-color reading) */
+.pm-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  border: 1px solid transparent;
+}
+
+.pm-status svg {
+  flex-shrink: 0;
+}
+
+.pm-status--ok {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.pm-status--warn {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+.pm-status--muted {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+/* Sublabel — secondary line under primary content (timestamps, plan status) */
+.pm-sublabel {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.pm-sublabel--ok {
+  color: #047857;
+  font-weight: 600;
+}
+
+.pm-sublabel--warn {
+  color: #c2410c;
+  font-weight: 600;
+}
+
+.pm-sublabel--danger {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.pm-sublabel--info {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.pm-sublabel--muted {
+  color: #94a3b8;
+}
+
+/* --------------------------------------------------------------------------
+   10. Forced-Colors / High-Contrast mode fallbacks
+   -------------------------------------------------------------------------- */
+@media (forced-colors: active) {
+  .pm-avatar {
+    border: 2px solid CanvasText;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .pm-badge,
+  .pm-status {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+    forced-color-adjust: none;
+  }
+
+  .pm-status--ok {
+    color: Highlight;
+  }
+
+  .pm-status--warn,
+  .pm-status--muted {
+    color: CanvasText;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   11. Action Bar — selection summary + active filter chips
+   -------------------------------------------------------------------------- */
+#changelist .actions .action-counter {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* Reduce bulk action row padding on narrow screens, ensure action toolbar
+   stays visually grouped with the table, not floating away */
+@media (max-width: 768px) {
+  #changelist .actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pm-identity-email {
+    max-width: 180px;
+  }
+
+  .pm-identity-name {
+    max-width: 160px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .pm-avatar,
+  .pm-badge,
+  .pm-status,
+  .object-tools li a,
+  .button,
+  input[type=submit] {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   BP1 ≤1024px — Reduce padding, compact headings, compress content body
+   -------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .content-body {
+    padding: 20px 22px !important;
+  }
+
+  .page-main-title {
+    font-size: 1.4rem !important;
+  }
+
+  /* Compress breadcrumb bar padding */
+  .breadcrumbs-bar,
+  nav.breadcrumbs-bar {
+    padding: 10px 22px !important;
+  }
+
+  /* Compress page hero padding */
+  .pm-page-hero {
+    padding: 16px 20px !important;
+  }
+
+  /* Compress change form fieldset padding */
+  .change-form fieldset.module {
+    padding: 16px !important;
+  }
+
+  /* Reduce submit row padding */
+  .change-form .submit-row {
+    padding: 12px 16px !important;
+  }
+
+  /* Reduce dashboard hero font */
+  .hero-title {
+    font-size: 1.4rem !important;
+  }
+
+  /* Reduce KPI card minimum height */
+  .pitchmic-kpi-card {
+    min-height: 130px !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   BP2 ≤960px — Sidebar slides out (already done). Augment remaining layout.
+   -------------------------------------------------------------------------- */
+@media (max-width: 960px) {
+
+  /* Header: compress horizontal padding */
+  #pitchmic-top-header {
+    padding: 0 16px !important;
+  }
+
+  /* Content body: reduce padding since sidebar is gone */
+  .content-body {
+    padding: 18px 20px !important;
+  }
+
+  /* Breadcrumb bar padding matches content body */
+  .breadcrumbs-bar,
+  nav.breadcrumbs-bar {
+    padding: 10px 20px !important;
+  }
+
+  /* Main content area fills full width (margin-left already 0 here) */
+  #pitchmic-main-content {
+    padding-top: 0 !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   BP3 ≤768px — Stack changelist filter below, scroll tables, reflow heroes
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+
+  /* ── Content body padding ── */
+  .content-body {
+    padding: 16px !important;
+  }
+
+  .breadcrumbs-bar,
+  nav.breadcrumbs-bar {
+    padding: 8px 16px !important;
+  }
+
+  /* ── Breadcrumb text: allow wrapping ── */
+  div.breadcrumbs,
+  .breadcrumbs {
+    font-size: 0.75rem !important;
+    gap: 4px !important;
+  }
+
+  /* ── Page hero: stack vertically on narrow screens ── */
+  .pm-page-hero {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 14px !important;
+    padding: 14px 16px !important;
+  }
+
+  .pm-page-hero__actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .pm-hero-back-btn,
+  .pm-hero-add-btn {
+    flex: 1 1 auto !important;
+    justify-content: center !important;
+    min-width: 120px !important;
+  }
+
+  /* ── Changelist: stack filter below table on narrow screens ── */
+  #changelist {
+    flex-direction: column !important;
+    gap: 14px !important;
+  }
+
+  #changelist #changelist-filter {
+    flex: none !important;
+    width: 100% !important;
+    position: static !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+
+  #changelist .changelist-form-container {
+    width: 100% !important;
+  }
+
+  /* ── Table: ensure horizontal scroll instead of clipping ── */
+  #changelist-form {
+    overflow: hidden !important;
+  }
+
+  #changelist-form .results {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Avoid overly-narrow identity cells on mobile */
+  #changelist table .field-get_user_identity {
+    min-width: 160px !important;
+    max-width: 190px !important;
+  }
+
+  /* ── Actions bar: wrap on mobile ── */
+  #changelist .actions {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    padding: 10px 14px !important;
+  }
+
+  #changelist .actions select {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  #changelist .actions .action-counter {
+    margin-left: 0 !important;
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  /* ── Toolbar search: allow full width on narrow screens ── */
+  #toolbar #searchbar {
+    flex: 1 1 auto !important;
+    max-width: 100% !important;
+  }
+
+  /* ── Paginator: allow line wrap ── */
+  .paginator {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    justify-content: center !important;
+  }
+
+  /* ── Object tools (Add button): wrap ── */
+  .object-tools {
+    flex-wrap: wrap !important;
+  }
+
+  /* ── Change form: full-width inputs ── */
+  .change-form .form-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+
+  .change-form fieldset.module {
+    padding: 14px !important;
+  }
+
+  /* All text inputs, selects, textareas become full width in change form */
+  .change-form input[type="text"],
+  .change-form input[type="password"],
+  .change-form input[type="email"],
+  .change-form input[type="url"],
+  .change-form input[type="number"],
+  .change-form select,
+  .change-form textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ── Submit row: stack buttons on very narrow ── */
+  .change-form .submit-row {
+    flex-wrap: wrap !important;
+    justify-content: stretch !important;
+    gap: 8px !important;
+    padding: 12px 14px !important;
+  }
+
+  .change-form .submit-row input,
+  .change-form .submit-row a {
+    flex: 1 1 auto !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
+
+  /* ── Django filter_horizontal / filter_vertical selector widget ── */
+  /* Stack the two select-multiple boxes vertically with buttons between */
+  .selector {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .selector .selector-available,
+  .selector .selector-chosen {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+  }
+
+  .selector select {
+    width: 100% !important;
+    min-height: 120px !important;
+    box-sizing: border-box !important;
+  }
+
+  .selector-chooser {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    transform: none !important;
+    margin: 0 !important;
+  }
+
+  .selector-chooser li {
+    list-style: none !important;
+  }
+
+  /* ── Inline formsets (tabular inlines): scroll horizontally ── */
+  .inline-group {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .inline-group .tabular {
+    min-width: 600px !important;
+  }
+
+  /* ── Dashboard KPI heading font ── */
+  .hero-title {
+    font-size: 1.3rem !important;
+  }
+
+  .hero-title-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  /* ── App index stats grid: already 1fr 1fr at 900px, keep that ── */
+
+  /* ── Module tables: wrap cells sensibly ── */
+  .module th,
+  .module td {
+    padding: 10px 14px !important;
+    font-size: 0.8rem !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   BP4 ≤640px — Full mobile: single-column, compact everything
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+
+  /* ── Header: icon-only for nav shortcut buttons ── */
+  .nav-shortcut-btn {
+    padding: 6px 8px !important;
+  }
+
+  /* Hide "View User App" button label text (icon-only) */
+  .nav-shortcut-btn--app .nav-shortcut-text {
+    display: none !important;
+  }
+
+  /* ── Content body: minimal padding ── */
+  .content-body {
+    padding: 12px !important;
+  }
+
+  .breadcrumbs-bar,
+  nav.breadcrumbs-bar {
+    padding: 8px 12px !important;
+  }
+
+  /* ── Breadcrumbs: compress further ── */
+  div.breadcrumbs,
+  .breadcrumbs {
+    font-size: 0.7rem !important;
+  }
+
+  /* ── Page hero: tighter ── */
+  .pm-page-hero {
+    padding: 12px !important;
+    gap: 12px !important;
+  }
+
+  .pm-page-hero__title {
+    font-size: 1.2rem !important;
+  }
+
+  .pm-page-hero__icon-wrap {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  /* ── Change form submit buttons: full-width stacked ── */
+  .change-form .submit-row {
+    flex-direction: column !important;
+  }
+
+  .change-form .submit-row input,
+  .change-form .submit-row a {
+    width: 100% !important;
+  }
+
+  /* ── Dashboard hero title ── */
+  .hero-title {
+    font-size: 1.2rem !important;
+  }
+
+  .pitchmic-dashboard-hero {
+    margin-bottom: 16px !important;
+  }
+
+  /* ── KPI card ── */
+  .pitchmic-kpi-card {
+    min-height: 110px !important;
+    padding: 16px !important;
+  }
+
+  /* ── Changelist filter: compress filter card ── */
+  #changelist #changelist-filter {
+    border-radius: 8px !important;
+  }
+
+  /* ── Actions bar: fully stacked ── */
+  #changelist .actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  #changelist .actions label {
+    width: 100% !important;
+  }
+
+  #changelist .actions select {
+    width: 100% !important;
+  }
+
+  #changelist .actions button.button {
+    width: 100% !important;
+    height: 38px !important;
+  }
+
+  /* ── Toolbar: search on its own row ── */
+  #toolbar form>div {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  #toolbar #searchbar {
+    min-width: 0 !important;
+    flex-basis: auto !important;
+  }
+
+  /* ── Paginator: compact ── */
+  .paginator {
+    padding: 10px 12px !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* ── Object tools: stack ── */
+  .object-tools {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .object-tools li a {
+    text-align: center !important;
+    justify-content: center !important;
+  }
+
+  /* ── Module table: reduce padding for small screens ── */
+  .module th,
+  .module td {
+    padding: 8px 10px !important;
+    font-size: 0.775rem !important;
+  }
+
+  /* ── Inline formset table: tighter ── */
+  .inline-group .tabular {
+    min-width: 520px !important;
+  }
+
+  /* ── Page main title ── */
+  .page-main-title {
+    font-size: 1.2rem !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* ── Fieldset module: minimal padding ── */
+  .change-form fieldset.module {
+    padding: 12px !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* ── Identity columns shrink more on mobile ── */
+  .pm-identity-name {
+    max-width: 140px !important;
+  }
+
+  .pm-identity-email {
+    max-width: 150px !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   BP5 ≤480px — Extra-compact for small phones (320–480px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 480px) {
+
+  /* ── Header: ultra-compact ── */
+  #pitchmic-top-header {
+    padding: 0 12px !important;
+    height: 52px !important;
+  }
+
+  #pitchmic-body-container {
+    margin-top: 52px !important;
+  }
+
+  #pitchmic-sidebar {
+    top: 52px !important;
+    height: calc(100vh - 52px) !important;
+  }
+
+  .sidebar-backdrop {
+    inset: 52px 0 0 0 !important;
+  }
+
+  /* ── Brand badge: hide "Control HQ" on very small screens ── */
+  .brand-portal-badge {
+    display: none !important;
+  }
+
+  /* ── Hide "API Docs" button entirely at smallest sizes ── */
+  .nav-shortcut-btn--api {
+    display: none !important;
+  }
+
+  /* ── Content: minimal padding ── */
+  .content-body {
+    padding: 10px !important;
+  }
+
+  .breadcrumbs-bar,
+  nav.breadcrumbs-bar {
+    padding: 6px 10px !important;
+  }
+
+  /* ── Page hero: ultra-compact ── */
+  .pm-page-hero {
+    padding: 10px !important;
+    border-radius: 8px !important;
+  }
+
+  .pm-page-hero__title {
+    font-size: 1rem !important;
+  }
+
+  .pm-page-hero__subtitle {
+    font-size: 0.75rem !important;
+  }
+
+  .pm-page-hero__icon-wrap {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+  }
+
+  /* ── Role switcher: show text only when sidebar is open, compress ── */
+  .sidebar-role-switcher {
+    padding: 10px !important;
+  }
+
+  /* ── KPI grid: single column (already at 640px, just ensure it) ── */
+  .pitchmic-kpi-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .pitchmic-kpi-card {
+    min-height: 100px !important;
+    padding: 14px !important;
+  }
+
+  /* ── App index stats grid: single column ── */
+  .app-index-stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Changelist form card: remove border-radius for edge-to-edge feel ── */
+  #changelist-form {
+    border-radius: 8px !important;
+  }
+
+  /* ── Fieldset: minimal ── */
+  .change-form fieldset.module {
+    padding: 10px !important;
+    border-radius: 8px !important;
+  }
+
+  /* ── Module heading ── */
+  .module h2,
+  .module caption {
+    padding: 10px 14px !important;
+    font-size: 0.875rem !important;
+  }
+
+  /* ── Django selector widget select-multiple minimum height ── */
+  .selector select {
+    min-height: 100px !important;
+  }
+
+  /* ── Changelist table: extra-compact cells ── */
+  #changelist table tbody td,
+  #changelist table tbody th {
+    padding: 8px 8px !important;
+    font-size: 0.775rem !important;
+  }
+
+  #changelist table thead th {
+    padding: 10px 8px !important;
+  }
+
+  /* ── Inline formset minimum width tighter ── */
+  .inline-group .tabular {
+    min-width: 480px !important;
+  }
 }

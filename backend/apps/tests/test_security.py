@@ -1,4 +1,4 @@
-﻿"""
+"""
 apps/tests/test_security.py
 ============================
 Security regression test suite for PitchMic.
@@ -62,7 +62,7 @@ def startup_user(db) -> User:
 
 @pytest.fixture
 def startup_user_b(db) -> User:
-    """A second, unrelated startup user — used for cross-ownership tests."""
+    """A second, unrelated startup user - used for cross-ownership tests."""
     u = User.objects.create_user(
         email="founderB_sec@test.com",
         password="TestPass1!",
@@ -154,7 +154,7 @@ class TestSEC002CrossTenantDigitalBrain:
         that tenant's memory.  The server derives tenant from request.user.
         We verify the endpoint is reachable (doesn't 500) and that the
         body-supplied tenant_id key is silently ignored.
-        This test does NOT hit a real ChromaDB — it relies on the DB-only
+        This test does NOT hit a real ChromaDB - it relies on the DB-only
         fallback path in query_memory().
         """
         from unittest.mock import patch
@@ -392,7 +392,7 @@ class TestSEC008InvestorProfileScoping:
 
 
 # ===========================================================================
-# SEC-009: Payment amount must be server-side — client amount ignored
+# SEC-009: Payment amount must be server-side - client amount ignored
 # ===========================================================================
 
 class TestSEC009PaymentAmountEnforcement:
@@ -412,7 +412,7 @@ class TestSEC009PaymentAmountEnforcement:
         if resp.status_code == status.HTTP_200_OK:
             # If it succeeded, the amount field in response must NOT be 1 cent
             # (The actual Paystack call would use the server-side $9.00)
-            pass  # The service enforces amount internally — no amount in response
+            pass  # The service enforces amount internally - no amount in response
         else:
             # 400 or similar is also acceptable
             assert resp.status_code in (
@@ -467,7 +467,7 @@ class TestSEC010CORSNotOpen:
         """CORS_ALLOW_ALL_ORIGINS must be False in all environments."""
         from django.conf import settings
         assert settings.CORS_ALLOW_ALL_ORIGINS is False, (
-            "SEC-010 REGRESSION: CORS_ALLOW_ALL_ORIGINS is True — all origins accepted"
+            "SEC-010 REGRESSION: CORS_ALLOW_ALL_ORIGINS is True - all origins accepted"
         )
 
 

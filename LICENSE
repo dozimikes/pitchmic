@@ -1,0 +1,34 @@
+PROPRIETARY LICENSE
+
+Copyright (c) 2026 dozimikes. All rights reserved.
+
+This repository and its source code are the proprietary work of the copyright
+holder named above. No license is granted to any party by possession, access,
+clone, mirror, or download of this source tree.
+
+1. NO RIGHTS GRANTED
+   You may not copy, modify, distribute, sublicense, host, deploy, or create
+   derivative works of this software, in whole or in part, without a separate
+   written agreement signed by the copyright holder.
+
+2. SOURCE AVAILABLE FOR REVIEW
+   The source is published in readable form so that it can be inspected and
+   evaluated. Inspection is not a grant of any right beyond reading.
+
+3. COMMERCIAL LICENSING
+   Commercial, data-licensing, and research-corpus licenses are available by
+   written agreement. Terms, scope, exclusivity, and consideration are defined
+   in that agreement and nowhere in this file.
+
+4. THIRD-PARTY COMPONENTS
+   Dependencies declared in `backend/requirements.txt`, `ml/requirements.txt`,
+   `frontend/package.json`, and `frontend/package-lock.json` remain licensed
+   under their own respective terms. This file grants nothing over them.
+
+5. NO WARRANTY
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+
+To request a license, contact the copyright holder through the repository
+owner account on the forge where this tree is hosted.

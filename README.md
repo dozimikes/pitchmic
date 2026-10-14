@@ -1,7 +1,7 @@
 # Pitchmic — Full Architectural Design
 
 > **Platform**: AI-Native Venture Capital Intelligence & Founder-Investor Networking
-> **Stack**: Django 5 · Next.js 14 · FastAPI ML Service · PostgreSQL · Redis · ChromaDB · Caddy
+> **Stack**: Django 5 · Next.js 16 · FastAPI ML Service · PostgreSQL · Redis · ChromaDB · Caddy
 
 ---
 
@@ -11,10 +11,10 @@ Pitchmic is a two-sided marketplace connecting **startup founders** with **insti
 
 ```mermaid
 flowchart TD
-    Browser[" Browser\n(Next.js 14 App Router)"]
+    Browser[" Browser\n(Next.js 16 App Router)"]
     Caddy["Caddy 2.8\nReverse Proxy + TLS"]
     NextBFF["Next.js BFF\n/api/auth/*"]
-    Django["Django 5 REST Backend\n10 Domain Apps"]
+    Django["Django 5 REST Backend\n18 Domain Apps"]
     MLSvc["FastAPI ML Service\nXGBoost / Bayesian / Survival\nport 5000"]
     PG[(PostgreSQL 16)]
     Redis[(Redis 7\nCache · Channels · Broker)]
@@ -33,6 +33,26 @@ flowchart TD
     MLSvc --> Redis
     Celery --> PG & LLM
 ```
+
+### 1.1 What is rare here
+
+The framework is ordinary. These components are not, and each is checkable
+against a named file and a named test rather than taken on description.
+
+| Capability | Lives in | Verify with |
+| :--- | :--- | :--- |
+| Conjugate Bayesian belief updating — prior/posterior α,β per sector and stage, with credible intervals instead of point estimates | `backend/apps/intelligence/ml/bayesian.py` | `backend/Tests/test_institutional_intelligence.py` |
+| Parametric Weibull survival curves for time-to-next-round, with hazard rate derived from runway burn (`k` shape shifts at a 12-month runway boundary) | `backend/apps/intelligence/ml/survival.py` | `backend/Tests/test_institutional_intelligence.py` |
+| Pitch-deck forensics: unit-economics audit, score ledger, and explicit `math_consistency_checks` that fail a deck whose stated numbers do not reconcile | `backend/apps/intelligence/forensics.py` | `backend/Tests/test_enterprise_intelligence.py`, `backend/Tests/test_production_scale.py` |
+| Multi-strategy opportunity ingestion with **per-field provenance** — `DeadlineEvidence` stores a value, its source URL, source tier, confidence and retrieval time for each date independently | `backend/apps/matching/opportunity_fetcher.py`, `backend/apps/intelligence_engine/models_opportunities.py` | No automated coverage — read `SourceFetcher.fetch` / `fetch_rss` / `parse_signals` and the `DeadlineEvidence` model |
+| Tenant-scoped institutional memory (Digital Brain) over ChromaDB | `backend/apps/intelligence/digital_brain.py` | `backend/Tests/test_enterprise_intelligence.py`, `backend/apps/tests/test_security.py` |
+| A single tenant-boundary module that answers "whose programs may this account see" separately from "is this account staff", and a row scoper that refuses a founder rather than falling back to a wider reach | `backend/apps/accelerator/tenant.py` | `backend/Tests/smoke_tenant_scope_bypass.py`, `backend/Tests/smoke_authorization_matrix.py`, `backend/Tests/smoke_application_tenant_scope.py` |
+| A claim-verification vocabulary in which the states that mean "a human checked this" are unreachable by any machine path, and the ledger-to-engine mapping is deliberately one-directional so an import can never forge attribution | `backend/apps/accelerator/evidence_state.py` | `backend/Tests/smoke_claim_verification.py`, `backend/Tests/smoke_document_upload_honesty.py` |
+| An evidence-extraction **port that raises** when nothing stands behind it, instead of returning an empty list — so "no extractor is wired" is never readable as "the document contained no claims" | `backend/apps/accelerator/evidence_extraction.py` | `backend/Tests/smoke_document_upload_honesty.py` |
+
+The last row is the design rule the rest of the accelerator layer follows: an
+absent capability announces itself. Nothing in this repository returns `[]` to
+mean "not implemented".
 
 ---
 
@@ -78,6 +98,7 @@ flowchart LR
         marketing["marketing\nOutreachCampaign · OutreachMessage"]
         analytics["analytics\nFundraisingPrediction\nStartupScoringEngine 5-dim"]
         intelligence["intelligence\n11+ models · 4-stage DD pipeline\nHybridRAG · Digital Brain · Voice\nKnowledge Graph · RBAC\nMetering · Licensing · Cohorts"]
+        accelerator["accelerator\n82 models · Venture Admissions\nSelection lifecycle · Review integrity\nProgram Configuration CMS · Intake\nSee §21"]
         predictive["predictive_intelligence\nFeature Store · Venture Outcomes\nSurvival · Bayesian Logs\nInvestor Intent · Graph ML\nAnomaly · Calibration · MLOps"]
     end
 ```
@@ -161,6 +182,11 @@ erDiagram
 ---
 
 ## 5. Full API Endpoint Contract
+
+> The **accelerator** API (`/api/v1/accelerator/` — 56 viewsets plus `context/`, `work-inbox/`,
+> `evidence-graph/`, `intake/*`, `program-studio/seed/`) is documented with the subsystem itself in
+> **§21**, because its routes are only meaningful next to the selection rules they enforce.
+> `GET /api/v1/schema/` (drf-spectacular) lists every operation.
 
 ### 5.1 Core Domain
 
@@ -258,7 +284,7 @@ erDiagram
 
 ---
 
-## 6. Frontend — Next.js 14 App Router
+## 6. Frontend — Next.js 16 App Router
 
 ### 6.1 Route Structure
 
@@ -274,7 +300,8 @@ src/app/
 │   ├── newsfeed/  discover/   pitches/  pitches/new/
 │   ├── pitches/[id]/  pitches/[id]/edit/   offers/
 │   ├── messages/  dataroom/   campaigns/   notifications/
-│   ├── analytics/ intelligence/ fundability/ accelerator/
+│   ├── analytics/ intelligence/ fundability/
+│   ├── accelerator/           Venture Admissions dashboard — see §21
 │   ├── pipeline/  investors/  application-intelligence/
 │   ├── admin/     settings/   upgrade/     company/
 │   └── profile/edit · avatar · logo
@@ -287,6 +314,8 @@ src/app/
 | :--- | :--- |
 | `src/lib/api.ts` | Axios client — attaches JWT, handles 401 refresh |
 | `src/lib/intelligenceApi.ts` | Typed intelligence + predictive endpoints |
+| `src/lib/acceleratorApi.ts` | Accelerator contract: 80+ typed methods over `/api/v1/accelerator/` (§21) |
+| `src/lib/screening.ts` | Shared readout helpers — query keys, `formatDateTime`, `relativeTime`, API error text |
 | `src/lib/validators.ts` | Zod schemas (SignIn, SignUp, Pitch) |
 | `src/lib/types.ts` | Shared TypeScript types |
 | `src/hooks/useAuth.tsx` | Auth context: login, logout, refresh |
@@ -1074,7 +1103,182 @@ Every program insight is explicitly tagged **FACTS · SIGNALS · OUTCOMES** and 
 
 ---
 
-## 21. Getting Started
+## 21. Accelerator OS — Venture Admissions & Selection Intelligence
+
+The **accelerator** app is the surface a program team works in all day: the intake door, the
+review queue, the evidence graph, the committee room, and the methodology CMS that configures
+them. It is the largest app in the backend — **82 models**, **56 registered viewsets** plus
+`context/`, `work-inbox/`, `evidence-graph/`, `intake/*` and `program-studio/seed/`, mounted at
+`/api/v1/accelerator/` — and it renders at `/accelerator` on the Next.js dashboard.
+
+### 21.1 Three Rules the Whole Surface Obeys
+
+| Rule | What it prevents | Enforcement |
+| :--- | :--- | :--- |
+| **Humans hold the verdict** | A model output becoming an admission decision | No engine writes the decision row. `run_automated_triage()` assigns an A/B/C/D screening **tier** and an audit event; `queue_bucket()` labels an attention lane; `evaluate_program_eligibility()` grades only against rules the program itself configured and is shown as a reviewable requirement breakdown. `ACCEPTED · REJECTED · WAITLISTED · DEFERRED · EVIDENCE_REQUESTED` is persisted only by a person via `applications/{id}/record-decision/`, and `finalize-decision` refuses to settle a committee result below quorum. |
+| **The database is the source of truth** | A model, cache or browser copy deciding what is true | Every readout in the dashboard is computed server-side (`screening-summary/`, `reviewer-consensus-report/`, `diligence-items/rollup/`, `work-inbox/`). The client never re-ranks, re-tallies or re-derives. |
+| **Missing is not zero** | An unset value being displayed as a decided one | Unset renders `—`, never `0`. `cohort_runtime()` reports "No dates set" rather than inventing a 12-week plan; `member_count` returns `null` when a role slug folds onto no staff code; an undated diligence question reports `due_at: null` **and** `overdue: null`. |
+
+Terminology is deliberate: the weights and dimensions a program decides by are its
+**Selection Framework**, and the engines behind them are **ML** — the codebase does not call a
+deterministic rank "AI", and the word "Thesis" is reserved for the founder-facing narrative, not
+a scoring policy.
+
+### 21.2 The Selection Lifecycle
+
+```mermaid
+flowchart LR
+    Intake["Intake<br/>external key · CSV/XLSX · founder submit"] --> Stage["Staged row<br/>IntakeSubmission"]
+    Stage -->|"a named human accepts"| App["AcceleratorApplication<br/>+ founder account (unclaimable until reset)"]
+    App --> Triage["Automated triage<br/>tier + eligibility + risk points"]
+    Triage --> Queue["Review Queue<br/>priority · investigate · hold · needs_evidence · wildcard"]
+    Queue --> Review["Scorecards<br/>5 dimensions, one live row per reviewer"]
+    Review --> DD["Due diligence<br/>questions with owner + due date"]
+    Review --> Interview["Interviews<br/>schedule · transcript turns · recorded claims"]
+    DD --> IC["Decision Room<br/>committee votes + quorum"]
+    Interview --> IC
+    IC --> Decision["Committee decision<br/>ACCEPTED · REJECTED · WAITLISTED ·<br/>DEFERRED · EVIDENCE_REQUESTED"]
+    Decision --> Cohort["Cohort OS<br/>membership · curriculum · mentors"]
+    Cohort --> Outcome["Outcomes<br/>metrics · demos · surveys · recall"]
+    Outcome -.->|"feeds"| Memory["Program memory<br/>blueprints · recall report"]
+```
+
+### 21.3 Data Model
+
+| Module | Models | Owns |
+| :--- | :--- | :--- |
+| `models.py` | 23 | The orchestration spine: `AcceleratorProgram`, `AcceleratorApplication`, questions/responses, `ApplicationDocument`, `ApplicationClaim` + `ClaimEvidence`, `ReviewerAssessment`, `ReviewerDisagreement`, `InterviewSession` (+ append-only transcript turns), `CommitteeDecision`, `EvidenceRequest`, `DiligenceItem`, milestones, notes/comments, `ApplicationAuditEvent` |
+| `models_config.py` | 15 | Workflow OS (`ProgramStage`, `StageTransition`), Application OS (`FormDefinition`→`FormSection`→`FormQuestion`→`QuestionOption`, `FormResponse`), custom objects/fields/records, notification templates + notifications, `EventOutbox`, `ProgramRole`, `DashboardReport` |
+| `models_os.py` | 41 | Organizations, `ApplicationCycle` (+ hashed intake key), `ReviewAssignment`, `ReviewerProfile`, `ProgramStaffMembership`, mentors, cohort events, demo day, offers, outcomes, `ProgramMemoryEntry`, `ProgramBlueprint`, `WorkflowAutomation` |
+| `program_policy.py` | 2 | `ProgramArchetype`, `ProgramEvaluationPolicy` — the versioned weights, hard gates and reviewer/interview/decision rules a program actually scored by |
+| `rules_engine.py` | 1 | `ProgramRule` (persisted eligibility and screening rules) |
+
+17 migrations (`0001_initial` … `0017_alter_applicationclaim_options`). `AcceleratorApplication`
+is the state machine spine: stage transitions are validated against the program's own
+`StageTransition` graph by `workflow_engine.load_graph()`, never against a hardcoded list.
+
+### 21.4 Screens
+
+| Route | Screen | Backing data |
+| :--- | :--- | :--- |
+| `/accelerator` | Command Center — what needs a human now, plus the funnel | `applications/screening-summary/`, `applications/` (paged), `applications/{id}/allowed-transitions/`, `transition-status/`, `evidence-requests/` |
+| `/accelerator/applications` | List + tabs: Selection Matrix, Eligibility & Triage, Reviewer Consensus, Interview Operations, dossier drawer | `applications/` (+`?program_id=`), `eligibility-report/`, `reviewer-consensus-report/` |
+| `/accelerator/applications/{id}` | Application 360 — scorecard, evidence graph, diligence, who was asked | `applications/{id}/assessment/`, `evidence-graph/`, `review-assignments/` |
+| `/accelerator/review-queue` | Attention inbox with server-side aging and lane counts | `applications/`, `applications/screening-summary/` (`queue_bucket`, `risk_level`, `aging_days` all computed by `queue_routing`) |
+| `/accelerator/interviews` | Scheduling rail + transcript capture | `interviews/`, `interviews/{id}/transcript/` |
+| `/accelerator/due-diligence` | DD board: owner, due date, rollup | `diligence-items/`, `diligence-items/rollup/` |
+| `/accelerator/decision-room` | Committee ballot, live tally, quorum | `committee/cast-vote/`, `programs/{id}/decision-room/` |
+| `/accelerator/intelligence` | Evidence graph · contradictions · founder signals · company signals | `applications/`, `disagreements/`; the intelligence and evidence drawers fetch `evidence-graph/` on demand |
+| `/accelerator/analytics` | Reports, top strengths, cohort-over-cohort deltas | `applications/screening-summary/`, `reviews/calibration/`, `applications/`, `outcomes/`, `program-memory/` |
+| `/accelerator/outcomes` | Screening recall + program memory | `applications/` (screening diagnostics), `outcomes/`, `program-memory/` |
+| `/accelerator/cohorts` | Cohort tracker (post-selection group) | `cohorts/`, `metric-snapshots/` |
+| `/accelerator/settings` | Program Configuration — the methodology CMS (20 panels) | `stages/`, `transitions/`, `forms/`, `program-roles/`, `policies/`, `application-cycles/`, `intake-submissions/`, … |
+
+The sidebar groups these by selection lifecycle, not by data type: **Overview → Applications →
+Review Queue → Interviews → Due Diligence → Decisions → Intelligence → Analytics & Reports →
+Outcomes → Program Configuration**, with Cohorts under a collapsed *Post-Selection* group.
+
+### 21.5 Engines and Algorithms
+
+| Module | What it computes |
+| :--- | :--- |
+| `queue_routing.py` | `risk_points()` → weighted screening risk with human-readable reasons; `risk_level()` (High ≥ 3, Medium ≥ 1, Low); `queue_bucket()` → one of `priority · investigate · hold · needs_evidence · wildcard`. Constants: `EVIDENCE_THIN_BELOW = 45.0`, `COMPLETENESS_HOLD_BELOW = 40.0`, `UNVERIFIED_CLAIMS_MANY = 3`, and `ACTIVE_FUNNEL_STATUSES` (rows outside the funnel are not aged). These are **lanes**, not verdicts. |
+| `eligibility.py` | `evaluate_program_eligibility()` — each requirement graded `satisfied · uncertain · failed · requires_evidence` against the program's persisted rules, with `facts_from_application()` as the only input. `rule_defaults()` returns the engine's own fallbacks (geography whitelist, funding ceiling, full-time and incorporation gates) so the configuration screen can state the **effective** gate instead of rendering an unset key as "no gate"; verdict bands are `VERDICT_INELIGIBLE_FLOOR = 50` and `VERDICT_HIGHLY_ELIGIBLE_FLOOR = 80` on the satisfied share of weighted requirements. The founder's pre-application self-check (`POST /programs/{id}/check-eligibility/`, which persists nothing) and the reviewer's triage view call **this one function**, so the two can never disagree. |
+| `program_runtime.py` | Reads the program's **active** `ProgramEvaluationPolicy` and exposes `compute_weighted_score()` and `evaluate_hard_gates()` — the single place a score's weights come from. A program may hold several policy versions but only one `is_active`, and `pipeline.advance()` snapshots `get_policy_version()` onto the `ApplicationAuditEvent` it writes, so a past score can still be explained. |
+| `reviewer_intelligence.py` | Assignment recommendations (sector expertise, workload, COI via `_has_entity_conflict()`), disagreement detection, and the calibration report (lenient / harsh / balanced). |
+| `decision_room.py` | `tally_committee_votes()` with `IC_QUORUM_MIN_VOTES`, `dimension_confidence()`, `mean_conviction()`, `get_selection_summary()`, `get_candidate_card()`. A result below quorum raises instead of settling. |
+| `pipeline.py` | `ApplicationPipeline.advance()` — gated transitions with row locking, `run_automated_triage()` (A/B/C/D tiering only), `get_audit_trail()`. |
+| `interview_guide.py` | `build_interview_guide()` (evidence-conditioned questions) and `pool_strength_ladder()` for cohort-level strengths. |
+| `workflows.py` | `publish_event()` / `dispatch_event()` on the `EventOutbox`, so automations run off persisted state rather than a caller's claim. |
+| `models.py` | `materiality_rank_expr()` / `materiality_ordering()` — claim ranking is `critical > high > medium > low`, unknown last, with `-pk` as the tiebreak so the same application returns the same claim set on every read. It is `ApplicationClaim.Meta.ordering`, which is why changing it needed a migration. |
+
+### 21.6 Review Integrity
+
+- **An ask is not a review.** `ReviewAssignment` records who the program asked (`assigned_by` is
+  set by the server, never the client) and `unique_together = (reviewer, application, round_id)`.
+  `scorecard_filed` is an `Exists()` subquery over `ReviewerAssessment`, annotated once per page —
+  the seat is only "done" when a human's scorecard exists. An assignment is **not** a gate:
+  `ReviewerAssessmentViewSet.perform_create` binds `reviewer=request.user` and needs no seat.
+- **One live scorecard per human per application.** Re-submitting edits the existing row instead
+  of adding a second ballot, so a reviewer cannot double-weight a tally.
+- **Reviewer identity is never disclosed to founders**, and the assignment endpoints are
+  staff-only for the same reason.
+- **Disagreements are persisted, not implied.** Cross-reviewer gaps ≥ `AGREEMENT_TOLERANCE_POINTS`
+  (`3.0`) on any of the five `REVIEW_DIMENSIONS` (`founder · market · product · team · traction`)
+  create `ReviewerDisagreement` rows keyed on `(application, dimension, pair)` — recomputed
+  idempotently over all reviewer pairs after every edit.
+- **A recusal stays on the ledger.** `conflict_status` transitions are audited alongside who was
+  assigned, and a recused seat is reported as recused — never as late.
+- A scorecard cannot be filed on a `DRAFT` or `WITHDRAWN` application.
+
+### 21.7 Evidence Honesty
+
+- Document upload stores the file, marks `extraction_status="pending"`, and writes exactly **one**
+  pending claim whose text quotes the founder's own declared figure (`DOCUMENT_CLAIM_KINDS`). It
+  invents no confidence, no verification outcome and no `ClaimEvidence` row — a row of zeros would
+  read as "checked, found nothing".
+- Interview transcript turns are append-only, and `record-claim` produces an **unverified**
+  `source='interview'` claim carrying session + turn provenance into the evidence graph.
+- A real deck parser exists in the platform (`apps/intelligence/deck_parser.py` +
+  `forensics.py`) but nothing in `apps/accelerator` imports it, so accelerator-side extraction is
+  honestly still pending rather than silently claiming results.
+
+### 21.8 Intake and the Identity Constraint
+
+Every `AcceleratorApplication` requires a human `submitted_by`, which is what made bulk intake a
+design problem rather than a loop. The resolution:
+
+1. `POST /intake/ingest/` is the only unauthenticated endpoint in the app that **persists a row**.
+   It is keyed by a cycle's `intake_key_hash` (the raw key is never stored);
+   `GET|POST /application-cycles/{id}/intake-key/` reads and rotates it. Everything else that is
+   `AllowAny` reads or simulates: the public program list/retrieve, `check-eligibility` (a
+   preview that persists nothing), and `forms/{id}/render/`.
+2. Submissions land in `ExternalIntakeSubmission` — a staging table. Nothing becomes an
+   application until a **named** staff account calls `accept` (or `dismiss`).
+3. Accepted rows create founder accounts with `password=None`, `is_verified=False`: an account
+   that cannot sign in until its person claims it. That is deliberate, not a placeholder.
+4. `/intake/import/` reads CSV/XLSX/JSON, proposes header mapping (`suggest_mapping()`), supports
+   `commit:false` dry-run preview, and dedupes on natural identity `(email, company)` over staged
+   rows. A typo'd company name intentionally returns as a new row.
+
+### 21.9 Multi-Tenancy and RBAC
+
+Two rules, because two things are protected — **role answers "which side of the table", the
+program answers "whose programs"**:
+
+| Helper | Rule |
+| :--- | :--- |
+| `programs_visible_to(user)` | Programs the account created **or** that are `is_public`. Reads, and writes of *work done inside* a program (notes, responses, records, notifications). |
+| `programs_owned_by(user)` | Programs the account created. Configuration writes — stages, transitions, forms, roles, reports — because `is_public` is an intake switch, not an edit licence. |
+| `_by_program(qs, request, field)` | Applies the tenant filter **before** the caller's `?program_id=`, so a query parameter can only narrow, never widen. Rows with no program survive reads. |
+| `TenantScopedWriteMixin` | Refuses a POST/PATCH/DELETE whose **body** names a program outside the caller's scope — `PrimaryKeyRelatedField` resolves ids against the model manager, so the queryset never sees them. Program-less rows are a platform act, including delete. |
+| `_scope_subsystem_to_program`, `_require_review_scope` | Same shape for application-hanging rows; bulk reads of reviewer/diligence records must be scoped. |
+| `require_program_team_user` | One eligibility rule for "may this person be handed work" — review seats and diligence ownership share it. |
+
+`GET /review-assignments/candidates/` answers "who can I ask, and what is their load?" with
+per-program open/completed assignments, scorecards filed and open diligence counted in one query.
+
+**Known open item:** several review-flow viewsets in `views.py` still scope by role rather than
+tenant, and `ReviewAssignmentViewSet`'s create path plus `candidates`'s `?program_id=` bypass the
+tenant filter (DRF's `create` never routes through `get_queryset`). Reported, not yet fixed.
+
+### 21.10 Verification
+
+`backend/Tests/smoke_*.py` — **21 scripts, ~800 assertions**, each run inside
+`transaction.atomic()` with `set_rollback(True)` so nothing touches real data. They pin the
+honesty rules, not just the happy paths: `smoke_application_tenant_scope` and
+`smoke_config_tenant_scope` assert that an out-of-scope row is *not created* and the error names
+the field that carried the tenant; `smoke_intake_and_import` pins staging, hashing and the accept
+step; `smoke_document_upload_honesty` fails if a fabricated verification appears;
+`smoke_quorum` proves a below-quorum committee cannot decide; `smoke_engine_honesty` and
+`smoke_claim_ordering` guard provenance and deterministic ordering. Gates for any change here:
+`manage.py check`, `makemigrations --check --dry-run` (no drift), the smoke battery,
+`tsc --noEmit`, and a production `next build` — run while the dev server is **stopped**, since
+both write to `.next`.
+
+---
+
+## 22. Getting Started
 
 ### Prerequisites
 
@@ -1166,7 +1370,7 @@ make reset-db   # dev DB reset
 
 ---
 
-## 22. Environment Variables
+## 23. Environment Variables
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
@@ -1200,7 +1404,7 @@ make reset-db   # dev DB reset
 
 ---
 
-## 23. Quality & CI
+## 24. Quality & CI
 
 ```bash
 # Backend tests (85% coverage minimum enforced)

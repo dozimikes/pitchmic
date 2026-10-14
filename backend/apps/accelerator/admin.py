@@ -3,8 +3,10 @@ from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
 from .models import (
+    AcceleratorApplication,
     AcceleratorProgram,
     ApplicationAssessment,
+    ApplicationAuditEvent,
     ApplicationClaim,
     ApplicationDocument,
     ApplicationQuestion,
@@ -21,7 +23,6 @@ from .models import (
     ReviewerDisagreement,
     StartupApplicationProfile,
     StartupMilestone,
-    AcceleratorApplication,
 )
 
 
@@ -160,3 +161,13 @@ class StartupMilestoneAdmin(admin.ModelAdmin):
 class ContinuousAssessmentAdmin(admin.ModelAdmin):
     list_display = ["application", "period_label", "readiness_score",
                     "revenue_at_period", "customers_at_period", "recorded_at"]
+
+
+@admin.register(ApplicationAuditEvent)
+class ApplicationAuditEventAdmin(admin.ModelAdmin):
+    list_display = ["application", "from_stage", "to_stage", "actor",
+                    "is_automated", "policy_version", "timestamp"]
+    list_filter = ["is_automated", "to_stage", "from_stage"]
+    search_fields = ["application__startup_profile__company_name", "reason"]
+    readonly_fields = ["timestamp", "snapshot_hash", "evidence_snapshot"]
+    date_hierarchy = "timestamp"

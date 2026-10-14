@@ -16,21 +16,34 @@ Models:
   ApplicationAssessment       - Multi-dimensional scored assessment (per-dimension confidence)
   ReviewerAssessment          - Per-reviewer scorecard
   ReviewerDisagreement        - Auto-detected cross-reviewer variance
-  InterviewSession            - AI + human interview with transcript intelligence
+  InterviewSession            - ML + human interview with transcript intelligence
   CommitteeDecision           - IC committee workspace + vote aggregation
   EvidenceRequest             - Evidence re-request loop with before/after score tracking
   ProgramMembership           - Post-acceptance cohort enrolment
   MilestoneTemplate           - Reusable milestone templates per program
   StartupMilestone            - Per-company milestone tracking
   ContinuousAssessment        - Readiness score evolution over time (Wk0 → Demo Day → Post-Raise)
+  ApplicationAuditEvent       - Immutable audit log for every application stage transition
 """
 from __future__ import annotations
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.users.models import StartupProfile
+
+
+def _person_label(user):
+    """How a human appears inside a stored record, or None when nobody did it.
+
+    Null here is honest — an older row written before the ledger kept names —
+    and the UI renders that as "not recorded" rather than guessing.
+    """
+    if user is None:
+        return None
+    return getattr(user, "full_name", "") or getattr(user, "email", "") or None
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -130,6 +143,26 @@ class AcceleratorProgram(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Program version string (bumped when evaluation policy changes)
+    program_version = models.CharField(_("program version"), max_length=20, default="1.0")
+
+    # ── Program OS configuration (migrations 0002 / 0004 / 0006) ──────────────
+    capital_model = models.CharField(verbose_name='capital model', max_length=20, default='equity', choices=[('none', 'No Funding'), ('grant', 'Grant'), ('equity', 'Equity'), ('safe', 'SAFE'), ('debt', 'Debt'), ('mixed', 'Mixed')])
+    delivery_mode = models.CharField(verbose_name='delivery mode', max_length=20, default='hybrid', choices=[('remote', 'Fully Remote'), ('hybrid', 'Hybrid'), ('physical', 'In-Person / Physical'), ('rolling', 'Rolling Admissions')])
+    mandate = models.JSONField(verbose_name='mandate', blank=True, default=dict, help_text='Program mandate flags. e.g. {commercial: true, impact: false, government: false}')
+    program_type = models.CharField(verbose_name='program type', max_length=30, default='vc_accelerator', choices=[('vc_accelerator', 'VC / Venture-backed Accelerator'), ('corporate', 'Corporate Accelerator'), ('government', 'Government / Public Accelerator'), ('university', 'University / Research Accelerator'), ('impact', 'Impact / Nonprofit Accelerator'), ('pre_accelerator', 'Pre-Accelerator / Founder Program'), ('incubator', 'Incubator'), ('venture_studio', 'Venture Studio'), ('grant_program', 'Grant Program'), ('other', 'Other')], help_text="The type of accelerator. Drives archetype defaults and the program runtime's behavioral config.")
+    thesis = models.JSONField(verbose_name='selection framework', blank=True, default=dict, help_text="Program investment / selection framework. e.g. {sectors: ['fintech', 'healthtech'], technologies: ['AI'], markets: ['Africa'], problems: [], strategic_themes: []}")
+    archetype = models.ForeignKey(blank=True, null=True, help_text='The archetype this program was initialised from. Changing the archetype does not retroactively alter policies.', related_name='programs', on_delete=models.SET_NULL, to='accelerator.programarchetype')
+    organization = models.ForeignKey(blank=True, null=True, related_name='programs', on_delete=models.SET_NULL, to='accelerator.acceleratororganization')
+    branding_config = models.JSONField(verbose_name='branding configuration', blank=True, default=dict, help_text='{primary_color, secondary_color, accent_color, font_family, logo_url, cover_image_url, favicon_url, custom_domain, powered_by_visible}')
+    module_config = models.JSONField(verbose_name='module configuration', blank=True, default=dict, help_text='Controls which delivery modules are active. e.g. {mentorship: {enabled: true, config: {max_mentors_per_company: 2}}}')
+    notification_config = models.JSONField(verbose_name='notification configuration', blank=True, default=dict, help_text='{confirmation_email, rejection_email, shortlist_email, interview_invite_email, acceptance_email, waitlist_email, custom_sender_name, custom_sender_email}')
+    # No settings screen authors this — Program Studio is the only writer, snapshotting
+    # it into a blueprint (views_intel.py) and restoring it onto cloned programs.
+    portal_config = models.JSONField(verbose_name='portal configuration', blank=True, default=dict, help_text='{welcome_headline, welcome_body, about_html, eligibility_summary, benefits_list, timeline_items, faq_items, hero_image_url, video_url, partner_logos, social_links}')
+    program_status = models.CharField(verbose_name='program status', max_length=20, default='draft', choices=[('draft', 'Draft — being configured'), ('setup', 'Setup — configuration in progress'), ('published', 'Published — visible but not yet accepting'), ('accepting', 'Accepting Applications'), ('reviewing', 'Under Review'), ('cohort_active', 'Cohort Active'), ('completed', 'Completed'), ('archived', 'Archived')])
+    blueprint_source = models.ForeignKey(blank=True, null=True, help_text='The blueprint this program was created from, if any.', related_name='derived_programs', on_delete=models.SET_NULL, to='accelerator.programblueprint')
+
     class Meta:
         verbose_name = _("accelerator program")
         verbose_name_plural = _("accelerator programs")
@@ -137,6 +170,14 @@ class AcceleratorProgram(models.Model):
 
     def __str__(self) -> str:
         return f"{self.organization_name} - {self.name} ({self.program_cycle})"
+
+    def get_runtime(self):
+        """
+        Returns a ProgramRuntime instance for this program.
+        Lazily imported to avoid circular imports.
+        """
+        from apps.accelerator.program_runtime import ProgramRuntime
+        return ProgramRuntime(self)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -321,6 +362,23 @@ class StartupApplicationProfile(models.Model):
     def __str__(self) -> str:
         return f"{self.company_name} - Application Profile"
 
+    @property
+    def sector(self) -> str:
+        """Sectors are captured as free comma-separated tags; the screening
+        weighting engine keys its per-sector overrides off one primary sector,
+        so every consumer derives it the same way here rather than re-splitting
+        the tag string."""
+        return (self.sector_tags or "").split(",")[0].strip() or (self.industry or "")
+
+    @property
+    def country(self) -> str:
+        """Geography is free text on purpose (a founder may write 'Lagos,
+        Nigeria'); incorporation country and the founder's own country are the
+        structured fallbacks."""
+        return self.geography or self.incorporation_country or (
+            self.founder_profile.country if self.founder_profile_id else ""
+        ) or ""
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 4. AcceleratorApplication  (the orchestration spine)
@@ -402,6 +460,10 @@ class AcceleratorApplication(models.Model):
     # Notes
     internal_notes = models.TextField(_("internal notes"), blank=True)
 
+    # ── Program OS lifecycle links (migrations 0004 / 0006) ───────────────────
+    cycle = models.ForeignKey(blank=True, null=True, related_name='applications', on_delete=models.SET_NULL, to='accelerator.applicationcycle')
+    track = models.ForeignKey(blank=True, null=True, related_name='applications', on_delete=models.SET_NULL, to='accelerator.programtrack')
+
     class Meta:
         verbose_name = _("accelerator application")
         verbose_name_plural = _("accelerator applications")
@@ -413,6 +475,18 @@ class AcceleratorApplication(models.Model):
             f"{self.startup_profile.company_name} → {self.program.name} [{self.status}]"
         )
 
+    def aging_days(self, now=None) -> int | None:
+        """Days this application has been waiting since it entered the funnel.
+
+        The anchor is the submission when there is one, otherwise the row's
+        creation. Returns None when neither timestamp exists: unknown is not
+        zero, so a queue must render a dash rather than claim "0 days".
+        """
+        anchor = self.submitted_at or self.created_at
+        if anchor is None:
+            return None
+        return max(0, ((now or timezone.now()) - anchor).days)
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 5. ApplicationQuestion + QuestionResponse
@@ -421,7 +495,7 @@ class AcceleratorApplication(models.Model):
 class ApplicationQuestion(models.Model):
     """
     Dynamic question engine. Each question has full metadata used for
-    conditional branching, scoring, and AI extraction.
+    conditional branching, scoring, and ML extraction.
     """
 
     QUESTION_TYPE_CHOICES = [
@@ -497,11 +571,11 @@ class ApplicationQuestion(models.Model):
         help_text=_("Leave blank to always show; set to revenue status value to gate")
     )
 
-    # AI extraction
-    ai_extraction_enabled = models.BooleanField(_("AI extraction enabled"), default=True)
+    # ML extraction
+    ai_extraction_enabled = models.BooleanField(_("ML extraction enabled"), default=True)
     claim_categories = models.JSONField(
         _("claim categories"), default=list, blank=True,
-        help_text=_("Which claim categories AI should extract from this response")
+        help_text=_("Which claim categories the ML pipeline should extract from this response")
     )
 
     # Choices (for multi_choice)
@@ -553,10 +627,10 @@ class QuestionResponse(models.Model):
     )
     evidence_notes = models.TextField(_("evidence notes"), blank=True)
 
-    # AI extraction output
+    # ML extraction output
     extracted_claims = models.JSONField(_("extracted claims"), default=list, blank=True)
-    ai_score = models.FloatField(_("AI dimension score"), null=True, blank=True)
-    ai_score_reasoning = models.TextField(_("AI scoring reasoning"), blank=True)
+    ai_score = models.FloatField(_("ML dimension score"), null=True, blank=True)
+    ai_score_reasoning = models.TextField(_("ML scoring reasoning"), blank=True)
 
     word_count = models.PositiveIntegerField(_("word count"), default=0)
     last_saved_at = models.DateTimeField(auto_now=True)
@@ -640,6 +714,53 @@ class ApplicationDocument(models.Model):
 # 7. ApplicationClaim
 # ──────────────────────────────────────────────────────────────────────────────
 
+# Materiality labels are stored as text, so ordering by the column sorted them
+# alphabetically — "low" ahead of "medium", and "critical" only accidentally
+# first. Significance lives in this declaration order, which is what the rank
+# expression below reads, so the two can never drift apart.
+CLAIM_MATERIALITY_CHOICES = [
+    ("critical", _("Critical")),
+    ("high", _("High")),
+    ("medium", _("Medium")),
+    ("low", _("Low")),
+]
+
+CLAIM_MATERIALITY_RANK = {
+    value: index for index, (value, _label) in enumerate(CLAIM_MATERIALITY_CHOICES)
+}
+
+
+def materiality_rank_expr(field: str = "materiality") -> models.Case:
+    """ORDER BY term returning the most material rows first.
+
+    Anything outside CLAIM_MATERIALITY_CHOICES ranks last rather than sneaking
+    in on alphabetical luck. ApplicationClaim uses it as its default ordering so
+    every consumer — evidence graph caps, interview probes, decision dossiers —
+    truncates the same way.
+    """
+    return models.Case(
+        *[
+            models.When(**{field: value}, then=models.Value(rank))
+            for value, rank in CLAIM_MATERIALITY_RANK.items()
+        ],
+        default=models.Value(len(CLAIM_MATERIALITY_RANK)),
+        output_field=models.IntegerField(),
+    )
+
+
+def materiality_ordering(field: str = "materiality") -> list:
+    """The whole ORDER BY the rank is meant to drive: most material first, then
+    newest, then pk.
+
+    The pk term is not decoration. Rows written inside one clock tick share a
+    ``created_at``, and an unordered tie lets the truncating caps — graph nodes,
+    interview probes — pick different rows on each read of the same application.
+    Higher pk is the later insert, so it is the newest-first tiebreak, stated in
+    exactly one place.
+    """
+    return [materiality_rank_expr(field), "-created_at", "-pk"]
+
+
 class ApplicationClaim(models.Model):
     """
     Every material statement from the application/documents becomes a structured claim object.
@@ -658,12 +779,7 @@ class ApplicationClaim(models.Model):
         ("other", _("Other")),
     ]
 
-    MATERIALITY_CHOICES = [
-        ("critical", _("Critical")),
-        ("high", _("High")),
-        ("medium", _("Medium")),
-        ("low", _("Low")),
-    ]
+    MATERIALITY_CHOICES = CLAIM_MATERIALITY_CHOICES
 
     SOURCE_CHOICES = [
         ("application_answer", _("Application Answer")),
@@ -698,6 +814,22 @@ class ApplicationClaim(models.Model):
         ApplicationQuestion, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="extracted_claims"
     )
+    # An answer given in an interview is a claim like any other, and lands in
+    # the same graph so the deck and the interview can be set against each
+    # other. It needs the same provenance — which session, which turn — because
+    # without the link an interview-sourced claim is unsourced prose that
+    # cannot be re-read. Only a human pins a claim to a session.
+    source_interview = models.ForeignKey(
+        "InterviewSession", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="derived_claims",
+        help_text=_("Set when this claim was heard in an interview."),
+    )
+    source_transcript_turn = models.PositiveIntegerField(
+        _("transcript turn"), null=True, blank=True,
+        help_text=_("Index into the session's append-only transcript. Appending "
+                    "keeps an index stable; a deleted session leaves this null "
+                    "rather than pointing at nothing."),
+    )
 
     founder_asserted = models.BooleanField(_("founder asserted"), default=True)
     evidence_required = models.BooleanField(_("evidence required"), default=False)
@@ -721,7 +853,7 @@ class ApplicationClaim(models.Model):
     class Meta:
         verbose_name = _("application claim")
         verbose_name_plural = _("application claims")
-        ordering = ["materiality", "-created_at"]
+        ordering = materiality_ordering()
 
     def __str__(self) -> str:
         return f"[{self.claim_id}] {self.claim_text[:80]} ({self.verification_status})"
@@ -823,7 +955,7 @@ class ApplicationAssessment(models.Model):
     geography_fit = models.FloatField(default=0.0)
     sector_fit = models.FloatField(default=0.0)
     founder_fit = models.FloatField(default=0.0)
-    thesis_fit = models.FloatField(default=0.0)
+    framework_fit = models.FloatField(default=0.0)
     timing_fit = models.FloatField(default=0.0)
     evidence_fit = models.FloatField(default=0.0)
 
@@ -909,13 +1041,50 @@ class ReviewerAssessment(models.Model):
     strengths = models.JSONField(_("key strengths"), default=list, blank=True)
     concerns = models.JSONField(_("key concerns"), default=list, blank=True)
 
+    # Flexible dimension scores for program-specific rubrics (e.g. {"innovation": 7.5})
+    dimension_scores = models.JSONField(
+        _("dimension scores"), default=dict, blank=True,
+        help_text=_("{dimension_name: score_1_to_10}")
+    )
+
     submitted_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # ── ML baseline / human-variance tracking (migration 0004) ────────────────
+    ml_model_version = models.CharField(verbose_name='ML baseline model version', max_length=100, blank=True, default='')
+    ml_variance_deltas = models.JSONField(verbose_name='ML variance deltas', blank=True, default=dict)
+    variance_rationale = models.TextField(verbose_name='variance rationale / human override explanation', blank=True, default='', help_text='Human justification when reviewer score deviates from ML or peer consensus.')
 
     class Meta:
         verbose_name = _("reviewer assessment")
         verbose_name_plural = _("reviewer assessments")
         unique_together = [["application", "reviewer"]]
+
+    def get_dimension_score(self, dimension_name: str) -> float:
+        """
+        Returns the score for the given dimension name.
+        Falls back to standard fields (founder, market, product, team, traction)
+        before returning 5.0 as a neutral default.
+        """
+        # 1. Check flexible dimension_scores dict first
+        if self.dimension_scores and dimension_name in self.dimension_scores:
+            return float(self.dimension_scores[dimension_name])
+
+        # 2. Fall back to standard fields
+        _mapping = {
+            "founder": self.founder_score,
+            "market": self.market_score,
+            "product": self.product_score,
+            "team": self.team_score,
+            "traction": self.traction_score,
+        }
+        dname = dimension_name.lower()
+        for key, val in _mapping.items():
+            if key in dname:
+                return float(val)
+
+        # 3. Neutral fallback
+        return 5.0
 
     def __str__(self) -> str:
         return f"{self.reviewer.email} → {self.application}"
@@ -956,10 +1125,10 @@ class ReviewerDisagreement(models.Model):
 # ──────────────────────────────────────────────────────────────────────────────
 
 class InterviewSession(models.Model):
-    """AI-voice or human interview with full transcript and intelligence extraction."""
+    """ML-voice or human interview with full transcript and intelligence extraction."""
 
     INTERVIEW_TYPE_CHOICES = [
-        ("ai_voice", _("AI Voice Screening")),
+        ("ai_voice", _("ML Voice Screening")),
         ("human_video", _("Human Video Call")),
         ("human_in_person", _("Human In-Person")),
     ]
@@ -982,7 +1151,7 @@ class InterviewSession(models.Model):
     interviewer = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="conducted_interviews",
-        help_text=_("Null = AI-conducted interview"),
+        help_text=_("Null = ML-conducted interview"),
     )
 
     status = models.CharField(
@@ -1029,6 +1198,54 @@ class InterviewSession(models.Model):
         verbose_name_plural = _("interview sessions")
         ordering = ["scheduled_at"]
 
+    # Who a transcript line may be attributed to. Deliberately narrow: a
+    # transcript is evidence about *who said what*, so the speaker is a chosen
+    # field rather than free text a client can invent.
+    TRANSCRIPT_SPEAKERS = ("founder", "interviewer", "team_member", "observer")
+
+    def append_transcript_turns(self, turns, recorded_by=None):
+        """Append what was said, and return the stored transcript.
+
+        The clock is the server's, never the caller's: an ordering a reviewer
+        could rewind is not evidence. Each turn keeps who typed it too, which is
+        a different person from whoever spoke — a coordinator writing up a call
+        is not the founder.
+
+        Turns are append-only. That is what lets a claim cite a turn number and
+        still mean the same sentence next month.
+        """
+        now = timezone.now().isoformat()
+        stored = list(self.transcript or [])
+        for turn in turns:
+            stored.append({
+                "turn": len(stored),
+                "speaker": turn["speaker"],
+                "text": turn["text"],
+                "timestamp": now,
+                "recorded_by": _person_label(recorded_by),
+                "recorded_by_id": getattr(recorded_by, "pk", None),
+            })
+        self.transcript = stored
+        fields = ["transcript"]
+        if self.status in ("scheduled", "no_show"):
+            # Something was written down, so the session is no longer merely
+            # booked. Completing it stays a separate human act.
+            self.status = "in_progress"
+            fields.append("status")
+        self.save(update_fields=fields)
+        return stored
+
+    def transcript_turn(self, index):
+        """The stored turn at `index`, or None when nothing was ever logged at
+        that position — a deleted or edited transcript never silently re-points
+        a claim at somebody else's sentence."""
+        if index is None:
+            return None
+        for turn in self.transcript or []:
+            if isinstance(turn, dict) and turn.get("turn") == index:
+                return turn
+        return None
+
     def __str__(self) -> str:
         return (
             f"{self.get_interview_type_display()} - {self.application} "
@@ -1041,26 +1258,29 @@ class InterviewSession(models.Model):
 # ──────────────────────────────────────────────────────────────────────────────
 
 class CommitteeDecision(models.Model):
-    """IC committee workspace - aggregates votes, debate log, and final decision."""
+    """IC committee workspace - aggregates votes, debate log, and final decision.
+    Multiple decisions can be recorded per application (e.g. re-review after evidence)."""
 
     DECISION_CHOICES = [
-        ("ACCEPT", _("Accept")),
-        ("REJECT", _("Reject")),
-        ("WAITLIST", _("Waitlist")),
-        ("DEFER", _("Defer to Next Cohort")),
-        ("REQUEST_EVIDENCE", _("Request Additional Evidence")),
+        ("ACCEPTED", _("Accepted")),
+        ("REJECTED", _("Rejected")),
+        ("WAITLISTED", _("Waitlisted")),
+        ("DEFERRED", _("Deferred to Next Cohort")),
+        ("EVIDENCE_REQUESTED", _("Request Additional Evidence")),
     ]
 
-    application = models.OneToOneField(
-        AcceleratorApplication, on_delete=models.CASCADE, related_name="committee_decision"
+    application = models.ForeignKey(
+        AcceleratorApplication, on_delete=models.CASCADE, related_name="committee_decisions"
     )
 
     decision = models.CharField(
         _("decision"), max_length=20, choices=DECISION_CHOICES, blank=True
     )
+
+    # Structured vote aggregation
     vote_summary = models.JSONField(
         _("vote summary"), default=dict, blank=True,
-        help_text=_("{yes: N, no: M, conditional: K, abstain: J}")
+        help_text=_("{yes: N, no: M, conditional: K, abstain: J, total_votes: N, quorum_met: bool}")
     )
     individual_votes = models.JSONField(
         _("individual votes"), default=list, blank=True,
@@ -1070,8 +1290,20 @@ class CommitteeDecision(models.Model):
         _("debate log"), default=list, blank=True,
         help_text=_("[{participant, point, side (bull/bear), timestamp}]")
     )
+
+    # Aliases used by DecisionRoom.record_decision()
+    notes = models.TextField(_("decision notes / rationale"), blank=True)
+    stipulations = models.JSONField(
+        _("stipulations (conditional accept)"), default=list, blank=True
+    )
+    # Legacy alias kept for backward compatibility
     decision_rationale = models.TextField(_("decision rationale"), blank=True)
     conditions = models.TextField(_("conditions (if conditional accept)"), blank=True)
+
+    # voting_summary alias used by decision_room.py
+    @property
+    def voting_summary(self) -> dict:
+        return self.vote_summary
 
     decided_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
@@ -1084,6 +1316,7 @@ class CommitteeDecision(models.Model):
     class Meta:
         verbose_name = _("committee decision")
         verbose_name_plural = _("committee decisions")
+        ordering = ["-decided_at"]
 
     def __str__(self) -> str:
         return f"IC Decision: {self.application} → {self.decision or 'Pending'}"
@@ -1138,6 +1371,86 @@ class EvidenceRequest(models.Model):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# 14b. DiligenceItem
+# ──────────────────────────────────────────────────────────────────────────────
+
+class DiligenceItem(models.Model):
+    """One diligence question the program is chasing on an application.
+
+    Ownership, not a verdict: this row says a named human is answerable for
+    clearing a question by a date. It does not decide the application's
+    outcome, and a resolved item is evidence the program recorded — the
+    committee still reads it and decides for itself.
+
+    Both `owner` and `due_at` are nullable on purpose. Missing is not zero and
+    an unowned question is not nobody's problem: it is an unassigned one, and
+    the board has to be able to say that out loud.
+    """
+
+    STATUS_CHOICES = [
+        ("open", _("Open")),
+        ("in_progress", _("Being Checked")),
+        ("resolved", _("Resolved")),
+        ("blocked", _("Blocked")),
+    ]
+
+    # Anything the program still has to chase. A blocked item is still owed —
+    # waiting on someone is not the same as done.
+    OPEN_STATUSES = ("open", "in_progress", "blocked")
+
+    application = models.ForeignKey(
+        AcceleratorApplication, on_delete=models.CASCADE, related_name="diligence_items"
+    )
+    question = models.CharField(
+        _("question to verify"), max_length=255,
+        help_text=_("What must be proved or disproved, e.g. 'Churn figure in the deck covers "
+                    "logins, not revenue — confirm against Stripe.'"),
+    )
+    area = models.CharField(
+        _("diligence area"), max_length=40, blank=True,
+        help_text=_("Free-text label (finance, legal, technical, references…). Not a scorecard "
+                    "dimension, and deliberately not an enumerated taxonomy."),
+    )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="owned_diligence_items", verbose_name=_("owner"),
+        help_text=_("The person answerable for clearing this. None means unassigned, "
+                    "not that nobody cares."),
+    )
+    due_at = models.DateTimeField(_("due at"), null=True, blank=True)
+    status = models.CharField(
+        _("status"), max_length=20, choices=STATUS_CHOICES, default="open"
+    )
+    resolution_note = models.TextField(
+        _("what was found"), blank=True,
+        help_text=_("Filled in when a human closes the question."),
+    )
+    resolved_at = models.DateTimeField(_("resolved at"), null=True, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="diligence_items_created",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("diligence item")
+        verbose_name_plural = _("diligence items")
+        ordering = ["created_at", "id"]
+
+    def __str__(self) -> str:
+        return f"DD: {self.question[:60]} [{self.status}]"
+
+    def is_overdue(self, now=None) -> bool:
+        """The one overdue rule. Nothing past a deadline is overdue until it
+        has actually been overtaken by the clock; no due date is not overdue, it
+        is undated, and a resolved item is finished whatever its date said."""
+        if self.due_at is None or self.status not in self.OPEN_STATUSES:
+            return False
+        return self.due_at < (now or timezone.now())
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # 15. ProgramMembership
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -1170,6 +1483,13 @@ class ProgramMembership(models.Model):
     is_active = models.BooleanField(_("active in program"), default=True)
     graduation_date = models.DateField(null=True, blank=True)
     demo_day_slot = models.PositiveIntegerField(_("Demo Day slot"), null=True, blank=True)
+
+    # ── Onboarding / cohort tracking (migration 0006) ─────────────────────────
+    agreement_signed = models.BooleanField(verbose_name='program agreement signed', default=False)
+    baseline_completed = models.BooleanField(verbose_name='baseline metrics submitted', default=False)
+    cohort_number = models.PositiveIntegerField(verbose_name='cohort number', blank=True, null=True)
+    onboarding_status = models.CharField(verbose_name='onboarding status', max_length=20, default='pending', choices=[('pending', 'Pending'), ('in_progress', 'In Progress'), ('complete', 'Complete')])
+    track = models.ForeignKey(blank=True, null=True, related_name='members', on_delete=models.SET_NULL, to='accelerator.programtrack')
 
     class Meta:
         verbose_name = _("program membership")
@@ -1241,6 +1561,11 @@ class StartupMilestone(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # ── Milestone review (migration 0006) ─────────────────────────────────────
+    due_date = models.DateTimeField(verbose_name='due date', blank=True, null=True)
+    review_notes = models.TextField(verbose_name='review notes', blank=True)
+    reviewer = models.ForeignKey(blank=True, null=True, related_name='reviewed_milestones', on_delete=models.SET_NULL, to=settings.AUTH_USER_MODEL)
+
     class Meta:
         verbose_name = _("startup milestone")
         verbose_name_plural = _("startup milestones")
@@ -1291,3 +1616,135 @@ class ContinuousAssessment(models.Model):
 
     def __str__(self) -> str:
         return f"{self.application} - {self.period_label}: {self.readiness_score:.1f}"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 20. ApplicationAuditEvent
+# ──────────────────────────────────────────────────────────────────────────────
+
+class ApplicationAuditEvent(models.Model):
+    """
+    Immutable audit log for every application stage transition.
+    Created by ApplicationPipeline.advance() — never edited, never deleted.
+    Provides a tamper-evident SHA-256 snapshot hash of the application state
+    at the time of each decision.
+    """
+
+    application = models.ForeignKey(
+        AcceleratorApplication,
+        on_delete=models.CASCADE,
+        related_name="audit_events",
+    )
+    from_stage = models.CharField(_("from stage"), max_length=30, blank=True)
+    to_stage = models.CharField(_("to stage"), max_length=30)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="accelerator_audit_events",
+    )
+    reason = models.TextField(_("reason / note"), blank=True)
+    policy_version = models.CharField(_("policy version"), max_length=20, blank=True)
+    evidence_snapshot = models.JSONField(
+        _("evidence snapshot"),
+        default=dict,
+        blank=True,
+        help_text=_("Key scores and metadata captured at transition time."),
+    )
+    snapshot_hash = models.CharField(
+        _("snapshot SHA-256 hash"),
+        max_length=64,
+        blank=True,
+        help_text=_("SHA-256 of the sorted JSON evidence_snapshot payload."),
+    )
+    is_automated = models.BooleanField(
+        _("automated transition"),
+        default=False,
+        help_text=_("True when the transition was triggered by the ML pipeline."),
+    )
+    timestamp = models.DateTimeField(auto_now_add=True)
+    action_type = models.CharField(verbose_name='action type', max_length=50, default='STAGE_TRANSITION')
+
+    class Meta:
+        verbose_name = _("application audit event")
+        verbose_name_plural = _("application audit events")
+        ordering = ["timestamp"]
+
+    def __str__(self) -> str:
+        actor_label = self.actor.email if self.actor else ("System / ML" if self.is_automated else "Unknown")
+        return f"[{self.timestamp:%Y-%m-%d %H:%M}] {self.from_stage} → {self.to_stage} ({actor_label})"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 6. Review collaboration — notes & comments (append-only, concurrency-safe)
+# ──────────────────────────────────────────────────────────────────────────────
+# These are separate from ReviewerAssessment (which is unique per reviewer and
+# feeds quorum / conviction / disagreement math). A note or a comment is prose,
+# never a score, so it can never pollute the scoring aggregates.
+
+class ApplicationNote(models.Model):
+    """Timestamped internal reviewer/committee note on an application.
+
+    Append-only rows (not a mutable text blob) so two reviewers writing at the
+    same time can never overwrite each other.
+    """
+
+    application = models.ForeignKey(
+        AcceleratorApplication, on_delete=models.CASCADE, related_name="notes"
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="application_notes"
+    )
+    body = models.TextField(_("note"))
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("application note")
+        verbose_name_plural = _("application notes")
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"[{self.created_at:%Y-%m-%d %H:%M}] {self.author.email}: {self.body[:60]}"
+
+
+class ReviewComment(models.Model):
+    """A discussion comment in the Decision Room.
+
+    Deliberately NOT a ReviewerAssessment: a comment carries no conviction score
+    and is excluded from reviewer_count, committee-rating averages, quorum and
+    disagreement detection.
+    """
+
+    application = models.ForeignKey(
+        AcceleratorApplication, on_delete=models.CASCADE, related_name="review_comments"
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="review_comments"
+    )
+    body = models.TextField(_("comment"))
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("review comment")
+        verbose_name_plural = _("review comments")
+        ordering = ["created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.author.email}: {self.body[:60]}"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Program OS model registration
+# ──────────────────────────────────────────────────────────────────────────────
+# The models below live in sibling modules but belong to the ``accelerator`` app.
+# Importing them here (after every model above is defined) makes Django register
+# them so the app state matches migrations 0002-0006. All of these modules use
+# string FK references, so importing them at the bottom avoids circular imports.
+from apps.accelerator.program_policy import (  # noqa: E402,F401
+    ProgramArchetype,
+    ProgramEvaluationPolicy,
+)
+from apps.accelerator.rules_engine import ProgramRule  # noqa: E402,F401
+from apps.accelerator import models_os  # noqa: E402,F401
+from apps.accelerator import models_config  # noqa: E402,F401

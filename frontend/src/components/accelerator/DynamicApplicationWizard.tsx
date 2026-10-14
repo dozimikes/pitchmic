@@ -184,7 +184,7 @@ export function DynamicApplicationWizard({
   const stageMismatch =
     (startupData.declaredStage === 'seed' &&
       (inferredStage === 'pre_seed' || inferredStage === 'idea')) ||
-    (startupData.declaredStage === 'series_a' && inferredStage !== 'series_a');
+    (startupData.declaredStage === 'series_a' && (inferredStage as string) !== 'series_a');
 
   const wordCount = problemNarrative.trim().split(/\s+/).filter(Boolean).length;
 

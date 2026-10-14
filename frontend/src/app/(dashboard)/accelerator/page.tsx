@@ -1,1052 +1,1371 @@
 'use client';
 
+/**
+ * Accelerator Overview — the attention-allocation cockpit.
+ *
+ * Every pool-wide number comes from the server `screening_summary` aggregate
+ * (whole program, never one page of rows); the table is server-paginated and
+ * server-searched. The client only re-projects server fields. Tiers, lanes and
+ * "potential" chips are ML attention routing backed by evidence — never
+ * admission verdicts. A reviewer decides; Pitchmic decides where the queue is
+ * longest.
+ */
+
 import * as React from 'react';
-import { usePathname } from 'next/navigation';
-import { AnimatePresence, motion } from 'framer-motion';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Layers,
-  Brain,
-  ShieldCheck,
-  Rocket,
-  Compass,
-  BarChart3,
-  Sparkles,
-  RefreshCw,
-  X,
-  HelpCircle,
-  ChevronDown,
+  Activity,
+  AlertTriangle,
+  ArrowRight,
+  Award,
+  Calendar,
   Check,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  FileSearch,
+  HelpCircle,
+  Inbox,
+  Loader2,
+  PauseCircle,
+  Plus,
+  RefreshCw,
+  Search,
+  ShieldAlert,
+  Sparkles,
+  TrendingUp,
   Users,
-  FileText,
+  X,
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
-import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
+import { useActiveProgram } from './ProgramContext';
 import {
   acceleratorApi,
-  AcceleratorProgram,
-  ApplicationItem,
+  type ApplicationAssessment,
+  type EventOutboxItem,
+  type EvidenceGraph,
 } from '@/lib/acceleratorApi';
+import {
+  ACTIVE_FUNNEL_STATUSES,
+  APP_STATUSES,
+  STATUS_LABELS,
+  apiErrMessage,
+  evidenceLevel,
+  formatDateTime,
+  qk,
+  relativeTime,
+  type AppStatus,
+  type CohortDeltaKey,
+  type ScreeningSummary,
+} from '@/lib/screening';
 
-import { AdmissionsOverview } from '@/components/accelerator/AdmissionsOverview';
-import { PipelineKanban } from '@/components/accelerator/PipelineKanban';
-import { ReviewerWorkspace } from '@/components/accelerator/ReviewerWorkspace';
-import { CommitteeWorkspace } from '@/components/accelerator/CommitteeWorkspace';
-import { CohortTracker } from '@/components/accelerator/CohortTracker';
-import { EligibilitySimulator } from '@/components/accelerator/EligibilitySimulator';
-import { DynamicApplicationWizard } from '@/components/accelerator/DynamicApplicationWizard';
+// ── Shared derivations ───────────────────────────────────────────────────────
 
-// ── Tab type & hash map ───────────────────────────────────────────────────────
-type TabType = 'overview' | 'pipeline' | 'reviewer' | 'committee' | 'cohort' | 'marketplace' | 'sync';
-
-// Hash fragment → tab ID (these become real URLs: /accelerator#triage, #rubric, etc.)
-// IA-correct mappings: rubric lives in ReviewerWorkspace, triage = PipelineKanban screening,
-// voting = Committee IC decisions, sync = CRM & Ingestion Sync header controls.
-const HASH_TO_TAB: Record<string, TabType> = {
-  overview: 'overview',
-  pipeline: 'pipeline',
-  triage: 'pipeline',         // #triage → Pipeline Kanban (initial screening stage)
-  reviewer: 'reviewer',
-  rubric: 'reviewer',         // #rubric → Reviewer Workspace (8→7-Pillar scorecard inputs)
-  committee: 'committee',
-  ic: 'committee',
-  voting: 'committee',        // #voting → Selection Committee IC tab
-  cohort: 'cohort',
-  marketplace: 'marketplace',
-  apply: 'marketplace',
-  sync: 'sync',               // #sync → CRM & Ingestion Sync panel
+const STATUS_TONE: Record<AppStatus, string> = {
+  DRAFT: 'bg-slate-100 text-slate-500 border-slate-200',
+  SUBMITTED: 'bg-slate-100 text-slate-600 border-slate-200',
+  SCREENING: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  SHORTLISTED: 'bg-violet-50 text-violet-700 border-violet-200',
+  INTERVIEW_INVITED: 'bg-blue-50 text-blue-700 border-blue-200',
+  INTERVIEW_COMPLETE: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+  COMMITTEE_REVIEW: 'bg-amber-50 text-amber-700 border-amber-200',
+  EVIDENCE_REQUESTED: 'bg-sky-50 text-sky-700 border-sky-200',
+  WAITLISTED: 'bg-teal-50 text-teal-700 border-teal-200',
+  ACCEPTED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  REJECTED: 'bg-rose-50 text-rose-600 border-rose-200',
+  WITHDRAWN: 'bg-slate-100 text-slate-500 border-slate-200',
+  DEFERRED: 'bg-orange-50 text-orange-700 border-orange-200',
 };
 
-const TAB_TO_HASH: Record<TabType, string> = {
-  overview: 'overview',
-  pipeline: 'pipeline',
-  reviewer: 'rubric',         // Reviewer tab defaults to the rubric anchor URL
-  committee: 'voting',        // Committee tab defaults to the voting anchor URL
-  cohort: 'cohort',
-  marketplace: 'marketplace',
-  sync: 'sync',
-};
-
-function getTabFromHash(hash: string): TabType | null {
-  const key = hash.replace('#', '').toLowerCase();
-  return HASH_TO_TAB[key] ?? null;
+function isAppStatus(status: string): status is AppStatus {
+  return (APP_STATUSES as readonly string[]).includes(status);
 }
 
-// ── Page component ────────────────────────────────────────────────────────────
-export default function AcceleratorOperatingSystemPage() {
-  const { isStartup, isAccelerator, isAdmin, isSuperUser, initialized } = useAuth();
+function statusChip(status: string): { label: string; cls: string } {
+  if (!isAppStatus(status)) {
+    return { label: 'Unrecognised status', cls: 'bg-slate-100 text-slate-600 border-slate-200' };
+  }
+  return { label: STATUS_LABELS[status], cls: STATUS_TONE[status] };
+}
+
+const countOf = (s: ScreeningSummary | undefined, status: AppStatus) =>
+  s ? s.by_status[status] ?? 0 : 0;
+
+const pct = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
+
+function prettify(value?: string | null): string {
+  if (!value) return '—';
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function initials(name?: string | null): string {
+  return (name || '?')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]!.toUpperCase())
+    .join('');
+}
+
+const money = (v: unknown): string | null => {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(n);
+};
+
+// ML screening lane → attention label. This is routing language ("where to
+// look first"), never a verdict on the company.
+const TIER_POTENTIAL: Record<string, { label: string; cls: string }> = {
+  A: { label: 'High', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  B: { label: 'Medium', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  C: { label: 'Medium', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  D: { label: 'Low', cls: 'bg-slate-100 text-slate-500 border-slate-200' },
+};
+
+const TONE_BAR: Record<string, string> = {
+  strong: 'bg-emerald-500',
+  moderate: 'bg-sky-500',
+  limited: 'bg-amber-500',
+  gap: 'bg-rose-500',
+};
+
+const TONE_CHIP: Record<string, string> = {
+  strong: 'bg-emerald-600/10 text-emerald-700 border-emerald-500/20',
+  moderate: 'bg-sky-600/10 text-sky-700 border-sky-500/20',
+  limited: 'bg-amber-600/10 text-amber-700 border-amber-500/20',
+  gap: 'bg-rose-600/10 text-rose-700 border-rose-500/20',
+};
+
+const chip = 'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold';
+
+// ── Table tabs (server-side filters, not client row-counting) ────────────────
+
+type TabKey = 'all' | 'in_review' | 'shortlist' | 'rejected';
+const TAB_STATUSES: Record<TabKey, string | undefined> = {
+  all: undefined,
+  in_review: ACTIVE_FUNNEL_STATUSES.join(','),
+  shortlist: 'SHORTLISTED',
+  rejected: 'REJECTED',
+};
+const TAB_LABELS: Record<TabKey, string> = {
+  all: 'All',
+  in_review: 'In Review',
+  shortlist: 'Shortlist',
+  rejected: 'Rejected',
+};
+
+const PAGE_SIZE = 10;
+
+interface ActivityEntry {
+  key: string;
+  title: string;
+  detail: string;
+  ts: string;
+  kind: 'application' | 'event';
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
+
+export default function AcceleratorOverviewPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const pathname = usePathname();
+  const { user } = useAuth();
+  const {
+    activeProgram,
+    programs,
+    isLoading: contextLoading,
+    programsError,
+    refetchContext,
+  } = useActiveProgram();
+  const pid = activeProgram?.id ?? null;
 
-  const canManage = isAccelerator || isAdmin || isSuperUser;
-
-  // ── Tab state — initialised from URL hash ─────────────────────────────────
-  // Use a stable fallback ('overview') for SSR / before auth resolves.
-  // Auth-dependent default ('marketplace' for startups) is applied once
-  // auth initialises via the effect below, avoiding a hydration flicker.
-  const [activeTab, setActiveTab] = React.useState<TabType>(() => {
-    if (typeof window !== 'undefined') {
-      const fromHash = getTabFromHash(window.location.hash);
-      if (fromHash) return fromHash;
-    }
-    return 'overview';
-  });
-
-  // Push hash to URL whenever active tab changes. Also scrolls to top of tab
-  // content (Minor #12) so that hash-fragment deep-links don't leave users
-  // scrolled halfway down the page from a previous section.
-  const navigateTab = React.useCallback(
-    (tab: TabType) => {
-      setActiveTab(tab);
-      const hash = TAB_TO_HASH[tab];
-      // Use replaceState to avoid polluting browser history on every tab click
-      window.history.replaceState(null, '', `${pathname}#${hash}`);
-      // Scroll to top of content area for consistent UX on tab switch
-      if (typeof window !== 'undefined') {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-      // If the user landed on #sync, additionally scroll the Sync Intake
-      // header controls into view so the sidebar link takes users somewhere
-      // concrete (Critical #1).
-      if (tab === 'sync') {
-        requestAnimationFrame(() => {
-          const el = document.getElementById('sync-header-controls');
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        });
-      }
-    },
-    [pathname]
-  );
-
-  // On mount: sync to hash if the page was loaded with one (e.g. direct link).
-  // Also applies the auth-dependent default once auth is resolved (no hash present).
+  // Clock kept in client state so relative timestamps never hydrate differently.
+  const [clock, setClock] = React.useState<number | null>(null);
   React.useEffect(() => {
-    if (!initialized) return;
+    setClock(Date.now());
+    const id = window.setInterval(() => setClock(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+  const mounted = clock !== null;
+  const hour = clock !== null ? new Date(clock).getHours() : null;
+  const greeting =
+    hour === null ? 'Welcome back' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const reviewerName = user?.first_name || undefined;
 
-    const fromHash = getTabFromHash(window.location.hash);
-    if (fromHash) {
-      setActiveTab(fromHash);
-      // Match the scroll behaviour: for sync tab, also scroll header controls.
-      if (fromHash === 'sync') {
-        requestAnimationFrame(() => {
-          const el = document.getElementById('sync-header-controls');
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        });
-      } else {
-        window.scrollTo({ top: 0 });
-      }
-    } else if (isStartup) {
-      // Only switch to marketplace when auth is confirmed and no hash overrides
-      setActiveTab('marketplace');
-    }
+  // ── Server aggregates: the ONLY source for tiles, pipeline and lanes ──────
+  const summaryQuery = useQuery({
+    queryKey: qk.screeningSummary(pid),
+    queryFn: () => acceleratorApi.getScreeningSummary(pid ?? undefined),
+    enabled: pid !== null,
+  });
+  const summary = summaryQuery.isSuccess ? summaryQuery.data : undefined;
+  const summaryBusy = summaryQuery.isLoading && pid !== null;
+  const summaryFailed = summaryQuery.isError && pid !== null;
+  const summaryPct = pct(summary?.processed ?? 0, summary?.total ?? 0);
 
-    // Listen for browser back/forward hash changes
-    const onHashChange = () => {
-      const t = getTabFromHash(window.location.hash);
-      if (t) setActiveTab(t);
-    };
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialized]);
-
-  // ── Other state ───────────────────────────────────────────────────────────
-  const [selectedProgramId, setSelectedProgramId] = React.useState<number | null>(null);
-  const [selectedAppId, setSelectedAppId] = React.useState<number | null>(null);
-  const [showEvidenceModal, setShowEvidenceModal] = React.useState(false);
-  const [showApplyWizard, setShowApplyWizard] = React.useState(false);
-  // Major #7 — custom program selector dropdown (replaces native <select>)
-  const [programSelectorOpen, setProgramSelectorOpen] = React.useState(false);
-  const programSelectorRef = React.useRef<HTMLDivElement | null>(null);
-  // Close the custom program selector on outside clicks
+  // ── Applications table: server-paginated, server-searched ─────────────────
+  const [tab, setTab] = React.useState<TabKey>('all');
+  const [page, setPage] = React.useState(1);
+  const [searchInput, setSearchInput] = React.useState('');
+  const [search, setSearch] = React.useState('');
   React.useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      if (
-        programSelectorOpen &&
-        programSelectorRef.current &&
-        !programSelectorRef.current.contains(e.target as Node)
-      ) {
-        setProgramSelectorOpen(false);
-      }
-    };
-    if (programSelectorOpen) {
-      document.addEventListener('mousedown', onDocClick);
-    }
-    return () => {
-      document.removeEventListener('mousedown', onDocClick);
-    };
-  }, [programSelectorOpen]);
-  const [evidenceRequestText, setEvidenceRequestText] = React.useState('');
-  // Major #10 — structured evidence checklist items instead of one free-form
-  // narrative blob. Each item toggled on is sent as a separate row to the API,
-  // which lets PitchMic auto-verify individual artifacts on upload.
-  const EVIDENCE_CHECKLIST = [
-    { id: 'incorporation', label: 'Certificate of Incorporation / CAC registration' },
-    { id: 'bank_statements', label: 'Latest 3 months of bank statements' },
-    { id: 'loi_contracts', label: 'Signed LOIs / customer contracts (3+)' },
-    { id: 'financials', label: 'Audited / management P&L and cash position' },
-    { id: 'cofounder_agreements', label: 'Founder / co-founder equity agreements' },
-    { id: 'pitch_deck', label: 'Latest investor pitch deck (PDF)' },
-    { id: 'cap_table', label: 'Capitalization table (post-money)' },
-    { id: 'retention_analytics', label: '30/60/90-day cohort retention analytics' },
-    { id: 'custom', label: 'Custom / additional evidence request (enter below)' },
-  ] as const;
-  type EvidenceItemId = typeof EVIDENCE_CHECKLIST[number]['id'];
-  const [evidenceSelectedItems, setEvidenceSelectedItems] = React.useState<Record<EvidenceItemId, boolean>>({
-    incorporation: false,
-    bank_statements: false,
-    loi_contracts: false,
-    financials: false,
-    cofounder_agreements: false,
-    pitch_deck: false,
-    cap_table: false,
-    retention_analytics: false,
-    custom: false,
-  });
-  const resetEvidenceForm = () => {
-    setEvidenceRequestText('');
-    setEvidenceSelectedItems({
-      incorporation: false,
-      bank_statements: false,
-      loi_contracts: false,
-      financials: false,
-      cofounder_agreements: false,
-      pitch_deck: false,
-      cap_table: false,
-      retention_analytics: false,
-      custom: false,
-    });
-  };
-  // Track whether the reviewer scorecard has unsaved changes so that navigating
-  // away from an app via PipelineKanban (which bypasses ReviewerWorkspace's internal
-  // guard) can also be blocked at the page level.
-  const [reviewerScoresDirty, setReviewerScoresDirty] = React.useState(false);
-  const [eligibilityForm, setEligibilityForm] = React.useState({
-    country: 'NG',
-    sector: 'fintech, logistics',
-    stage: 'pre_seed',
-    incorporated: true,
-    full_time: true,
-    total_funding_raised_usd: 150000,
-    revenue_usd: 0,
-  });
+    const id = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 350);
+    return () => window.clearTimeout(id);
+  }, [searchInput]);
+  React.useEffect(() => setPage(1), [tab]);
 
-  // ── Data queries ──────────────────────────────────────────────────────────
-  const { data: rawPrograms = [] } = useQuery({
-    queryKey: ['accelerator-programs'],
-    queryFn: acceleratorApi.getPrograms,
-  });
-  const programs: AcceleratorProgram[] = Array.isArray(rawPrograms)
-    ? rawPrograms
-    : (rawPrograms as any)?.results ?? [];
-
-  React.useEffect(() => {
-    if (programs.length > 0 && !selectedProgramId) {
-      setSelectedProgramId(programs[0].id);
-    }
-  }, [programs, selectedProgramId]);
-
-  const activeProgram = programs.find((p) => p.id === selectedProgramId) ?? programs[0];
-
-  const { data: pipelineData, refetch: refetchPipeline } = useQuery({
-    queryKey: ['accelerator-pipeline', activeProgram?.id],
-    queryFn: () => (activeProgram?.id ? acceleratorApi.getPipeline(activeProgram.id) : null),
-    enabled: !!activeProgram?.id,
-  });
-
-  // Major #9 — scope queryKey by activeProgram?.id so switching programs via
-  // the header selector produces a per-program cache entry, matching the
-  // CohortTracker pattern. Also derives a filtered `programApplications`
-  // list client-side to prevent cross-program data bleed.
-  const { data: rawApplications = [], refetch: refetchApplications } = useQuery({
-    queryKey: ['accelerator-applications', activeProgram?.id],
-    queryFn: acceleratorApi.getApplications,
-  });
-  const applications: ApplicationItem[] = Array.isArray(rawApplications)
-    ? rawApplications
-    : (rawApplications as any)?.results ?? [];
-
-  // Filtered view — only applications that belong to the currently selected
-  // program. All consumer components (kanban, reviewer, admissions, etc.)
-  // should use `programApplications` so that switching the program selector
-  // narrows the dataset accordingly.
-  const programApplications = React.useMemo(() => {
-    if (!activeProgram?.id) return applications;
-    return applications.filter((a) => {
-      const pid = (a as any).program_id;
-      return pid === undefined || pid === null || pid === activeProgram.id;
-    });
-  }, [applications, activeProgram?.id]);
-
-  // Minor #13 — active pipeline count for the tab badge: only applications
-  // that are still in the forward disposition stages, not the final/rejected
-  // disposition columns. Users reading "Pipeline: 24" expect 24 actively
-  // being triaged, not 24 including every rejected/waitlisted/accepted record.
-  const activePipelineCount = React.useMemo(() => {
-    const DISPOSITION_STATUSES = new Set([
-      'REJECTED',
-      'WITHDRAWN',
-      'DEFERRED_WAITLIST',
-      'ACCEPTED',
-    ]);
-    return programApplications.filter((a) => !DISPOSITION_STATUSES.has(a.status)).length;
-  }, [programApplications]);
-
-  // Auto-pick the first app when data arrives and nothing is selected
-  React.useEffect(() => {
-    if (programApplications.length > 0 && !selectedAppId) {
-      setSelectedAppId(programApplications[0].id);
-    }
-  }, [programApplications, selectedAppId]);
-
-  // Minor #17 — when the active program changes, reset the selected app to
-  // the first application of the new program so reviewers don't see stale
-  // App A's detail card while the sidebar/selector says Program B.
-  React.useEffect(() => {
-    if (!selectedProgramId) return;
-    if (programApplications.length > 0 && programApplications[0].id !== selectedAppId) {
-      setSelectedAppId(programApplications[0].id);
-    } else if (programApplications.length === 0 && selectedAppId != null) {
-      setSelectedAppId(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProgramId, programApplications]);
-
-  const { data: applicationDetail, refetch: refetchAppDetail } = useQuery({
-    queryKey: ['accelerator-app-detail', selectedAppId],
-    queryFn: () => (selectedAppId ? acceleratorApi.getApplicationDetail(selectedAppId) : null),
-    enabled: !!selectedAppId,
-  });
-
-  const { data: cohortData } = useQuery({
-    queryKey: ['accelerator-cohort', activeProgram?.id],
-    queryFn: () => (activeProgram?.id ? acceleratorApi.getCohort(activeProgram.id) : null),
-    enabled: !!activeProgram?.id && activeTab === 'cohort',
-  });
-
-  const { data: eligibilityResult, refetch: checkEligibility } = useQuery({
-    queryKey: ['eligibility-check', activeProgram?.id, eligibilityForm],
+  const appsQuery = useQuery({
+    queryKey: ['accelerator-overview-apps', pid, tab, page, search],
     queryFn: () =>
-      activeProgram?.id
-        ? acceleratorApi.checkEligibility(activeProgram.id, eligibilityForm)
-        : null,
-    enabled: !!activeProgram?.id && activeTab === 'marketplace',
+      acceleratorApi.getApplicationsPaged(pid as number, {
+        page,
+        page_size: PAGE_SIZE,
+        status: TAB_STATUSES[tab],
+        q: search || undefined,
+      }),
+    enabled: pid !== null,
+  });
+  const rows = appsQuery.data?.results ?? [];
+  const rowCount = appsQuery.data?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(rowCount / PAGE_SIZE));
+
+  // ── Selected candidate dossier (right-hand detail panel) ──────────────────
+  const [selectedId, setSelectedId] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    if (selectedId == null && rows.length > 0) setSelectedId(rows[0].id);
+  }, [rows, selectedId]);
+  const selectedRow = rows.find((r) => r.id === selectedId) ?? null;
+
+  const detailQuery = useQuery({
+    queryKey: qk.appDetail(selectedId as number),
+    queryFn: () => acceleratorApi.getApplicationDetail(selectedId as number),
+    enabled: selectedId != null,
+    staleTime: 30_000,
+  });
+  const assessmentQuery = useQuery({
+    queryKey: qk.appAssessment(selectedId as number),
+    queryFn: () =>
+      acceleratorApi
+        .getApplicationAssessment(selectedId as number)
+        .catch(() => null) as Promise<ApplicationAssessment | null>,
+    enabled: selectedId != null,
+    staleTime: 60_000,
+  });
+  const graphQuery = useQuery({
+    queryKey: qk.evidenceGraph(selectedId as number),
+    queryFn: () => acceleratorApi.getEvidenceGraph(selectedId as number).catch(() => null) as Promise<EvidenceGraph | null>,
+    enabled: selectedId != null,
+    staleTime: 60_000,
+  });
+  const transitionsQuery = useQuery({
+    queryKey: qk.allowedTransitions(selectedId as number),
+    queryFn: () => acceleratorApi.getAllowedTransitions(selectedId as number).catch(() => null),
+    enabled: selectedId != null,
+    staleTime: 30_000,
   });
 
-  // ── Mutations — all errors surfaced via toast, no alert() ─────────────────
+  const invalidatePool = () => {
+    queryClient.invalidateQueries({ queryKey: ['accelerator-overview-apps', pid] });
+    queryClient.invalidateQueries({ queryKey: qk.screeningSummary(pid) });
+    queryClient.invalidateQueries({ queryKey: qk.applications(pid) });
+  };
+
   const transitionMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) =>
-      acceleratorApi.transitionStatus(id, status),
-    onSuccess: () => {
-      refetchPipeline();
-      refetchApplications();
-      refetchAppDetail();
-      toast({ title: 'Status updated', variant: 'success' });
-    },
-    onError: (err: any) => {
+    mutationFn: (to: string) => acceleratorApi.transitionStatus(selectedId as number, to),
+    onSuccess: (_data, to) => {
       toast({
-        title: 'Transition failed',
-        description:
-          err?.response?.data?.detail ??
-          err?.response?.data?.error ??
-          'Only accelerator managers and committee members can change application status.',
-        variant: 'error',
-      });
-    },
-  });
-
-  const reviewerScoreMutation = useMutation({
-    mutationFn: (data: any) => acceleratorApi.submitReview(data),
-    onSuccess: () => {
-      refetchAppDetail();
-      toast({ title: 'Reviewer scorecard submitted', variant: 'success' });
-    },
-    onError: (err: any) => {
-      toast({
-        title: 'Review submission failed',
-        description:
-          err?.response?.data?.detail ?? 'Review scoring is restricted to evaluators.',
-        variant: 'error',
-      });
-    },
-  });
-
-  const committeeVoteMutation = useMutation({
-    mutationFn: (data: any) => acceleratorApi.castCommitteeVote(data),
-    onSuccess: () => {
-      refetchAppDetail();
-      toast({ title: 'Committee vote recorded', variant: 'success' });
-    },
-    onError: (err: any) => {
-      toast({
-        title: 'Vote failed',
-        description:
-          err?.response?.data?.detail ?? 'Committee voting is restricted to IC partners.',
-        variant: 'error',
-      });
-    },
-  });
-
-  const finalizeDecisionMutation = useMutation({
-    mutationFn: (data: any) => acceleratorApi.finalizeDecision(data),
-    onSuccess: () => {
-      refetchPipeline();
-      refetchApplications();
-      refetchAppDetail();
-      toast({ title: 'Investment committee decision executed', variant: 'success', duration: 6000 });
-    },
-    onError: (err: any) => {
-      toast({
-        title: 'Decision failed',
-        description:
-          err?.response?.data?.detail ?? 'Decision execution is restricted to IC partners.',
-        variant: 'error',
-      });
-    },
-  });
-
-  const requestEvidenceMutation = useMutation({
-    mutationFn: (data: any) =>
-      acceleratorApi.requestEvidence(data.applicationId, data.items, data.message),
-    onSuccess: () => {
-      setShowEvidenceModal(false);
-      resetEvidenceForm();
-      refetchAppDetail();
-      refetchPipeline();
-      toast({ title: 'Evidence request loop initiated', variant: 'success' });
-    },
-    onError: (err: any) => {
-      toast({
-        title: 'Evidence request failed',
-        description:
-          err?.response?.data?.detail ?? 'Evidence requests are restricted to evaluators.',
-        variant: 'error',
-      });
-    },
-  });
-
-  const seedDefaultsMutation = useMutation({
-    mutationFn: acceleratorApi.seedDefaults,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accelerator-programs'] });
-      queryClient.invalidateQueries({ queryKey: ['accelerator-applications'] });
-      // Also invalidate any program-specific application caches from Major #9
-      programs.forEach((p) =>
-        queryClient.invalidateQueries({ queryKey: ['accelerator-applications', p.id] })
-      );
-      toast({
-        title: 'Programs seeded',
-        description: 'Configurable accelerator programs and rubric templates are ready.',
+        title: 'Status updated',
+        description: `Moved to “${(STATUS_LABELS as Record<string, string>)[to] ?? prettify(to)}” — a human action on the live pipeline.`,
         variant: 'success',
       });
+      queryClient.invalidateQueries({ queryKey: qk.appDetail(selectedId as number) });
+      queryClient.invalidateQueries({ queryKey: qk.allowedTransitions(selectedId as number) });
+      invalidatePool();
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       toast({
-        title: 'Seed failed',
-        description: err?.response?.data?.detail ?? 'Could not seed default programs.',
+        title: 'Transition failed',
+        description: apiErrMessage(err, 'The workflow engine rejected this transition.'),
         variant: 'error',
       });
     },
   });
 
-  // ── Tab config ────────────────────────────────────────────────────────────
-  // Critical #4 — filter tabs by role. A startup founder landing on
-  // /accelerator should not see Reviewer/Committee/Overview tabs since those
-  // are accelerator-staff-only surfaces. They get the marketplace (to browse
-  // and apply) and cohort tracker (to see their accepted milestones).
-  const allTabs: Array<{
-    id: TabType;
+  const evidenceMutation = useMutation({
+    mutationFn: (ids: number[]) =>
+      Promise.all(
+        ids.map((id) =>
+          acceleratorApi.requestEvidence(id, [
+            { type: 'other', description: 'Additional evidence requested by the program team.' },
+          ])
+        )
+      ),
+    onSuccess: (_data, ids) => {
+      toast({
+        title: 'Evidence requested',
+        description: `Founders of ${ids.length} application${ids.length === 1 ? '' : 's'} asked for supporting evidence.`,
+        variant: 'success',
+      });
+      setSelectedBulk([]);
+      invalidatePool();
+    },
+    onError: (err: unknown) => {
+      toast({
+        title: 'Request failed',
+        description: apiErrMessage(err, 'Could not send the evidence request.'),
+        variant: 'error',
+      });
+    },
+  });
+
+  // Bulk selection on the current page only — never a fake "select all N".
+  const [selectedBulk, setSelectedBulk] = React.useState<number[]>([]);
+  React.useEffect(() => setSelectedBulk([]), [page, tab, search]);
+  const toggleBulk = (id: number) =>
+    setSelectedBulk((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+
+  // ── Event outbox — enrichment only; a failure must never blank the page ───
+  const eventsQuery = useQuery({
+    queryKey: ['accelerator-event-outbox', pid],
+    queryFn: async (): Promise<EventOutboxItem[]> => {
+      try {
+        return await acceleratorApi.osList<EventOutboxItem>('events', pid as number);
+      } catch {
+        return [];
+      }
+    },
+    enabled: pid !== null,
+  });
+  const events: EventOutboxItem[] = React.useMemo(() => eventsQuery.data ?? [], [eventsQuery.data]);
+
+  // ── Recent Activity: current-page applications + workflow events ──────────
+  const activity: ActivityEntry[] = React.useMemo(() => {
+    const appEntries: ActivityEntry[] = rows
+      .filter((a) => a.updated_at || a.created_at)
+      .map((a) => ({
+        key: `app-${a.id}-${a.updated_at ?? a.created_at}`,
+        title: a.company_name,
+        detail: statusChip(a.status).label,
+        ts: a.updated_at || a.created_at,
+        kind: 'application' as const,
+      }));
+    const companyById = new Map(rows.map((a) => [a.id, a.company_name]));
+    const eventEntries: ActivityEntry[] = (Array.isArray(events) ? events : [])
+      .filter((e) => e?.occurred_at)
+      .map((e) => ({
+        key: `evt-${e.id}`,
+        title:
+          typeof e.application === 'number'
+            ? companyById.get(e.application) ?? `Application #${e.application}`
+            : 'Program',
+        detail: (e.event_type || 'event').replace(/[_-]/g, ' ').replace(/^\w/, (c) => c.toUpperCase()),
+        ts: e.occurred_at,
+        kind: 'event' as const,
+      }));
+    return [...appEntries, ...eventEntries]
+      .sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime())
+      .slice(0, 6);
+  }, [rows, events]);
+
+  // ── Derived pipeline (server fields only) ──────────────────────────────────
+  const eligibilityCount = summary?.funnel?.find((f) => f.key === 'eligibility')?.count ?? 0;
+  const pipeline = summary
+    ? [
+        { key: 'received', label: 'Received', count: summary.total, icon: Inbox, tone: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
+        { key: 'eligibility', label: 'Eligibility Check', count: eligibilityCount, icon: CheckCircle2, tone: 'text-sky-600 bg-sky-50 border-sky-200' },
+        { key: 'screening', label: 'Screening', count: countOf(summary, 'SCREENING'), icon: Sparkles, tone: 'text-violet-600 bg-violet-50 border-violet-200' },
+        { key: 'review', label: 'Review Queue', count: summary.review_queue, icon: ClipboardList, tone: 'text-orange-600 bg-orange-50 border-orange-200' },
+        { key: 'interviews', label: 'Interviews', count: countOf(summary, 'INTERVIEW_INVITED') + countOf(summary, 'INTERVIEW_COMPLETE'), icon: Calendar, tone: 'text-indigo-600 bg-indigo-50 border-indigo-200' },
+        { key: 'dd', label: 'Due Diligence', count: countOf(summary, 'COMMITTEE_REVIEW') + countOf(summary, 'EVIDENCE_REQUESTED'), icon: FileSearch, tone: 'text-blue-600 bg-blue-50 border-blue-200' },
+        { key: 'selected', label: 'Selected', count: countOf(summary, 'ACCEPTED'), icon: Award, tone: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
+      ]
+    : [];
+
+  // ── KPI tiles with real cohort-over-cohort deltas ──────────────────────────
+  const deltas = summary?.cohort_deltas;
+  const tiles: Array<{
     label: string;
+    value: number;
+    sub?: string;
+    deltaKey?: CohortDeltaKey;
     icon: React.ComponentType<{ className?: string }>;
-    badge?: number;
-  }> = [
-    { id: 'overview', label: 'Admissions Overview', icon: BarChart3 },
-    { id: 'pipeline', label: 'Pipeline Kanban', icon: Layers, badge: activePipelineCount },
-    { id: 'reviewer', label: 'Reviewer Workspace & Forensics', icon: Brain },
-    { id: 'committee', label: 'Selection Committee (IC)', icon: ShieldCheck },
-    { id: 'cohort', label: 'Active Cohort & Milestones', icon: Rocket },
-    { id: 'marketplace', label: 'Founder Discovery & Eligibility', icon: Compass },
-    { id: 'sync', label: 'CRM & Ingestion Sync', icon: RefreshCw },
-  ];
-  const tabs = React.useMemo(() => {
-    if (isStartup) {
-      return allTabs.filter((t) => t.id === 'marketplace' || t.id === 'cohort');
+    tone: string;
+  }> = summary
+    ? [
+        { label: 'Total Applications', value: summary.total, deltaKey: 'total', icon: Inbox, tone: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
+        { label: 'Processed', value: summary.processed, deltaKey: 'processed', icon: CheckCircle2, tone: 'text-sky-600 bg-sky-50 border-sky-200' },
+        { label: 'Review Queue', value: summary.review_queue, deltaKey: 'review_queue', icon: ClipboardList, tone: 'text-orange-600 bg-orange-50 border-orange-200' },
+        {
+          label: 'Interviews',
+          value: countOf(summary, 'INTERVIEW_INVITED') + countOf(summary, 'INTERVIEW_COMPLETE'),
+          deltaKey: 'interviews',
+          icon: Users,
+          tone: 'text-indigo-600 bg-indigo-50 border-indigo-200',
+        },
+        {
+          label: 'Due Diligence',
+          value: countOf(summary, 'COMMITTEE_REVIEW') + countOf(summary, 'EVIDENCE_REQUESTED'),
+          deltaKey: 'due_diligence',
+          icon: FileSearch,
+          tone: 'text-violet-600 bg-violet-50 border-violet-200',
+        },
+        {
+          label: 'Selected',
+          value: countOf(summary, 'ACCEPTED'),
+          deltaKey: 'selected',
+          sub: activeProgram?.target_cohort_size
+            ? `(target ${activeProgram.target_cohort_size})`
+            : undefined,
+          icon: Award,
+          tone: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+        },
+      ]
+    : [];
+
+  // ── Attention lanes (server-side buckets, same predicates as review queue) ─
+  const attentionRows = summary
+    ? [
+        { label: 'High priority applications', value: summary.attention.priority, icon: ClipboardList, tone: 'text-rose-600 bg-rose-50 border-rose-200', href: '/accelerator/review-queue?bucket=priority' },
+        { label: 'High uncertainty', value: summary.attention.uncertain, icon: HelpCircle, tone: 'text-orange-600 bg-orange-50 border-orange-200', href: '/accelerator/review-queue?bucket=investigate' },
+        { label: 'Evidence verification', value: summary.attention.missing_evidence, icon: ShieldAlert, tone: 'text-red-600 bg-red-50 border-red-200', href: '/accelerator/review-queue?bucket=investigate' },
+        { label: 'Contradictory signals', value: summary.attention.contradictory, icon: AlertTriangle, tone: 'text-pink-600 bg-pink-50 border-pink-200', href: '/accelerator/review-queue?bucket=investigate' },
+        { label: 'Reviewer holds', value: summary.attention.holds, icon: PauseCircle, tone: 'text-rose-600 bg-rose-50 border-rose-200', href: '/accelerator/review-queue?bucket=hold' },
+      ]
+    : [];
+  const attentionOpen = attentionRows.filter((r) => r.value > 0).length;
+
+  // ── Header status chip (from server processed ratio) ──────────────────────
+  const programStatusChip = summaryFailed
+    ? { label: 'Summary Unavailable', cls: 'bg-rose-50 text-rose-700 border-rose-200' }
+    : !summary
+      ? { label: 'Loading…', cls: 'bg-slate-100 text-slate-500 border-slate-200' }
+      : summary.total === 0
+        ? { label: 'No Applications Yet', cls: 'bg-slate-100 text-slate-600 border-slate-200' }
+        : summaryPct >= 70
+          ? { label: 'On track', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+          : { label: 'Needs attention', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
+
+  const deadline = activeProgram?.application_deadline;
+  const deadlinePassed = deadline ? new Date(deadline).getTime() < (clock ?? Date.now()) : false;
+  const deadlineLabel = deadline
+    ? new Date(deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : null;
+
+  // Quick Actions narrative tabs (about the selected candidate)
+  const [qaTab, setQaTab] = React.useState<'summary' | 'claims' | 'risks'>('summary');
+
+  const assessment = assessmentQuery.data ?? null;
+  const graph = graphQuery.data ?? null;
+  const detail = detailQuery.data ?? null;
+  const startupProfile = detail?.startup_profile ?? {};
+  const allowed = transitionsQuery.data?.allowed ?? [];
+  const allowedSlugs = allowed.map((a) => a.status);
+  const advanceTarget = allowed.find((a) => !['REJECTED', 'WITHDRAWN'].includes(a.status)) ?? null;
+
+  if (pid === null) {
+    if (contextLoading) {
+      return (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white p-10 text-sm text-slate-500 shadow-sm">
+          <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
+          Loading program context…
+        </div>
+      );
     }
-    return allTabs;
-  }, [isStartup, activePipelineCount]);
+    if (programsError) {
+      return (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 shadow-sm">
+          <div className="text-sm font-bold text-rose-800">Couldn&apos;t load your programs</div>
+          <p className="mt-1 text-xs text-rose-700">
+            The API request to <code>/accelerator/programs/</code> failed. Check that the backend is
+            running on port 8000 and reachable from this page, then retry.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="mt-3 border-rose-300 bg-white text-rose-700 hover:bg-rose-100"
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['accelerator-programs'] });
+              queryClient.invalidateQueries({ queryKey: ['accelerator-user-context'] });
+              refetchContext();
+            }}
+          >
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Retry
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="text-sm font-bold text-slate-900">No programs yet</div>
+        <p className="mt-1 text-sm text-slate-500">
+          {programs.length === 0
+            ? 'This account has no accelerator programs. Create and publish one to start screening applications.'
+            : 'No active program is selected. Choose one from the program switcher in the header.'}
+        </p>
+        {programs.length === 0 && (
+          <Link href="/accelerator/settings">
+            <Button size="sm" className="mt-3 bg-indigo-600 text-white hover:bg-indigo-700">
+              <Plus className="h-3.5 w-3.5 mr-1.5" /> Program Configuration
+            </Button>
+          </Link>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4 lg:p-8 space-y-8">
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-neutral-800/80 pb-6">
+    <div className="space-y-6">
+      {/* ── Header: greeting · deadline · status chip ─────────────────────── */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="px-2 py-0.5 rounded text-xs font-semibold tracking-wide uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              Venture Admissions &amp; Investment OS
-            </span>
-            {/* Minor #18 — workflow_style drives actual UI chrome: the pipeline
-                header chip now reflects the real active program workflow, and
-                PipelineKanban accepts a style prop to adjust column density. */}
-            <span
-              className={cn(
-                'px-2 py-0.5 rounded text-xs font-mono border',
-                activeProgram?.workflow_style === 'yc_style'
-                  ? 'bg-orange-500/10 text-orange-300 border-orange-500/30'
-                  : 'bg-neutral-900 text-neutral-400 border-neutral-800'
-              )}
-            >
-              {activeProgram?.workflow_style === 'yc_style'
-                ? 'YC Rapid (Submit → IC in 14 days)'
-                : 'Techstars Multi-Stage (6 gates)'}
-            </span>
-          </div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-            <span>{activeProgram?.organization_name ?? 'Pan-African Network'}</span>
-            <span className="text-neutral-600 font-light">/</span>
-            <span className="text-neutral-300">
-              {activeProgram?.name ?? 'Admissions Pipeline'}
-            </span>
+          <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-slate-900">
+            {greeting}
+            {reviewerName ? `, ${reviewerName}` : ''} 👋
           </h1>
-          <p className="text-sm text-neutral-400 mt-1">
-            End-to-end investment admissions: Eligibility Engine → Structured Claims →
-            Forensics → Reviewer Workspace → Selection Committee → Continuous Cohort Evolution.
+          <p className="text-sm text-slate-500 mt-1">
+            Here&apos;s what&apos;s happening with your accelerator program.
           </p>
         </div>
+        <div className="flex items-center gap-4">
+          {deadlineLabel && (
+            <div className="text-right">
+              <p className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">
+                Applications {deadlinePassed ? 'closed' : 'close'}
+              </p>
+              <p className="text-sm font-bold text-slate-800">{deadlineLabel}</p>
+            </div>
+          )}
+          <span
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold',
+              programStatusChip.cls
+            )}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+            {programStatusChip.label}
+          </span>
+        </div>
+      </div>
 
-        {/* Critical #1: this action band is the scroll target for /accelerator#sync */}
-        <div id="sync-header-controls" className="flex flex-wrap items-center gap-2">
-          {/* Major #7 — custom program selector (styled, searchable-feeling, with
-              workflow badges) instead of the native <select> element. */}
-          <div ref={programSelectorRef} className="relative">
-            <button
-              type="button"
-              onClick={() => setProgramSelectorOpen((v) => !v)}
-              className="flex items-center gap-2 bg-neutral-900 text-neutral-200 text-xs rounded-lg px-3 py-2 border border-neutral-800 hover:border-neutral-700 focus:outline-none focus:border-emerald-500 cursor-pointer min-w-[220px] text-left transition-colors"
-            >
-              <span className="flex-1 truncate">
-                {activeProgram
-                  ? `${activeProgram.name} (${activeProgram.program_cycle ?? '—'})`
-                  : 'Select program…'}
-              </span>
-              {activeProgram && (
-                <span
-                  className={cn(
-                    'shrink-0 px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold',
-                    activeProgram.workflow_style === 'yc_style'
-                      ? 'bg-orange-500/20 text-orange-300'
-                      : 'bg-blue-500/20 text-blue-300'
-                  )}
-                >
-                  {activeProgram.workflow_style === 'yc_style' ? 'YC' : 'TS'}
-                </span>
-              )}
-              <ChevronDown
-                className={cn(
-                  'w-3.5 h-3.5 text-neutral-500 transition-transform shrink-0',
-                  programSelectorOpen && 'rotate-180'
-                )}
-              />
-            </button>
-            {programSelectorOpen && (
-              <div className="absolute right-0 mt-2 w-[320px] max-h-72 overflow-y-auto z-40 rounded-lg border border-neutral-700 bg-neutral-900 shadow-2xl py-1">
-                {programs.length === 0 && (
-                  <div className="px-3 py-4 text-xs text-neutral-500 text-center">
-                    No programs yet — click Seed Programs to create defaults.
-                  </div>
-                )}
-                {programs.map((p) => {
-                  const isSelected = p.id === selectedProgramId;
+      {/* ── Six KPI tiles — server aggregates + real cohort deltas ────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        {summaryBusy || summaryFailed
+          ? Array.from({ length: 6 }).map((_, i) => <StatCardSkeleton key={i} />)
+          : tiles.map((t) => (
+              <div key={t.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <span className={cn('inline-flex h-9 w-9 items-center justify-center rounded-xl border', t.tone)}>
+                    <t.icon className="h-4 w-4" />
+                  </span>
+                  {t.deltaKey && <DeltaBadge pct={deltas?.metrics?.[t.deltaKey]} prevName={deltas?.previous_program} />}
+                </div>
+                <div className="text-2xl font-black text-slate-900 mt-3 tabular-nums">
+                  {t.value.toLocaleString()}
+                </div>
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mt-0.5">
+                  {t.label}
+                  {t.sub ? <span className="normal-case font-medium text-slate-400"> {t.sub}</span> : null}
+                </div>
+              </div>
+            ))}
+      </div>
+
+      {/* ── Main grid: [pipeline + table + dossier] | [attention rails] ───── */}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px] items-start">
+        <div className="space-y-6 min-w-0">
+          {/* Screening pipeline — server fields re-projected per stage */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-indigo-600" /> Screening Pipeline
+              </h2>
+              <span className="text-[11px] text-slate-400">server-computed · current occupancy per stage</span>
+            </div>
+            {summaryBusy || summaryFailed ? (
+              <FunnelSkeleton />
+            ) : (
+              <div className="overflow-x-auto pb-1">
+                <div className="flex items-start min-w-[820px]">
+                  {pipeline.map((step, i) => (
+                    <React.Fragment key={step.key}>
+                      {i > 0 && (
+                        <div className="flex-1 pt-4 min-w-[14px]">
+                          <div className={cn('h-0.5 w-full rounded-full', step.count > 0 ? 'bg-indigo-400' : 'bg-slate-200')} />
+                        </div>
+                      )}
+                      <div className="flex flex-col items-center text-center px-1" style={{ minWidth: 92 }}>
+                        <span className={cn('inline-flex h-9 w-9 items-center justify-center rounded-xl border', step.tone)}>
+                          <step.icon className="h-4 w-4" />
+                        </span>
+                        <div className="text-[11px] font-bold text-slate-600 mt-2 leading-tight">{step.label}</div>
+                        <div className="text-xl font-black text-slate-900 mt-0.5 tabular-nums">
+                          {step.count.toLocaleString()}
+                        </div>
+                        <div className="text-[10px] text-slate-400 tabular-nums">{pct(step.count, summary?.total ?? 0)}%</div>
+                      </div>
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] items-start">
+            {/* Applications table — server-paginated & server-searched */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm min-w-0">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <h2 className="text-sm font-black text-slate-900">Applications</h2>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    placeholder="Search applications…"
+                    className="w-52 rounded-lg border border-slate-200 bg-white pl-8 pr-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1 border-b border-slate-100 mb-3">
+                {(Object.keys(TAB_LABELS) as TabKey[]).map((k) => {
+                  const cnt =
+                    k === 'all' ? summary?.total
+                    : k === 'in_review' ? summary?.review_queue
+                    : k === 'shortlist' ? countOf(summary, 'SHORTLISTED')
+                    : countOf(summary, 'REJECTED');
                   return (
                     <button
-                      key={p.id}
+                      key={k}
                       type="button"
-                      onClick={() => {
-                        setSelectedProgramId(p.id);
-                        setProgramSelectorOpen(false);
-                      }}
+                      onClick={() => setTab(k)}
                       className={cn(
-                        'w-full text-left px-3 py-2 text-xs flex items-start gap-2.5 transition-colors cursor-pointer',
-                        isSelected
-                          ? 'bg-emerald-500/10 text-white'
-                          : 'text-neutral-300 hover:bg-neutral-800/80'
+                        'px-3 py-2 text-xs font-bold border-b-2 -mb-px transition-colors',
+                        tab === k
+                          ? 'border-indigo-600 text-indigo-700'
+                          : 'border-transparent text-slate-500 hover:text-slate-800'
                       )}
                     >
-                      <span
-                        className={cn(
-                          'mt-0.5 w-3.5 h-3.5 shrink-0 flex items-center justify-center rounded border',
-                          isSelected
-                            ? 'border-emerald-500 bg-emerald-500 text-neutral-950'
-                            : 'border-neutral-600 text-transparent'
-                        )}
-                      >
-                        <Check className="w-3 h-3" />
-                      </span>
-                      <span className="flex-1 min-w-0">
-                        <span className="font-medium block truncate">
-                          {p.name}
-                          <span className="text-neutral-500 font-normal">
-                            {' '}
-                            · {p.program_cycle ?? '—'}
-                          </span>
-                        </span>
-                        <span className="mt-0.5 block text-[10px] text-neutral-500 truncate">
-                          {p.workflow_style === 'yc_style'
-                            ? `YC Rapid · Target cohort ${p.target_cohort_size ?? '—'}`
-                            : `Techstars Multi-Stage · Target cohort ${p.target_cohort_size ?? '—'}`}
-                        </span>
+                      {TAB_LABELS[k]}
+                      <span className="ml-1.5 text-[10px] font-semibold text-slate-400 tabular-nums">
+                        {cnt == null ? '—' : cnt.toLocaleString()}
                       </span>
                     </button>
                   );
                 })}
               </div>
-            )}
-          </div>
 
-          {canManage && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => seedDefaultsMutation.mutate()}
-              disabled={seedDefaultsMutation.isPending}
-              className="text-xs bg-neutral-900 border-neutral-800 hover:bg-neutral-800 text-neutral-300"
-            >
-              <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-400" />
-              {seedDefaultsMutation.isPending ? 'Seeding…' : 'Seed Programs'}
-            </Button>
-          )}
-
-          <Button
-            size="sm"
-            onClick={() => {
-              refetchPipeline();
-              refetchApplications();
-              refetchAppDetail();
-            }}
-            className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
-          >
-            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-            Sync Intake
-          </Button>
-        </div>
-      </div>
-
-      {/* ── Tab bar ──────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-1 border-b border-neutral-800">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => navigateTab(tab.id)}
-              aria-selected={isActive}
-              role="tab"
-              className={cn(
-                'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors relative cursor-pointer',
-                isActive
-                  ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5'
-                  : 'border-transparent text-neutral-400 hover:text-neutral-200 hover:border-neutral-700'
-              )}
-            >
-              <Icon
-                className={cn(
-                  'w-4 h-4',
-                  isActive ? 'text-emerald-400' : 'text-neutral-500'
-                )}
-              />
-              <span>{tab.label}</span>
-              {tab.badge !== undefined && (
-                <span
-                  className={cn(
-                    'px-1.5 py-0.5 rounded-full text-xs font-mono',
-                    isActive
-                      ? 'bg-emerald-500/20 text-emerald-300'
-                      : 'bg-neutral-800 text-neutral-400'
-                  )}
-                >
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ── Tab content ──────────────────────────────────────────────────────── */}
-      {activeTab === 'overview' && (
-        <AdmissionsOverview
-          program={activeProgram}
-          pipelineData={pipelineData ?? undefined}
-          applications={programApplications}
-          selectedAppId={selectedAppId}
-          onSelectApp={(id) => setSelectedAppId(id)}
-          onNavigateTab={navigateTab}
-        />
-      )}
-
-      {activeTab === 'pipeline' && (
-        <PipelineKanban
-          applications={programApplications}
-          selectedAppId={selectedAppId}
-          workflowStyle={activeProgram?.workflow_style}
-          onSelectApp={(id) => {
-            // Warn if the reviewer scorecard has unsaved changes before navigating
-            if (reviewerScoresDirty && id !== selectedAppId) {
-              if (!window.confirm('You have unsaved reviewer scores. Switch application and discard them?')) {
-                return;
-              }
-              setReviewerScoresDirty(false);
-            }
-            setSelectedAppId(id);
-            navigateTab('reviewer');
-          }}
-          onTransitionStatus={(id, status) => transitionMutation.mutate({ id, status })}
-        />
-      )}
-
-      {activeTab === 'reviewer' && (
-        <ReviewerWorkspace
-          applications={programApplications}
-          selectedAppId={selectedAppId}
-          applicationDetail={applicationDetail}
-          onSelectApp={(id) => setSelectedAppId(id)}
-          onScoresDirtyChange={setReviewerScoresDirty}
-          onRequestEvidence={() => setShowEvidenceModal(true)}
-          onAdvanceToIC={() =>
-            transitionMutation.mutate({ id: selectedAppId!, status: 'SHORTLISTED' })
-          }
-          onSubmitReview={(scores) =>
-            reviewerScoreMutation.mutate({
-              application: selectedAppId!,
-              founder_score: scores.founder,
-              market_score: scores.market,
-              product_score: scores.product,
-              team_score: scores.team,
-              traction_score: scores.traction,
-              overall_conviction: scores.conviction,
-              recommendation: scores.recommendation,
-              notes: scores.notes,
-            })
-          }
-          onQueryCopilot={async (query) => {
-            const res = await acceleratorApi.queryCopilot(selectedAppId!, query);
-            return res.answer;
-          }}
-        />
-      )}
-
-      {activeTab === 'committee' && (
-        <CommitteeWorkspace
-          selectedAppId={selectedAppId}
-          applicationDetail={applicationDetail}
-          onCastVote={(vote, conviction, notes) =>
-            committeeVoteMutation.mutate({
-              application_id: selectedAppId!,
-              vote,
-              conviction_score: conviction,
-              notes,
-            })
-          }
-          onFinalizeDecision={(decision, notes) =>
-            finalizeDecisionMutation.mutate({
-              application_id: selectedAppId!,
-              decision,
-              rationale: notes,
-            })
-          }
-          onRequestEvidence={() => setShowEvidenceModal(true)}
-        />
-      )}
-
-      {activeTab === 'cohort' && <CohortTracker cohortData={cohortData} />}
-
-      {activeTab === 'marketplace' && (
-        <EligibilitySimulator
-          program={activeProgram}
-          eligibilityResult={eligibilityResult ?? undefined}
-          eligibilityForm={eligibilityForm}
-          setEligibilityForm={setEligibilityForm}
-          onRecalculate={() => checkEligibility()}
-          onLaunchApply={() => setShowApplyWizard(true)}
-        />
-      )}
-
-      {/* Critical #1 — Sync / CRM Ingestion panel: dedicated tab surface that
-          the sidebar /accelerator#sync link lands on. Aggregates all refresh
-          actions, provenance signals, and intake diagnostics in one place. */}
-      {activeTab === 'sync' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            <div className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-semibold text-white flex items-center gap-2">
-                    <RefreshCw className="w-4 h-4 text-emerald-400" />
-                    CRM &amp; Ingestion Sync Console
-                  </h3>
-                  <p className="text-xs text-neutral-400 mt-1">
-                    Force-refresh pipeline, applications, and detail caches from
-                    the upstream CRM ingestion engine.
-                  </p>
-                </div>
-                <Button
-                  onClick={() => {
-                    refetchPipeline();
-                    refetchApplications();
-                    refetchAppDetail();
-                  }}
-                  size="sm"
-                  className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white"
-                >
-                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-                  Sync Intake Now
-                </Button>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                  { label: 'Total programs', val: programs.length },
-                  { label: 'Program apps', val: programApplications.length },
-                  { label: 'Pipeline summary', val: pipelineData?.total_applications ?? '—' },
-                  { label: 'Current app detail', val: applicationDetail ? 'Loaded' : '—' },
-                ].map((k) => (
-                  <div key={k.label} className="bg-neutral-950 border border-neutral-800 rounded-lg p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-semibold">
-                      {k.label}
-                    </p>
-                    <p className="text-lg font-bold text-white mt-1">{k.val}</p>
+              {selectedBulk.length > 0 && (
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-indigo-200 bg-indigo-50/60 px-3 py-2">
+                  <span className="text-xs font-semibold text-indigo-800">
+                    {selectedBulk.length} selected on this page
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      loading={evidenceMutation.isPending}
+                      onClick={() => evidenceMutation.mutate(selectedBulk)}
+                      className="bg-indigo-600 hover:bg-indigo-500 text-white"
+                    >
+                      Request evidence
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setSelectedBulk([])}>
+                      Clear
+                    </Button>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-neutral-900/40 border border-neutral-800 rounded-xl p-5 space-y-3">
-              <h4 className="text-sm font-semibold text-white">Granular Refetch</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => refetchPipeline()}
-                  className="justify-start text-xs bg-neutral-900 border-neutral-800 hover:bg-neutral-800 text-neutral-200"
-                >
-                  <Layers className="w-3.5 h-3.5 mr-2 text-purple-400" />
-                  Refetch Pipeline
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => refetchApplications()}
-                  className="justify-start text-xs bg-neutral-900 border-neutral-800 hover:bg-neutral-800 text-neutral-200"
-                >
-                  <Users className="w-3.5 h-3.5 mr-2 text-blue-400" />
-                  Refetch Applications
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => refetchAppDetail()}
-                  disabled={!selectedAppId}
-                  className="justify-start text-xs bg-neutral-900 border-neutral-800 hover:bg-neutral-800 text-neutral-200 disabled:opacity-40"
-                >
-                  <FileText className="w-3.5 h-3.5 mr-2 text-amber-400" />
-                  Refetch Selected App
-                </Button>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5 space-y-3">
-              <h4 className="text-sm font-semibold text-white">Provenance Tier (ingestion)</h4>
-              <div className="space-y-2 text-xs">
-                {[
-                  { t: 'LIVE', c: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30', d: 'Fresh HTTP 200 response, full verified payload.' },
-                  { t: 'DEGRADED', c: 'text-amber-400 bg-amber-500/10 border-amber-500/30', d: 'Partial payload / fallback CDN snapshot used.' },
-                  { t: 'FETCH_FAILED', c: 'text-rose-400 bg-rose-500/10 border-rose-500/30', d: 'Network error; prior cached value shown.' },
-                  { t: 'BASELINE', c: 'text-neutral-400 bg-neutral-800 border-neutral-700', d: 'Seed / fixture record; never reached live source.' },
-                ].map((t) => (
-                  <div key={t.t} className="flex items-start gap-2.5">
-                    <span className={`mt-0.5 px-1.5 py-0.5 rounded-[4px] text-[10px] font-bold border ${t.c}`}>
-                      {t.t}
-                    </span>
-                    <span className="text-neutral-400">{t.d}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Evidence request modal ───────────────────────────────────────────── */}
-      <AnimatePresence>
-        {showEvidenceModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-                <div>
-                  <h3 className="font-bold text-white text-base">
-                    Request Additional Evidence from Founder
-                  </h3>
-                  <p className="text-[11px] text-neutral-500 mt-0.5">
-                    PitchMic will automatically recalculate the readiness delta
-                    for each verified artifact on upload.
-                  </p>
                 </div>
-                <button
-                  onClick={() => {
-                    setShowEvidenceModal(false);
-                    resetEvidenceForm();
-                  }}
-                  className="text-neutral-400 hover:text-white cursor-pointer p-1 rounded transition-colors"
-                  aria-label="Close modal"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+              )}
 
-              {/* Major #10 — structured evidence checklist. Each toggled item is
-                  sent as a separate structured row to the API with its own
-                  type string, enabling auto-verification. Free-form text is
-                  only used for the "custom" item and an optional accompanying
-                  message. */}
-              <div className="space-y-3 text-xs">
-                <p className="text-neutral-300 font-medium">
-                  Select missing or unverified evidence items:
+              {appsQuery.isLoading ? (
+                <div className="flex items-center justify-center py-12 text-slate-400">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading applications…
+                </div>
+              ) : appsQuery.isError ? (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4">
+                  <span className="text-sm font-semibold text-rose-800">
+                    {apiErrMessage(appsQuery.error, 'Could not load applications.')}
+                  </span>
+                  <button
+                    onClick={() => appsQuery.refetch()}
+                    className="w-fit shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : rows.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-slate-400 border border-dashed border-slate-200 rounded-xl">
+                  <Inbox className="h-7 w-7 mb-2 text-slate-300" />
+                  <p className="text-sm font-medium">No applications in this view.</p>
+                  <p className="text-xs">{search ? 'Try a different search or tab.' : 'Founder submissions will appear here.'}</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto -mx-1">
+                  <table className="w-full min-w-[720px] text-left">
+                    <thead>
+                      <tr className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
+                        <th className="w-8 px-1 pb-2">
+                          <input
+                            type="checkbox"
+                            aria-label="Select all on this page"
+                            className="accent-indigo-600"
+                            checked={rows.length > 0 && rows.every((r) => selectedBulk.includes(r.id))}
+                            onChange={(e) => setSelectedBulk(e.target.checked ? rows.map((r) => r.id) : [])}
+                          />
+                        </th>
+                        <th className="px-2 pb-2">Applicant / Company</th>
+                        <th className="px-2 pb-2">Stage</th>
+                        <th className="px-2 pb-2">Sector</th>
+                        <th className="px-2 pb-2">Location</th>
+                        <th className="px-2 pb-2">Potential</th>
+                        <th className="px-2 pb-2">Evidence</th>
+                        <th className="px-2 pb-2">Status</th>
+                        <th className="px-2 pb-2 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {rows.map((a) => {
+                        const sc = statusChip(a.status);
+                        const tier = a.automated_screening_tier ? TIER_POTENTIAL[a.automated_screening_tier] : null;
+                        return (
+                          <tr
+                            key={a.id}
+                            onClick={() => setSelectedId(a.id)}
+                            className={cn(
+                              'cursor-pointer text-xs hover:bg-slate-50 transition-colors',
+                              selectedId === a.id && 'bg-indigo-50/60 hover:bg-indigo-50/60'
+                            )}
+                          >
+                            <td className="px-1 py-2.5" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                aria-label={`Select ${a.company_name}`}
+                                className="accent-indigo-600"
+                                checked={selectedBulk.includes(a.id)}
+                                onChange={() => toggleBulk(a.id)}
+                              />
+                            </td>
+                            <td className="px-2 py-2.5">
+                              <div className="flex items-center gap-2.5">
+                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-[10px] font-black text-white">
+                                  {initials(a.company_name)}
+                                </span>
+                                <div className="min-w-0">
+                                  <div className="font-bold text-slate-900 truncate">{a.company_name}</div>
+                                  <div className="text-[10px] text-slate-400 truncate">
+                                    Founded by {a.founder_name || '—'}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-2 py-2.5">
+                              <span className={cn(chip, 'bg-indigo-50 text-indigo-700 border-indigo-200 font-semibold normal-case')}>
+                                {prettify(a.declared_stage || a.inferred_stage)}
+                              </span>
+                            </td>
+                            <td className="px-2 py-2.5 text-slate-600">{a.sector || '—'}</td>
+                            <td className="px-2 py-2.5 text-slate-600">{a.country || a.location || '—'}</td>
+                            <td className="px-2 py-2.5">
+                              {tier ? (
+                                <span className={cn(chip, tier.cls)} title="ML screening lane — attention routing, not a verdict on the company">
+                                  {tier.label}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-400">Unscreened</span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="tabular-nums font-semibold text-slate-700 w-8">
+                                  {Math.round(a.evidence_confidence_score)}%
+                                </span>
+                                <span className="h-1.5 w-12 rounded-full bg-slate-100 overflow-hidden">
+                                  <span
+                                    className={cn(
+                                      'block h-full rounded-full',
+                                      TONE_BAR[evidenceLevel(a.evidence_confidence_score)?.tone ?? 'gap']
+                                    )}
+                                    style={{ width: `${Math.max(0, Math.min(100, a.evidence_confidence_score))}%` }}
+                                  />
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-2 py-2.5">
+                              <span className={cn(chip, sc.cls)}>{sc.label}</span>
+                            </td>
+                            <td className="px-2 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
+                              <Link
+                                href={`/accelerator/applications/${a.id}`}
+                                className="inline-block rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-700 transition"
+                              >
+                                Review
+                              </Link>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Pagination footer */}
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-[11px] text-slate-400">
+                  {rowCount > 0
+                    ? `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, rowCount)} of ${rowCount.toLocaleString()} applications`
+                    : 'No applications'}
                 </p>
-                <div className="grid grid-cols-1 gap-1.5">
-                  {EVIDENCE_CHECKLIST.map((item) => {
-                    const checked = evidenceSelectedItems[item.id];
-                    return (
-                      <label
-                        key={item.id}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                    className="rounded-lg border border-slate-200 p-1 text-slate-500 disabled:opacity-40 hover:bg-slate-50"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  {pageWindow(page, totalPages).map((p, i) =>
+                    p === '…' ? (
+                      <span key={`gap-${i}`} className="px-1 text-[11px] text-slate-400">…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setPage(p)}
                         className={cn(
-                          'flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors',
-                          checked
-                            ? 'bg-emerald-500/5 border-emerald-500/40'
-                            : 'bg-neutral-950/60 border-neutral-800 hover:border-neutral-700'
+                          'min-w-[26px] rounded-lg border px-1.5 py-1 text-[11px] font-bold tabular-nums transition',
+                          p === page
+                            ? 'bg-indigo-600 border-indigo-600 text-white'
+                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                         )}
                       >
-                        <span
-                          className={cn(
-                            'mt-0.5 w-4 h-4 shrink-0 rounded-[4px] border flex items-center justify-center transition-colors',
-                            checked
-                              ? 'bg-emerald-500 border-emerald-500 text-neutral-950'
-                              : 'border-neutral-600 bg-neutral-900 text-transparent'
+                        {p}
+                      </button>
+                    )
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                    className="rounded-lg border border-slate-200 p-1 text-slate-500 disabled:opacity-40 hover:bg-slate-50"
+                    aria-label="Next page"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            {/* Candidate dossier (selected row) */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm min-w-0 space-y-4">
+              {selectedId == null ? (
+                <p className="text-xs text-slate-400 py-10 text-center">
+                  Select an application to preview its dossier.
+                </p>
+              ) : (
+                <>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-sm font-black text-white">
+                        {initials(selectedRow?.company_name ?? detail?.company_name)}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-base font-black text-slate-900 truncate">
+                            {selectedRow?.company_name ?? detail?.company_name ?? `Application #${selectedId}`}
+                          </h3>
+                          {selectedRow && (
+                            <span className={cn(chip, statusChip(selectedRow.status).cls)}>
+                              {statusChip(selectedRow.status).label}
+                            </span>
                           )}
-                        >
-                          <Check className="w-3 h-3" />
-                        </span>
-                        <span className="text-neutral-300 select-none flex-1">
-                          {item.label}
-                        </span>
-                        <input
-                          type="checkbox"
-                          className="sr-only"
-                          checked={checked}
-                          onChange={(e) =>
-                            setEvidenceSelectedItems((prev) => ({
-                              ...prev,
-                              [item.id]: e.target.checked,
-                            }))
-                          }
-                        />
-                      </label>
+                        </div>
+                        <p className="text-[11px] text-slate-400">
+                          Application #{selectedId}
+                          {selectedRow?.submitted_at ? ` · Submitted ${formatDateTime(selectedRow.submitted_at)}` : ''}
+                          {/* server-computed; omitted rather than shown as 0 when no timestamp exists */}
+                          {selectedRow?.aging_days != null ? ` · ${selectedRow.aging_days}d waiting` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(null)}
+                      className="rounded-lg border border-slate-200 p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+                      title="Back to list"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Snapshot */}
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Snapshot</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                      <SnapField label="Stage" value={prettify(startupProfile.declared_stage || selectedRow?.declared_stage || selectedRow?.inferred_stage)} />
+                      <SnapField label="Sector" value={startupProfile.sector_tags ? String(startupProfile.sector_tags).split(',')[0].trim() : (selectedRow?.sector ?? '—')} />
+                      <SnapField label="Location" value={startupProfile.incorporation_country || selectedRow?.country || '—'} />
+                      <SnapField label="Funding" value={money(startupProfile.total_funding_raised_usd) ?? '—'} />
+                      <SnapField label="Team Size" value={startupProfile.team_size != null ? String(startupProfile.team_size) : '—'} />
+                      <SnapField
+                        label="Website"
+                        value={startupProfile.website || '—'}
+                        href={startupProfile.website || undefined}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Selection Assessment — evidence levels, never verdicts */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                        Selection Assessment
+                      </p>
+                      <Link
+                        href={`/accelerator/applications/${selectedId}`}
+                        className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 inline-flex items-center gap-1"
+                      >
+                        View full analysis <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    </div>
+                    {assessment == null ? (
+                      <p className="text-xs text-slate-400 rounded-xl border border-dashed border-slate-200 p-3">
+                        {assessmentQuery.isLoading ? 'Loading assessment…' : 'No ML assessment yet — run screening from the review queue.'}
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {(
+                          [
+                            ['Founder', assessment.founder_score],
+                            ['Problem', assessment.problem_score],
+                            ['Product', assessment.product_score],
+                            ['Traction', assessment.traction_score],
+                            ['Market', assessment.market_score],
+                            ['Team', assessment.team_score],
+                            ['Program Fit', assessment.overall_program_fit],
+                            ['Evidence Quality', assessment.evidence_confidence],
+                          ] as Array<[string, number]>
+                        ).map(([label, score]) => {
+                          const lvl = evidenceLevel(score);
+                          return (
+                            <div key={label} className="flex items-center gap-2">
+                              <span className="w-24 shrink-0 text-[11px] font-semibold text-slate-600">{label}</span>
+                              {lvl && <span className={cn(chip, TONE_CHIP[lvl.tone], 'w-28 justify-center')}>{lvl.label}</span>}
+                              <span className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                <span
+                                  className={cn('block h-full rounded-full', TONE_BAR[lvl?.tone ?? 'gap'])}
+                                  style={{ width: `${Math.max(0, Math.min(100, Number(score) || 0))}%` }}
+                                />
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Why this deserves attention */}
+                  {assessment && (
+                    <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-3 space-y-1.5">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-indigo-700">
+                        Why this application deserves your attention
+                      </p>
+                      {(assessment.bull_case ?? []).slice(0, 5).map((b, i) => (
+                        <p key={`bull-${i}`} className="flex items-start gap-2 text-[11px] text-slate-700">
+                          <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600 mt-0.5" />
+                          {b.point}
+                        </p>
+                      ))}
+                      {(assessment.risk_flags ?? []).slice(0, 3).map((r, i) => (
+                        <p key={`risk-${i}`} className="flex items-start gap-2 text-[11px] text-slate-700">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600 mt-0.5" />
+                          {r.risk}
+                        </p>
+                      ))}
+                      <p className="text-[10px] text-slate-400 pt-1">
+                        ML-surfaced evidence signals. A human reviewer makes every decision.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Actions — human pipeline moves through the audited engine */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-indigo-200 bg-indigo-50/50 text-indigo-700 hover:bg-indigo-50"
+                      disabled={!advanceTarget || transitionMutation.isPending}
+                      onClick={() => advanceTarget && transitionMutation.mutate(advanceTarget.status)}
+                      title={advanceTarget ? `Move to ${advanceTarget.label}` : 'No forward transition available'}
+                    >
+                      {advanceTarget ? prettify(advanceTarget.label) : 'Advance'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      disabled={evidenceMutation.isPending}
+                      onClick={() => evidenceMutation.mutate([selectedId])}
+                    >
+                      Request Evidence
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      disabled={!allowedSlugs.includes('DEFERRED') || transitionMutation.isPending}
+                      onClick={() => transitionMutation.mutate('DEFERRED')}
+                      title={allowedSlugs.includes('DEFERRED') ? 'Park on hold via the workflow engine' : 'Hold is not a legal transition from the current stage'}
+                    >
+                      Hold
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-rose-200 bg-white text-rose-600 hover:bg-rose-50"
+                      disabled={!allowedSlugs.includes('REJECTED') || transitionMutation.isPending}
+                      onClick={() => transitionMutation.mutate('REJECTED')}
+                      title={allowedSlugs.includes('REJECTED') ? 'Record rejection via the workflow engine' : 'Rejection is not a legal transition from the current stage'}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                  <Link href={`/accelerator/applications/${selectedId}`} className="block">
+                    <Button size="sm" className="w-full bg-slate-900 hover:bg-slate-800 text-white">
+                      Open Full Analysis
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </section>
+          </div>
+        </div>
+
+        {/* ── Right rail ───────────────────────────────────────────────────── */}
+        <div className="space-y-6 min-w-0">
+          {/* Attention Required */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-black text-slate-900">Attention Required</h2>
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-black text-white tabular-nums">
+                {summaryBusy ? '·' : attentionOpen}
+              </span>
+            </div>
+            <ul className="divide-y divide-slate-100">
+              {attentionRows.map((r) => {
+                const Icon = r.icon;
+                return (
+                  <li key={r.label}>
+                    <Link href={r.href} className="flex items-center gap-2.5 py-2 group">
+                      <span className={cn('inline-flex h-6 w-6 items-center justify-center rounded-lg border', r.tone)}>
+                        <Icon className="h-3 w-3" />
+                      </span>
+                      <span className="flex-1 text-xs font-semibold text-slate-700 group-hover:text-indigo-700 truncate">
+                        {r.label}
+                      </span>
+                      <span className="text-xs font-black text-slate-900 tabular-nums">
+                        {summaryBusy ? '—' : r.value}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="text-[10px] text-slate-400 mt-2">
+              Server-side lanes — an application can appear in more than one. They route attention;
+              they never decide admissions.
+            </p>
+          </section>
+
+          {/* Quick Actions — narrative tabs over the selected candidate */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-sm font-black text-slate-900 mb-3">Quick Actions</h2>
+            <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1 mb-3 text-[11px] font-bold">
+              {(
+                [
+                  ['summary', 'Summary'],
+                  ['claims', 'Claims & Evidence'],
+                  ['risks', 'Risks & Unknowns'],
+                ] as const
+              ).map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setQaTab(k)}
+                  className={cn(
+                    'flex-1 rounded-lg px-1.5 py-1 transition-colors',
+                    qaTab === k ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {selectedId == null ? (
+              <p className="text-xs text-slate-400">Select an application to see its summary.</p>
+            ) : qaTab === 'summary' ? (
+              <div className="space-y-2">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {assessment?.recommendation_reasoning ||
+                    (assessmentQuery.isLoading
+                      ? 'Loading assessment…'
+                      : `${selectedRow?.company_name ?? 'This company'} has no ML assessment yet — run screening to extract evidence signals.`)}
+                </p>
+                {assessment && (
+                  <p className="text-[10px] text-slate-400">
+                    Advisory only: recommendation “{prettify(assessment.overall_recommendation)}” is an ML
+                    suggestion with {Math.round((assessment.recommendation_confidence ?? 0) * 100)}% evidence
+                    confidence — the decision stays with a human reviewer.
+                  </p>
+                )}
+                <Link href={`/accelerator/applications/${selectedId}`}>
+                  <Button size="sm" variant="outline" className="w-full border-indigo-200 bg-indigo-50/50 text-indigo-700 hover:bg-indigo-50">
+                    Open full analysis
+                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            ) : qaTab === 'claims' ? (
+              <div className="space-y-2">
+                {graph ? (
+                  <>
+                    <div className="grid grid-cols-4 gap-1.5 text-center">
+                      {[
+                        ['Total', graph.summary.total, 'text-slate-900'],
+                        ['Verified', graph.summary.verified, 'text-emerald-600'],
+                        ['Open', graph.summary.unverified, 'text-amber-600'],
+                        ['Contradicted', graph.summary.contradicted, 'text-rose-600'],
+                      ].map(([label, v, tone]) => (
+                        <div key={String(label)} className="rounded-lg border border-slate-200 bg-slate-50 py-1.5">
+                          <div className={cn('text-sm font-black tabular-nums', tone as string)}>{v as number}</div>
+                          <div className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">{label as string}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {graph.claims.slice(0, 3).map((c) => (
+                      <p key={c.id} className="text-[11px] text-slate-600 leading-snug">
+                        <span className="font-bold">{c.statement}</span>{' '}
+                        <span className="text-slate-400">— {prettify(c.verification_status)}</span>
+                      </p>
+                    ))}
+                  </>
+                ) : (
+                  <p className="text-xs text-slate-400">
+                    {graphQuery.isLoading ? 'Loading claims…' : 'No claims extracted for this application yet.'}
+                  </p>
+                )}
+                <Link href={`/accelerator/applications/${selectedId}`}>
+                  <Button size="sm" variant="outline" className="w-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+                    View full graph
+                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {(assessment?.risk_flags ?? []).length === 0 ? (
+                  <p className="text-xs text-slate-400">
+                    {assessment ? 'No risk flags were raised for this application.' : 'No assessment available yet.'}
+                  </p>
+                ) : (
+                  (assessment?.risk_flags ?? []).slice(0, 5).map((r, i) => (
+                    <p key={`qa-risk-${i}`} className="flex items-start gap-2 text-[11px] text-slate-600">
+                      <AlertTriangle
+                        className={cn(
+                          'h-3.5 w-3.5 shrink-0 mt-0.5',
+                          r.severity === 'HIGH' || r.severity === 'CRITICAL' ? 'text-rose-600' : 'text-amber-600'
+                        )}
+                      />
+                      <span>
+                        <span className="font-semibold">{r.risk}</span>
+                        <span className="block text-[10px] text-slate-400">{r.mitigation || r.evidence}</span>
+                      </span>
+                    </p>
+                  ))
+                )}
+              </div>
+            )}
+          </section>
+
+          {/* Evidence Graph summary for the selected candidate */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-black text-slate-900">Evidence Graph</h2>
+              {selectedId != null && (
+                <Link
+                  href={`/accelerator/applications/${selectedId}`}
+                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700"
+                >
+                  View full graph
+                </Link>
+              )}
+            </div>
+            {selectedId == null || graph == null ? (
+              <p className="text-xs text-slate-400">
+                {selectedId == null
+                  ? 'Select an application to inspect its claims.'
+                  : graphQuery.isLoading
+                    ? 'Loading claims…'
+                    : 'No claims extracted yet — they appear after ML screening.'}
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {graph.claims
+                  .slice()
+                  .sort((a, b) => (a.verification_status === 'contradicted' ? -1 : 1) - (b.verification_status === 'contradicted' ? -1 : 1))
+                  .slice(0, 4)
+                  .map((c) => {
+                    const tone =
+                      c.verification_status === 'verified'
+                        ? { label: 'Verified', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+                        : c.verification_status === 'contradicted'
+                          ? { label: 'Inconsistent', cls: 'bg-rose-50 text-rose-600 border-rose-200' }
+                          : c.verification_status === 'partially_verified'
+                            ? { label: 'Partly verified', cls: 'bg-sky-50 text-sky-700 border-sky-200' }
+                            : { label: 'Needs verification', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
+                    return (
+                      <li key={c.id} className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-slate-800 truncate">{c.statement}</p>
+                          <p className="text-[10px] text-slate-400 uppercase tracking-wider">{prettify(c.category)}</p>
+                        </div>
+                        <span className={cn(chip, tone.cls, 'shrink-0')}>{tone.label}</span>
+                      </li>
                     );
                   })}
-                </div>
+              </ul>
+            )}
+          </section>
 
-                <label className="block space-y-1.5 pt-2">
-                  <span className="text-neutral-300 font-medium">
-                    Accompanying message to founder <span className="text-neutral-500">(optional)</span>
-                  </span>
-                  <textarea
-                    rows={3}
-                    value={evidenceRequestText}
-                    onChange={(e) => setEvidenceRequestText(e.target.value)}
-                    placeholder="Add any context, deadlines, or custom evidence requests here…"
-                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-white text-xs focus:border-emerald-500 outline-none resize-none"
-                  />
-                </label>
-              </div>
-
-              <div className="flex items-center justify-between pt-3 border-t border-neutral-800">
-                <p className="text-[10px] text-neutral-500">
-                  {Object.values(evidenceSelectedItems).filter(Boolean).length} item(s) selected
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setShowEvidenceModal(false);
-                      resetEvidenceForm();
-                    }}
-                    className="text-xs"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    disabled={
-                      (Object.values(evidenceSelectedItems).filter(Boolean).length === 0 &&
-                        !evidenceRequestText.trim()) ||
-                      requestEvidenceMutation.isPending
-                    }
-                    onClick={() => {
-                      // Build structured items[] from the checklist plus one
-                      // custom entry for the free-form text if present.
-                      const structuredItems: Array<{ type: string; description: string }> = [];
-                      EVIDENCE_CHECKLIST.forEach((it) => {
-                        if (evidenceSelectedItems[it.id] && it.id !== 'custom') {
-                          structuredItems.push({ type: it.id, description: it.label });
-                        }
-                      });
-                      if (evidenceRequestText.trim()) {
-                        structuredItems.push({
-                          type: evidenceSelectedItems.custom ? 'custom' : 'message',
-                          description: evidenceRequestText.trim(),
-                        });
-                      }
-                      requestEvidenceMutation.mutate({
-                        applicationId: selectedAppId!,
-                        items: structuredItems,
-                        message: evidenceRequestText.trim(),
-                      });
-                    }}
-                    className="text-xs bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-40"
-                  >
-                    <HelpCircle className="w-3.5 h-3.5 mr-1" />
-                    {requestEvidenceMutation.isPending ? 'Dispatching…' : 'Dispatch Request Loop'}
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* ── Application wizard modal ─────────────────────────────────────────── */}
-      <AnimatePresence>
-        {showApplyWizard && activeProgram && (
-          <DynamicApplicationWizard
-            program={activeProgram}
-            onClose={() => setShowApplyWizard(false)}
-            onSuccess={() => {
-              setShowApplyWizard(false);
-              refetchApplications();
-              refetchPipeline();
-              navigateTab('pipeline');
-            }}
-          />
-        )}
-      </AnimatePresence>
+          {/* Recent Activity */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
+              <Activity className="h-4 w-4 text-indigo-600" /> Recent Activity
+            </h2>
+            {activity.length === 0 ? (
+              <p className="text-xs text-slate-400">
+                {appsQuery.isLoading ? 'Loading activity…' : 'No recent activity — applications and workflow events appear here as the pool moves.'}
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {activity.map((entry) => (
+                  <li key={entry.key} className="flex items-start gap-2.5">
+                    <span
+                      className={cn(
+                        'mt-1 h-2 w-2 shrink-0 rounded-full',
+                        entry.kind === 'event' ? 'bg-indigo-500' : 'bg-slate-300'
+                      )}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-slate-800 truncate">{entry.title}</p>
+                      <p className="text-[10px] text-slate-400 truncate">{entry.detail}</p>
+                    </div>
+                    <span className="text-[10px] text-slate-400 shrink-0 tabular-nums">
+                      {mounted ? relativeTime(entry.ts) : '—'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      </div>
     </div>
   );
+}
+
+// ── Local helper components ──────────────────────────────────────────────────
+
+function DeltaBadge({ pct: p, prevName }: { pct?: number | null; prevName?: string | null }) {
+  const title = prevName ? `vs “${prevName}” (previous program)` : 'No previous cohort baseline available';
+  if (p == null) {
+    return (
+      <span className="text-[11px] font-semibold text-slate-400 tabular-nums" title={title}>
+        — <span className="font-medium text-slate-400">vs last cohort</span>
+      </span>
+    );
+  }
+  const up = p > 0;
+  const flat = p === 0;
+  return (
+    <span
+      className={cn(
+        'text-[11px] font-bold tabular-nums',
+        flat ? 'text-slate-400' : up ? 'text-emerald-600' : 'text-rose-500'
+      )}
+      title={title}
+    >
+      {flat ? '→' : up ? '↑' : '↓'}
+      {Math.abs(p)}% <span className="font-medium text-slate-400">vs last cohort</span>
+    </span>
+  );
+}
+
+function SnapField({ label, value, href }: { label: string; value: string; href?: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">{label}</p>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-semibold text-indigo-600 hover:underline truncate block"
+        >
+          {value.replace(/^https?:\/\//, '')}
+        </a>
+      ) : (
+        <p className="text-xs font-semibold text-slate-800 truncate">{value}</p>
+      )}
+    </div>
+  );
+}
+
+function StatCardSkeleton() {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="h-9 w-9 rounded-xl bg-slate-200 animate-pulse" />
+      <div className="h-7 w-14 rounded bg-slate-200 animate-pulse mt-3" />
+      <div className="h-3 w-24 rounded bg-slate-100 animate-pulse mt-2" />
+    </div>
+  );
+}
+
+function FunnelSkeleton() {
+  return (
+    <div className="flex items-start gap-4 overflow-x-auto pb-1">
+      {Array.from({ length: 7 }).map((_, i) => (
+        <div key={i} className="flex flex-col items-center gap-2 min-w-[92px]">
+          <div className="h-9 w-9 rounded-xl bg-slate-200 animate-pulse" />
+          <div className="h-3 w-20 rounded bg-slate-100 animate-pulse" />
+          <div className="h-6 w-10 rounded bg-slate-200 animate-pulse" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Page-number window: 1 … cur-1 cur cur+1 … last */
+function pageWindow(cur: number, total: number): Array<number | '…'> {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: Array<number | '…'> = [1];
+  if (cur > 3) pages.push('…');
+  for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p);
+  if (cur < total - 2) pages.push('…');
+  pages.push(total);
+  return pages;
 }

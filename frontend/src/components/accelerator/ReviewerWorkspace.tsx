@@ -107,7 +107,7 @@ export function ReviewerWorkspace({
   >([
     {
       sender: 'ai',
-      text: 'Admissions Copilot active. Ask me why an applicant was recommended, what downside risks exist, or to cross-examine claimed metrics.\n\nNote: Responses are generated from structured application data — not a live AI model.',
+      text: 'Admissions Copilot active. Ask me why an applicant was recommended, what downside risks exist, or to cross-examine claimed metrics.\n\nNote: Responses are generated from structured application data — not a live ML model.',
     },
   ]);
   const [copilotLoading, setCopilotLoading] = React.useState(false);
@@ -433,19 +433,22 @@ export function ReviewerWorkspace({
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                     <FileText className="w-4 h-4 text-blue-400" />
-                    Structured Claim Extraction &amp; Evidence Graph
+                    Structured Claims &amp; Evidence Graph
                   </h3>
                   <Badge
                     variant="outline"
                     className="text-neutral-400 text-[10px] border-neutral-700 font-mono"
                   >
-                    {applicationDetail.claims?.length ?? 0} Extracted Claims
+                    {applicationDetail.claims?.length ?? 0} Claims recorded
                   </Badge>
                 </div>
 
                 {(applicationDetail.claims?.length ?? 0) === 0 ? (
                   <p className="text-xs text-neutral-500">
-                    No claims extracted yet. Upload documents to trigger the claim extraction engine.
+                    No claims recorded on this application. Filing a document
+                    records that it was filed — nothing in this deployment reads
+                    the contents of a file, so a claim enters the ledger when a
+                    person puts it there.
                   </p>
                 ) : (
                   <div className="space-y-3">

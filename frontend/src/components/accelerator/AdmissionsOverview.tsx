@@ -107,7 +107,7 @@ export function AdmissionsOverview({
           {
             label: 'Avg Program Fit',
             val: avgFit !== null ? `${avgFit}%` : '—',
-            sub: 'Thesis calibration',
+            sub: 'Selection Framework calibration',
           },
           {
             label: 'Avg Evidence Confidence',

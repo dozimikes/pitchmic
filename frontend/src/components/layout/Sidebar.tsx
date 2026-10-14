@@ -4,7 +4,6 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  Mic,
   Home,
   HandCoins,
   Lightbulb,
@@ -30,7 +29,6 @@ import {
   FileText,
   Award,
   CheckSquare,
-  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
@@ -54,35 +52,35 @@ interface MenuItem {
   section: 'main' | 'manage' | 'account' | 'venture' | 'fundraising';
 }
 
+// Each entry is a route that exists and renders. Hash anchors that pointed at
+// tab ids no page has, and badges asserting state nobody queried ("Live",
+// "Active", "GDPR"), are deliberately gone — a sidebar item is a promise that
+// clicking it lands somewhere real.
 const ADMIN_MENU: MenuItem[] = [
-  { href: '/admin', label: 'Overview & Telemetry', icon: Activity, section: 'main', badge: 'Live' },
-  { href: '/admin#users', label: 'User Directory', icon: Users, section: 'main' },
-  { href: '/investors', label: 'Investor OS', icon: Briefcase, section: 'main', badge: 'VC' },
-  { href: '/accelerator', label: 'Cohort Pipeline', icon: Layers, section: 'main', badge: 'Batches' },
-  { href: '/intelligence#api-keys', label: 'Enterprise API Keys', icon: Key, section: 'main' },
-  { href: '/admin#audit', label: 'Audit Logs & NDPR', icon: ShieldCheck, section: 'manage', badge: 'GDPR' },
+  { href: '/admin', label: 'Overview & Telemetry', icon: Activity, section: 'main' },
+  { href: '/accelerator', label: 'Accelerator Workspace', icon: Layers, section: 'main' },
+  { href: '/investors', label: 'Investor OS', icon: Briefcase, section: 'main' },
+  { href: '/intelligence', label: 'Enterprise Intelligence', icon: Key, section: 'main' },
   { href: '/analytics', label: 'Platform Analytics', icon: BarChart3, section: 'manage' },
   { href: '/settings', label: 'Admin Settings', icon: Settings, section: 'account' },
 ];
 
+// The accelerator role sees the selection workspace and its own account
+// surfaces — nothing else. Links into the investor, startup or offers
+// dashboards used to sit here under accelerator-flavoured labels, which let a
+// program operator walk into another tenant's product surface from the menu.
+// The accelerator workspace renders its own navigation, so this list matters
+// when the operator is on a shared page (messages, profile, settings).
 const ACCELERATOR_MENU: MenuItem[] = [
-  // Major #5 — removed duplicate "/accelerator" entry. The route is already the
-  // landing page for this role; sub-navigation is done via hash tabs, and all
-  // tab hash entries share an active highlight via pathname.startsWith('/accelerator').
-  { href: '/accelerator#triage', label: 'Applicant Triage', icon: Mic, section: 'main', badge: 'Active' },
-  { href: '/accelerator#rubric', label: '7-Pillar Scoring', icon: Award, section: 'main' }, // Minor #15 — 7 actual rubric dims
-  { href: '/accelerator#voting', label: 'Committee Votes', icon: CheckSquare, section: 'main' },
-  { href: '/accelerator#sync', label: 'CRM & Ingestion Sync', icon: RefreshCw, section: 'main', badge: 'API' },
-  // Critical #3 — accelerator-relevant relabelling of shared routes. Pages themselves
-  // still render role-gated content, but the sidebar taxonomy is now correct for
-  // accelerator/cohort operators (no VC/investor jargon).
-  { href: '/investors', label: 'Partner VC Network', icon: Briefcase, section: 'main' },
-  { href: '/newsfeed', label: 'Cohort & Alumni Radar', icon: Home, section: 'manage' },
-  { href: '/offers', label: 'Batch Placement Offers', icon: HandCoins, section: 'manage' },
-  { href: '/dataroom', label: 'Founder DataRoom Uploads', icon: FolderLock, section: 'manage' },
+  { href: '/accelerator', label: 'Selection Overview', icon: Layers, section: 'main' },
+  { href: '/accelerator/applications', label: 'Applications', icon: FileText, section: 'main' },
+  { href: '/accelerator/review-queue', label: 'Review Queue', icon: CheckSquare, section: 'main' },
+  { href: '/accelerator/decision-room', label: 'Decision Room', icon: Award, section: 'main' },
+  { href: '/accelerator/settings', label: 'Program Configuration', icon: Settings, section: 'main' },
   { href: '/messages', label: 'Inbound Messages', icon: MessageSquare, section: 'manage' },
-  { href: '/profile/edit', label: 'Accelerator Profile', icon: User, section: 'account' },
-  { href: '/settings', label: 'Settings', icon: Settings, section: 'account' },
+  { href: '/notifications', label: 'Notifications', icon: Bell, section: 'manage' },
+  { href: '/profile/edit', label: 'Your Profile', icon: User, section: 'account' },
+  { href: '/settings', label: 'Account Settings', icon: Settings, section: 'account' },
 ];
 
 const INVESTOR_MENU: MenuItem[] = [
@@ -156,6 +154,24 @@ export function Sidebar({
     manage: allowedItems.filter((i) => i.section === 'manage' || i.section === 'fundraising'),
     account: allowedItems.filter((i) => i.section === 'account'),
   };
+
+  // The nav item that owns the deepest matching route. A plain
+  // startsWith(href) lit up every ancestor entry, so with several
+  // /accelerator/* links in play the workspace root highlighted on all of them.
+  const activeHref = React.useMemo(() => {
+    if (!pathname) return null;
+    let best: string | null = null;
+    for (const item of allowedItems) {
+      const path = item.href.split('?')[0].split('#')[0];
+      if (pathname === path || pathname.startsWith(path + '/')) {
+        if (!best || path.length > best.length) best = path;
+      }
+    }
+    return best;
+  }, [allowedItems, pathname]);
+
+  const isItemActive = (href: string) =>
+    activeHref === href.split('?')[0].split('#')[0];
 
   return (
     <aside
@@ -306,7 +322,7 @@ export function Sidebar({
             {isAdminMode
               ? 'Platform Governance'
               : isAccelerator
-              ? 'Cohort Management'
+              ? 'Selection Workspace'
               : isInvestor
               ? 'Diligence & Dealflow'
               : 'Venture'}
@@ -314,17 +330,12 @@ export function Sidebar({
         )}
         <ul className="space-y-1">
           {groupedItems.main.map((item) => {
-            const itemPath = item.href.split('?')[0];
-            const isExact = item.href === '/newsfeed' || item.href === '/company';
-            const isActive = isExact
-              ? pathname === itemPath
-              : pathname?.startsWith(itemPath);
             return (
               <SidebarItem
                 key={item.label}
                 item={item}
                 collapsed={collapsed}
-                isActive={isActive}
+                isActive={isItemActive(item.href)}
               />
             );
           })}
@@ -339,7 +350,7 @@ export function Sidebar({
                   {isAdminMode
                     ? 'System & Audit'
                     : isAccelerator
-                    ? 'Dealflow Syndicate'
+                    ? 'Communication'
                     : isInvestor
                     ? 'Portfolio & Returns'
                     : 'Fundraising'}
@@ -348,17 +359,12 @@ export function Sidebar({
             )}
             <ul className="space-y-1">
               {groupedItems.manage.map((item) => {
-                const itemPath = item.href.split('?')[0];
-                const isExact = item.href === '/newsfeed';
-                const isActive = isExact
-                  ? pathname === itemPath
-                  : pathname?.startsWith(itemPath);
                 return (
                   <SidebarItem
                     key={item.label}
                     item={item}
                     collapsed={collapsed}
-                    isActive={isActive}
+                    isActive={isItemActive(item.href)}
                   />
                 );
               })}
@@ -380,7 +386,7 @@ export function Sidebar({
               key={item.href}
               item={item}
               collapsed={collapsed}
-              isActive={pathname?.startsWith(item.href)}
+              isActive={isItemActive(item.href)}
             />
           ))}
         </ul>

@@ -248,7 +248,7 @@ export function InvestorROIDashboard({ startupId, startupName, investmentAmount 
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} />
               <YAxis tickFormatter={(v) => `${v}×`} tick={{ fontSize: 11, fill: '#64748b' }} />
-              <Tooltip formatter={(v: number) => [`${v}×`, '']} />
+              <Tooltip formatter={(v: unknown) => [`${v}×`, '']} />
               <Legend />
               <Area
                 type="monotone"
@@ -295,7 +295,7 @@ export function InvestorROIDashboard({ startupId, startupName, investmentAmount 
               <XAxis dataKey="sim" hide />
               <YAxis tickFormatter={(v) => `${v}×`} tick={{ fontSize: 10, fill: '#94a3b8' }} width={32} />
               <Tooltip
-                formatter={(v: number) => [`${v}×`, 'Return']}
+                formatter={(v: unknown) => [`${v}×`, 'Return']}
                 labelFormatter={(l) => `Simulation #${l}`}
               />
               <Bar dataKey="return" radius={[2, 2, 0, 0]}>

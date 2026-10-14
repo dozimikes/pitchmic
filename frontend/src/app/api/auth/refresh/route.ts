@@ -8,7 +8,8 @@ const PROD = process.env.NODE_ENV === 'production';
 
 export async function POST(request: Request) {
   try {
-    const existingRefresh = cookies().get('pm_refresh')?.value;
+    const cookieStore = await cookies();
+    const existingRefresh = cookieStore.get('pm_refresh')?.value;
     let refresh: string | undefined = existingRefresh;
     try {
       const body = await request.json();
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     }
 
     if (data.access) {
-      cookies().set({
+      cookieStore.set({
         httpOnly: false, // must be readable by js-cookie for Authorization header injection
         secure: PROD,
         sameSite: 'lax',
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
       });
     }
     if (data.refresh) {
-      cookies().set({
+      cookieStore.set({
         httpOnly: true, // server-only
         secure: PROD,
         sameSite: 'lax',

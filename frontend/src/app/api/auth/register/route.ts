@@ -62,9 +62,10 @@ export async function POST(request: Request) {
 
     const tokens = data.tokens ?? {};
     const user = data.user;
+    const cookieStore = await cookies();
 
     if (tokens.refresh) {
-      cookies().set({
+      cookieStore.set({
         ...COOKIE_HTTPONLY,
         name: 'pm_refresh',
         value: tokens.refresh,
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
       });
     }
     if (tokens.access) {
-      cookies().set({
+      cookieStore.set({
         ...COOKIE_BASE,
         name: 'pm_access',
         value: tokens.access,
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
     }
     if (user) {
       // pm_user is readable by JS so the client can hydrate auth state
-      cookies().set({
+      cookieStore.set({
         ...COOKIE_BASE,
         httpOnly: false,
         name: 'pm_user',

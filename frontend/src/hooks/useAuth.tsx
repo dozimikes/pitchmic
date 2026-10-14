@@ -15,6 +15,22 @@ import {
 
 const ACTIVE_ROLE_COOKIE = 'pm_active_role';
 
+/**
+ * The page a user should land on right after authenticating, based on their
+ * account role. Accelerator operators must always enter their dashboard —
+ * never the founder/investor newsfeed.
+ */
+export function getDefaultLandingPath(user: User | null | undefined): string {
+  switch (user?.role) {
+    case UserRole.ACCELERATOR:
+      return '/accelerator';
+    case UserRole.ADMIN:
+      return '/admin';
+    default:
+      return '/newsfeed';
+  }
+}
+
 interface AuthState {
   user: User | null;
   activeRole: UserRole;
@@ -62,6 +78,38 @@ function isPublicPath(pathname: string | null): boolean {
   return false;
 }
 
+const VALID_ROLES = new Set<UserRole>([
+  UserRole.STARTUP,
+  UserRole.INVESTOR,
+  UserRole.ACCELERATOR,
+  UserRole.ADMIN,
+]);
+
+/**
+ * Whether this account may view a dashboard other than its own. Read only from
+ * the flags the server placed on the session payload — never a hardcoded email
+ * address, never the build environment. This governs which console the UI
+ * renders; the API decides what data any request may actually touch.
+ */
+function maySwitchRole(user: User | null | undefined): boolean {
+  if (!user) return false;
+  return !!user.is_superuser || !!user.is_staff || user.role === UserRole.ADMIN;
+}
+
+/**
+ * The role saved in the cookie is a preference, not a grant. It is honoured
+ * only when it is the account's own role, or when the account is staff and the
+ * switcher is legitimately available. Anyone hand-editing the cookie to claim
+ * another role lands back on the role the server issued.
+ */
+function resolveActiveRole(user: User | null | undefined, savedRole?: string): UserRole {
+  const own = VALID_ROLES.has(user?.role as UserRole)
+    ? (user?.role as UserRole)
+    : UserRole.STARTUP;
+  if (!savedRole || !VALID_ROLES.has(savedRole as UserRole) || savedRole === own) return own;
+  return maySwitchRole(user) ? (savedRole as UserRole) : own;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = React.useState<AuthState>({
     user: null,
@@ -77,19 +125,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const access = Cookies.get(ACCESS_TOKEN_COOKIE);
         const rawUser = Cookies.get(USER_COOKIE);
-        const savedRole = Cookies.get(ACTIVE_ROLE_COOKIE) as UserRole | undefined;
-        const validRoles = new Set([UserRole.STARTUP, UserRole.INVESTOR, UserRole.ACCELERATOR, UserRole.ADMIN]);
+        const savedRole = Cookies.get(ACTIVE_ROLE_COOKIE);
 
         if (access && rawUser) {
           const user: User = JSON.parse(rawUser);
-          // Ensure superuser flags are immediate for superuser accounts
-          if (user.email === 'dozimikes@gmail.com' || user.role === UserRole.ADMIN) {
-            user.is_superuser = true;
-            user.is_staff = true;
-          }
-          const effectiveRole = savedRole && validRoles.has(savedRole)
-            ? savedRole
-            : (user.role || UserRole.STARTUP);
+          const effectiveRole = resolveActiveRole(user, savedRole);
 
           setState({
             user,
@@ -141,9 +181,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const redirect = encodeURIComponent(pathname ?? '/newsfeed');
       router.replace(`/sign-in?next=${redirect}`);
     } else if (token && (pathname === '/sign-in' || pathname?.startsWith('/sign-up'))) {
-      router.replace('/newsfeed');
+      router.replace(getDefaultLandingPath(state.user));
     }
-  }, [state.initialized, pathname, router]);
+  }, [state.initialized, state.user, pathname, router]);
 
   const login = React.useCallback(
     (tokens: AuthTokens, user: User) => {
@@ -178,11 +218,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setActiveRole = React.useCallback((role: UserRole) => {
+    if (role !== state.user?.role && !maySwitchRole(state.user)) return;
     Cookies.set(ACTIVE_ROLE_COOKIE, role, { expires: 30, path: '/' });
     setState((prev) => ({ ...prev, activeRole: role }));
-  }, []);
+  }, [state.user]);
 
   const toggleRole = React.useCallback(() => {
+    if (!maySwitchRole(state.user)) return;
     setState((prev) => {
       let nextRole: UserRole;
       if (prev.activeRole === UserRole.STARTUP) {
@@ -197,13 +239,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       Cookies.set(ACTIVE_ROLE_COOKIE, nextRole, { expires: 30, path: '/' });
       return { ...prev, activeRole: nextRole };
     });
-  }, []);
+  }, [state.user]);
 
   const isAuthenticated = !!state.user && !!Cookies.get(ACCESS_TOKEN_COOKIE);
-  const isSuperUser = !!state.user?.is_superuser || state.user?.role === UserRole.ADMIN || !!state.user?.is_staff || state.user?.email === 'dozimikes@gmail.com';
+  // Every flag below is derived from what the server said about this account.
+  const isSuperUser = maySwitchRole(state.user);
   const isAdmin = state.user?.role === UserRole.ADMIN || isSuperUser;
-  // Expose switcher for superusers, staff, admins, or in development mode
-  const canSwitchRole = isSuperUser || isAdmin || !!state.user?.is_staff || state.user?.email === 'dozimikes@gmail.com' || process.env.NODE_ENV === 'development';
+  const canSwitchRole = isSuperUser;
 
   // Active role determines the active dashboard mode
   const isStartup = state.activeRole === UserRole.STARTUP;
@@ -246,11 +288,11 @@ export function useAuth() {
     if (ctx) return;
     try {
       const rawUser = Cookies.get(USER_COOKIE);
-      const savedRole = Cookies.get(ACTIVE_ROLE_COOKIE) as UserRole | undefined;
+      const savedRole = Cookies.get(ACTIVE_ROLE_COOKIE);
       if (rawUser) {
-        const parsed = JSON.parse(rawUser);
+        const parsed = JSON.parse(rawUser) as User;
         setUser(parsed);
-        setActiveRoleState(savedRole || parsed.role || UserRole.STARTUP);
+        setActiveRoleState(resolveActiveRole(parsed, savedRole));
       }
     } catch {
       /* ignore */
@@ -295,11 +337,13 @@ export function useAuth() {
   }, []);
 
   const setActiveRole = React.useCallback((role: UserRole) => {
+    if (role !== user?.role && !maySwitchRole(user)) return;
     Cookies.set(ACTIVE_ROLE_COOKIE, role, { expires: 30, path: '/' });
     setActiveRoleState(role);
-  }, []);
+  }, [user]);
 
   const toggleRole = React.useCallback(() => {
+    if (!maySwitchRole(user)) return;
     setActiveRoleState((prev) => {
       let nextRole: UserRole;
       if (prev === UserRole.STARTUP) {
@@ -314,13 +358,13 @@ export function useAuth() {
       Cookies.set(ACTIVE_ROLE_COOKIE, nextRole, { expires: 30, path: '/' });
       return nextRole;
     });
-  }, []);
+  }, [user]);
 
   if (ctx) return ctx;
 
-  const isSuperUser = !!user?.is_superuser || user?.role === UserRole.ADMIN || !!user?.is_staff || user?.email === 'dozimikes@gmail.com';
+  const isSuperUser = maySwitchRole(user);
   const isAdmin = user?.role === UserRole.ADMIN || isSuperUser;
-  const canSwitchRole = isSuperUser || isAdmin || !!user?.is_staff || user?.email === 'dozimikes@gmail.com' || process.env.NODE_ENV === 'development';
+  const canSwitchRole = isSuperUser;
 
   return {
     user,

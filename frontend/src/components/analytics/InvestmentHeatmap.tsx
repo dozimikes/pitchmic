@@ -171,7 +171,7 @@ export function InvestmentHeatmap() {
                   tick={{ fontSize: 10, fill: '#64748b' }}
                   width={90}
                 />
-                <Tooltip formatter={(v: number) => [v, 'Startups']} />
+                <Tooltip formatter={(v: unknown) => [String(v), 'Startups']} />
                 <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                   {industryData.map((_, idx) => (
                     <Cell key={idx} fill={getBarColor(idx)} />
@@ -236,7 +236,7 @@ export function InvestmentHeatmap() {
                     tickFormatter={(v) => v.slice(5)}
                   />
                   <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                  <Tooltip formatter={(v: number) => [v, 'Offers']} />
+                  <Tooltip formatter={(v: unknown) => [String(v), 'Offers']} />
                   <Line
                     type="monotone"
                     dataKey="offers"

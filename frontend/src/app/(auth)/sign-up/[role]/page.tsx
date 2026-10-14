@@ -44,7 +44,7 @@ import {
   type InvestorSignUpInput,
 } from '@/lib/validators';
 import { UserRole } from '@/lib/types';
-import { useAuth, signUpWithPassword } from '@/hooks/useAuth';
+import { useAuth, signUpWithPassword, getDefaultLandingPath } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import type { ApiError } from '@/lib/api';
 
@@ -86,7 +86,7 @@ function SignUpPageInner() {
   const router = useRouter();
   const params = useParams<{ role: string }>();
   const searchParams = useSearchParams();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
 
   const roleParam = (params?.role ?? 'startup').toLowerCase();
   const role: Role = roleParam === 'investor' ? 'investor' : 'startup';
@@ -159,9 +159,9 @@ function SignUpPageInner() {
 
   React.useEffect(() => {
     if (isAuthenticated) {
-      router.replace('/newsfeed');
+      router.replace(getDefaultLandingPath(user));
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, user]);
 
   const isStartupRole = role === 'startup';
 
@@ -204,7 +204,7 @@ function SignUpPageInner() {
       }
       const { tokens, user } = await signUpWithPassword(payload);
       login(tokens, user);
-      router.push('/newsfeed');
+      router.push(getDefaultLandingPath(user));
     } catch (err) {
       const error = err as ApiError;
       if (error.errors) {

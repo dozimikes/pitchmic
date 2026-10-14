@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import {
   Users,
@@ -35,7 +35,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 16 },
   show: (i: number) => ({
     opacity: 1,

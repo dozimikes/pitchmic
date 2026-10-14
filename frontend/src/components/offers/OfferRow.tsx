@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import {
   DollarSign,
   Percent,
@@ -73,7 +73,7 @@ export interface OfferRowProps {
   onToggleCompare?: (offerId: string) => void;
 }
 
-const rowVariants = {
+const rowVariants: Variants = {
   hidden: { opacity: 0, y: 12 },
   show: (i: number) => ({
     opacity: 1,

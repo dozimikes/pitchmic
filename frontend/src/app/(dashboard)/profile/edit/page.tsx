@@ -606,7 +606,7 @@ function Field({
 }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor={(children as React.ReactElement).props.id}>
+      <Label htmlFor={(children as React.ReactElement<{ id?: string }>).props.id}>
         {label}
         {required && <span className="ml-0.5 text-red-500">*</span>}
       </Label>

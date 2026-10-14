@@ -26,7 +26,7 @@ import {
   Sparkles,
   Layers,
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, getDefaultLandingPath } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -236,7 +236,7 @@ export function Navbar({
 
           {/* Logo is shown on marketing OR on mobile in dashboard mode */}
           <Link
-            href={isAuthenticated ? '/newsfeed' : '/'}
+            href={isAuthenticated ? getDefaultLandingPath(user) : '/'}
             className={cn(
               'flex items-center',
               variant === 'dashboard' && 'md:hidden'

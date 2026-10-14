@@ -24,6 +24,28 @@ interface Particle {
   duration: number;
 }
 
+const PARTICLE_COUNT = 40;
+
+/** mulberry32. The particle field is decorative, but it is server-rendered too,
+ *  so it cannot call Math.random(): the two renders would disagree and React
+ *  would abandon hydration of every span. Math.imul is exactly specified in
+ *  ECMAScript, which Math.sin is not. */
+function createDeterministicRandom(seed: number) {
+  let state = seed | 0;
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let a = Math.imul(state ^ (state >>> 15), 1 | state);
+    a = (a + Math.imul(a ^ (a >>> 7), 61 | a)) ^ a;
+    return ((a ^ (a >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Fixed to 3 decimals so the server's HTML string and the client's prop
+ *  serialize identically instead of differing in float formatting. */
+function round(value: number) {
+  return Math.round(value * 1000) / 1000;
+}
+
 export function MarketingShell({
   children,
   className,
@@ -34,13 +56,14 @@ export function MarketingShell({
   const pathname = usePathname();
 
   const particles = React.useMemo<Particle[]>(() => {
-    return Array.from({ length: 40 }, (_, i) => ({
+    const next = createDeterministicRandom(0x9e3779b9);
+    return Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
       id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 6 + 2,
-      delay: Math.random() * 8,
-      duration: Math.random() * 10 + 8,
+      x: round(next() * 100),
+      y: round(next() * 100),
+      size: round(next() * 6 + 2),
+      delay: round(next() * 8),
+      duration: round(next() * 10 + 8),
     }));
   }, []);
 

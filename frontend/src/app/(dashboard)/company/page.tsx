@@ -12,7 +12,7 @@ import {
   Award,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ProfileUpdateSchema, type ProfileUpdateInput } from '@/lib/validators';
 import { UserRole } from '@/lib/types';
@@ -95,8 +95,8 @@ export default function VentureIntelligencePage() {
     formState: { errors, isDirty },
   } = useForm<Extract<ProfileUpdateInput, { role: 'startup' }>>({
     // TODO: narrow ProfileUpdateSchema per role to remove cast
-    resolver: zodResolver(ProfileUpdateSchema) as unknown as ReturnType<
-      typeof zodResolver<Extract<ProfileUpdateInput, { role: 'startup' }>>
+    resolver: zodResolver(ProfileUpdateSchema) as unknown as Resolver<
+      Extract<ProfileUpdateInput, { role: 'startup' }>
     >,
     defaultValues: { role: UserRole.STARTUP },
   });
@@ -817,23 +817,26 @@ export default function VentureIntelligencePage() {
                             Sample data — connect the venture-intelligence engine or add your own assessments.
                           </div>
                         )}
-                        {list.map(([key, score]) => (
+                        {list.map(([key, score]) => {
+                          const s = Number(score ?? 0);
+                          return (
                           <div key={key} className="space-y-1">
                             <div className="flex items-center justify-between text-xs">
                               <span className="font-semibold text-slate-700 capitalize">{key as string} Maturity</span>
-                              <span className="font-bold text-slate-900 tabular-nums">{score}/100</span>
+                              <span className="font-bold text-slate-900 tabular-nums">{s}/100</span>
                             </div>
                             <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
                               <div
                                 className={cn(
                                   'h-full rounded-full transition-all duration-500',
-                                  score >= 75 ? 'bg-emerald-500' : score >= 60 ? 'bg-brand-orange-500' : 'bg-amber-500'
+                                  s >= 75 ? 'bg-emerald-500' : s >= 60 ? 'bg-brand-orange-500' : 'bg-amber-500'
                                 )}
-                                style={{ width: `${score}%` }}
+                                style={{ width: `${s}%` }}
                               />
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </>
                     );
                   })()}

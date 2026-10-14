@@ -54,7 +54,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="min-h-screen bg-background font-sans antialiased text-slate-900">
+      {/* Browser extensions (e.g. Grammarly's `cz-shortcut-listen`) add attributes
+          to <body> before hydration; this element only, so child mismatches still
+          fail loudly. */}
+      <body
+        className="min-h-screen bg-background font-sans antialiased text-slate-900"
+        suppressHydrationWarning
+      >
         <Providers>{children}</Providers>
       </body>
     </html>

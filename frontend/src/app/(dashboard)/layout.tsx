@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Loader2, Mic } from 'lucide-react';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,7 +14,12 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { initialized, isAuthenticated } = useAuth();
+
+  // The accelerator renders its own full Intelligence OS shell (sidebar + header),
+  // so it must not be wrapped in DashboardShell — otherwise two sidebars stack.
+  const isAcceleratorRoute = pathname?.startsWith('/accelerator');
 
   React.useEffect(() => {
     if (initialized && !isAuthenticated) {
@@ -45,26 +50,30 @@ export default function DashboardLayout({
     return null;
   }
 
-  return (
-    <DashboardShell>
-      <Suspense
-        fallback={
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="h-80 animate-pulse bg-slate-100 border-slate-200">
-                <div className="aspect-[16/9] w-full bg-slate-200" />
-                <div className="space-y-3 p-5">
-                  <div className="h-4 w-3/4 rounded bg-slate-200" />
-                  <div className="h-3 w-full rounded bg-slate-200" />
-                  <div className="h-3 w-5/6 rounded bg-slate-200" />
-                </div>
-              </Card>
-            ))}
-          </div>
-        }
-      >
-        {children}
-      </Suspense>
-    </DashboardShell>
+  const content = (
+    <Suspense
+      fallback={
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="h-80 animate-pulse bg-slate-100 border-slate-200">
+              <div className="aspect-[16/9] w-full bg-slate-200" />
+              <div className="space-y-3 p-5">
+                <div className="h-4 w-3/4 rounded bg-slate-200" />
+                <div className="h-3 w-full rounded bg-slate-200" />
+                <div className="h-3 w-5/6 rounded bg-slate-200" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
   );
+
+  if (isAcceleratorRoute) {
+    return content;
+  }
+
+  return <DashboardShell>{content}</DashboardShell>;
 }

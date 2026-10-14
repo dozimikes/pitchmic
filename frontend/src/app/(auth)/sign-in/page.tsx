@@ -33,7 +33,7 @@ import {
 import { Badge } from '@/components/ui/Badge';
 import { Separator } from '@/components/ui/Separator';
 import { SignInSchema, type SignInInput } from '@/lib/validators';
-import { useAuth, signInWithPassword } from '@/hooks/useAuth';
+import { useAuth, signInWithPassword, getDefaultLandingPath } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import type { ApiError } from '@/lib/api';
 
@@ -42,7 +42,7 @@ function SignInPageInner() {
   const searchParams = useSearchParams();
   const next = searchParams.get('next');
   const sessionExpired = searchParams.get('session_expired') === '1';
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const [showPassword, setShowPassword] = React.useState(false);
   const [serverError, setServerError] = React.useState<string | null>(null);
 
@@ -63,9 +63,9 @@ function SignInPageInner() {
 
   React.useEffect(() => {
     if (isAuthenticated) {
-      router.replace(next ? decodeURIComponent(next) : '/newsfeed');
+      router.replace(next ? decodeURIComponent(next) : getDefaultLandingPath(user));
     }
-  }, [isAuthenticated, router, next]);
+  }, [isAuthenticated, router, next, user]);
 
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null);
@@ -75,7 +75,7 @@ function SignInPageInner() {
         password: values.password,
       });
       login(tokens, user);
-      router.push(next ? decodeURIComponent(next) : '/newsfeed');
+      router.push(next ? decodeURIComponent(next) : getDefaultLandingPath(user));
     } catch (err) {
       const error = err as ApiError;
       if (error.status === 401 || error.status === 400) {

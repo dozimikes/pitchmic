@@ -1,0 +1,219 @@
+# =====================================================================
+# PitchMic — Render Blueprint
+#
+# Defines all services for deployment on Render.
+# https://render.com/docs/blueprint-spec
+#
+# Services:
+#   - backend      Web service  (Django + Uvicorn)
+#   - frontend     Web service  (Next.js)
+#   - ml-service   Web service  (FastAPI + XGBoost)
+#   - celery-worker Worker      (Celery)
+#   - celery-beat   Worker      (Celery Beat)
+#   - postgres      Managed DB  (PostgreSQL 16)
+#   - redis         Private     (Redis 7)
+#
+# Usage:
+#   Push render.yaml to your repo root, then connect the repo in the
+#   Render dashboard and select "Blueprint" as the deploy type.
+# =====================================================================
+
+databases:
+  - name: pitchmic-postgres
+    databaseName: pitchmic
+    user: pitchmic
+    plan: free                   # upgrade to starter/standard for production
+    ipAllowList: []              # empty = Render services only
+
+services:
+  # ---------- Redis (private service) ----------
+  - type: redis
+    name: pitchmic-redis
+    plan: free                   # upgrade for production
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+  # ---------- Django Backend ----------
+  - type: web
+    name: pitchmic-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: >-
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             uvicorn config.asgi:application
+               --host 0.0.0.0 --port $PORT
+               --workers 4 --log-level info"
+    # Use the production stage of the multi-stage Dockerfile
+    dockerBuildTarget: production
+    plan: starter                # minimum for Django + Uvicorn
+    healthCheckPath: /api/v1/health/
+    autoDeploy: true
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true      # Render generates a random value on first deploy
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"   # replace with your custom domain after setup
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://pitchmic-frontend.onrender.com"   # update after frontend deploys
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pitchmic-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: pitchmic-redis
+          type: redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: pitchmic-redis
+          type: redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          name: pitchmic-redis
+          type: redis
+          property: connectionString
+      - key: ML_SERVICE_URL
+        fromService:
+          name: pitchmic-ml-service
+          type: web
+          property: host           # resolved at deploy time
+      - key: ML_API_KEY
+        generateValue: true
+      - key: FRONTEND_BASE_URL
+        value: "https://pitchmic-frontend.onrender.com"  # update after frontend deploys
+      - key: DEFAULT_FROM_EMAIL
+        value: noreply@pitchmic.app
+      # --- Optional: uncomment and set these in the Render dashboard ---
+      # - key: OPENAI_API_KEY
+      #   sync: false
+      # - key: PAYSTACK_SECRET_KEY
+      #   sync: false
+      # - key: SENTRY_DSN
+      #   sync: false
+
+  # ---------- Next.js Frontend ----------
+  - type: web
+    name: pitchmic-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    dockerBuildTarget: production
+    plan: starter
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: NEXT_PUBLIC_API_BASE_URL
+        value: "https://pitchmic-backend.onrender.com/api/v1"  # update with real backend URL
+      - key: NEXT_PUBLIC_APP_URL
+        value: "https://pitchmic-frontend.onrender.com"
+      - key: NEXT_PUBLIC_APP_ENV
+        value: production
+      # - key: NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+      #   sync: false
+
+  # ---------- ML Service (FastAPI + XGBoost) ----------
+  - type: web
+    name: pitchmic-ml-service
+    runtime: docker
+    dockerfilePath: ./ml/Dockerfile
+    dockerContext: ./ml
+    plan: starter                # XGBoost needs at least 512 MB RAM
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: MODEL_PATH
+        value: /app/models
+      - key: REDIS_URL
+        fromService:
+          name: pitchmic-redis
+          type: redis
+          property: connectionString
+      - key: ML_API_KEY
+        fromService:
+          name: pitchmic-backend
+          type: web
+          envVarKey: ML_API_KEY
+
+  # ---------- Celery Worker ----------
+  - type: worker
+    name: pitchmic-celery-worker
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerBuildTarget: production
+    dockerCommand: celery -A config worker --loglevel=info -Q default,ml --concurrency=4
+    plan: starter
+    autoDeploy: true
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        fromService:
+          name: pitchmic-backend
+          type: web
+          envVarKey: SECRET_KEY
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pitchmic-postgres
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: pitchmic-redis
+          type: redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          name: pitchmic-redis
+          type: redis
+          property: connectionString
+
+  # ---------- Celery Beat ----------
+  - type: worker
+    name: pitchmic-celery-beat
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerBuildTarget: production
+    dockerCommand: >-
+      celery -A config beat --loglevel=info
+        --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    plan: starter
+    autoDeploy: true
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        fromService:
+          name: pitchmic-backend
+          type: web
+          envVarKey: SECRET_KEY
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pitchmic-postgres
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: pitchmic-redis
+          type: redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          name: pitchmic-redis
+          type: redis
+          property: connectionString

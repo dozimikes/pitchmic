@@ -1,0 +1,93 @@
+# =====================================================================
+# Caddy v2 — PitchMic PRODUCTION reverse proxy
+# SEC-029: Production Caddyfile with TLS, security headers, and no debug.
+#
+# Usage:
+#   Set CADDY_SITE_ADDRESS to your real chosen domain (e.g. yourdomain.com)
+#   Caddy will automatically obtain and renew TLS certificates via ACME.
+#
+# To use: mount this file instead of Caddyfile in docker-compose.prod.yml
+# =====================================================================
+
+{
+    # auto_https is ON by default in production (no override needed)
+    # Remove the debug block entirely — never run debug in production
+    email {$CADDY_ACME_EMAIL:-admin@yourdomain.com}
+}
+
+{$CADDY_SITE_ADDRESS:-localhost} {
+
+    # ---- Global security headers ----------------------------------------
+    header {
+        # SEC-026: Content Security Policy
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        # HSTS: 1 year, include subdomains, preload-ready
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Remove server fingerprinting headers
+        -Server
+        -X-Powered-By
+    }
+
+    # ---- Request limits -------------------------------------------------
+    request_body {
+        max_size 50MB
+    }
+
+    # ---- Health probe (Caddy answers directly) --------------------------
+    handle /health {
+        respond "OK" 200
+    }
+
+    # ---- Django API + Admin + static/media ------------------------------
+    handle /api/v1/* {
+        reverse_proxy {$DJANGO_ORIGIN:-http://backend:8000}
+    }
+    handle /api/auth/* {
+        reverse_proxy {$DJANGO_ORIGIN:-http://backend:8000}
+    }
+    handle /api/schema/* {
+        reverse_proxy {$DJANGO_ORIGIN:-http://backend:8000}
+    }
+    handle /api/docs/* {
+        reverse_proxy {$DJANGO_ORIGIN:-http://backend:8000}
+    }
+
+    # SEC-018: Django admin is proxied through Caddy.
+    # Add IP restrictions here or via an identity-aware proxy for production.
+    # Example (uncomment and fill in your admin IP range):
+    # handle /admin/* {
+    #     @admin_allowed remote_ip 10.0.0.0/8 YOUR_OFFICE_IP/32
+    #     handle @admin_allowed {
+    #         reverse_proxy {$DJANGO_ORIGIN:-http://backend:8000}
+    #     }
+    #     respond "Forbidden" 403
+    # }
+    handle /admin/* {
+        reverse_proxy {$DJANGO_ORIGIN:-http://backend:8000}
+    }
+
+    handle /static/* {
+        reverse_proxy {$DJANGO_ORIGIN:-http://backend:8000}
+    }
+    handle /media/* {
+        reverse_proxy {$DJANGO_ORIGIN:-http://backend:8000}
+    }
+
+    # ---- WebSocket ------------------------------------------------------
+    handle /ws/* {
+        reverse_proxy {$DJANGO_ORIGIN:-http://backend:8000} {
+            header_up Upgrade {http.request.header.Upgrade}
+            header_up Connection {http.request.header.Connection}
+        }
+    }
+
+    # ---- Next.js (all remaining routes) ---------------------------------
+    handle /* {
+        reverse_proxy {$NEXTJS_ORIGIN:-http://frontend:3000}
+    }
+}

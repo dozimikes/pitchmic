@@ -1,0 +1,128 @@
+# =====================================================================
+# PitchMic — Production Docker Compose override
+# SEC-030: Override development defaults for production deployment.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# This file:
+#  - Switches build targets to "production"
+#  - Disables hot-reload and debug mode
+#  - Adds resource limits (CPU + memory)
+#  - Mounts production Caddyfile
+#  - Removes source-code volume mounts (immutable containers)
+#  - Forces NODE_ENV=production
+# =====================================================================
+name: pitchmic
+
+services:
+  caddy:
+    volumes:
+      - ./docker/caddy/Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+
+  frontend:
+    build:
+      target: production
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+    # Remove source-code bind mount — production image is immutable
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+  backend:
+    build:
+      target: production
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - DEBUG=False
+    # Remove source-code bind mount in production
+    volumes:
+      - backend_static:/app/staticfiles
+      - backend_media:/app/media
+    # Production: no --reload, explicit worker count, migrations run at startup
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput --clear &&
+             uvicorn config.asgi:application
+               --host 0.0.0.0 --port 8000
+               --workers 4
+               --log-level warning"
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+
+  celery-worker:
+    build:
+      target: production
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - DEBUG=False
+    volumes:
+      - backend_media:/app/media
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+  celery-beat:
+    build:
+      target: production
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - DEBUG=False
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+
+  postgres:
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+  redis:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  chromadb:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  ml-service:
+    build:
+      context: ./ml
+      dockerfile: Dockerfile
+    environment:
+      - MODEL_PATH=/app/models
+    volumes:
+      - ml_models:/app/models
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
